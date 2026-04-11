@@ -746,13 +746,16 @@
     function Dashboard() {
       const [activeTab, setActiveTab] = useState("Overview");
 
-      const tabContent = {
-        "Overview": <OverviewTab />,
-        "Elliott Wave": <EWTab />,
-        "ICT/SMC": <ICTTab />,
-        "Orderflow": <OrderflowTab />,
-        "Scenarios": <ScenariosTab />,
-        "Risk": <RiskTab />,
+      const renderTab = () => {
+        switch (activeTab) {
+          case "Overview": return <OverviewTab />;
+          case "Elliott Wave": return <EWTab />;
+          case "ICT/SMC": return <ICTTab />;
+          case "Orderflow": return <OrderflowTab />;
+          case "Scenarios": return <ScenariosTab />;
+          case "Risk": return <RiskTab />;
+          default: return null;
+        }
       };
 
       return (
@@ -815,7 +818,7 @@
 
           {/* Content */}
           <div style={{ maxWidth: 1400, margin: "0 auto", padding: 24 }}>
-            {tabContent[activeTab]}
+            {renderTab()}
           </div>
         </div>
       );
