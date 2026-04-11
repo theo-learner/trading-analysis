@@ -835,6 +835,9 @@
 
           {/* Content */}
           <div style={{ maxWidth: 1400, margin: "0 auto", padding: 24 }}>
+            <div style={{ color: "#4ade80", fontSize: 16, marginBottom: 16 }}>
+              [DEBUG] activeTab: {activeTab} / tabContent type: {tabContent ? typeof tabContent : "null"}
+            </div>
             {tabContent}
           </div>
         </div>
