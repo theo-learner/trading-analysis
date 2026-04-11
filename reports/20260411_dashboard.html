@@ -25,17 +25,17 @@
     const PAIRS = [
       {
         pair: "BTCUSDT",
-        price: 72874.9,
+        price: 72788,
         change24h: "+17.52%",
         bias: "신중 강세",
         biasColor: "#fbbf24",
-        rsi: { "1D": 32.83, "4H": 41.04, "1H": 59.58 },
-        cci: { "1D": 20, "4H": 20, "1H": 104.31 },
+        rsi: { "1D": 32.83, "4H": 43.97, "1H": 59.29 },
+        cci: { "1D": 20, "4H": 20, "1H": 132.08 },
         oi: "+12.3%",
         funding: "+0.012%",
         ew: {
-          primary: "Wave (ii) 또는 (b) 저점 완성, Wave (iii)/(c) 반등 전개 중",
-          alternate: "더 큰 Bear Wave 진행 중 — 현재 반등은 Corrective (x) 또는 (ii)",
+          primary: "Wave (ii) 또는 (b) 저점 완성, $68K 지지 확인 후 Wave (iii)/(c) 반등 전개 중",
+          alternate: "더 큰 Bear Wave 진행 중 — 현재 반등은 Corrective (x) 또는 (ii). $60K–65K 추가 하락 가능",
           invalidation: "$65,000 이탈 시 Primary Count 무효화",
           fibs: [
             { label: "0.382 되돌림", level: 78400 },
@@ -44,17 +44,17 @@
           ]
         },
         ict: {
-          bsl: [76000, 78500],
+          bsl: [74500, 78000],
           ssl: [68000, 65000],
-          ob: { bull: [69500, 71200], bear: [76000, 77500] },
+          ob: { bull: [69500, 71200], bear: [76000, 78000] },
           fvg: { bull: [71800, 72500], bear: [75500, 76200] },
-          premDisc: "현재가 $72,874 — Discount Zone (~0.5 이하 Fib 기준)"
+          premDisc: "현재가 $72,788 — Discount Zone. '3번째 발 지지 확인 후 롱 진입' 구간 도달"
         },
-        vrvp: { poc: 71500, lvn: [73000, 76500], hvn: [69000, 71500] },
+        vrvp: { poc: 72500, lvn: [73000, 76500], hvn: [69000, 72500] },
         orderflow: {
-          heatmap: "저항 클러스터 $74,000–76,000 / $78,000–80,000 (롱 청산 집중)",
-          cvd: "단기 누적 CVD 양전환 — 매수세 우위 확인",
-          context: "대형 스퀴즈 이후 매도 압력 해소 국면"
+          heatmap: "Short 청산 밀집 $77,000–80,000 / Long 청산 클러스터 $65,000–68,000",
+          cvd: "단기 누적 CVD 양전환 — $68K 저점에서 $72.8K까지 강한 매수세",
+          context: "H Bull 시그널(4H) 확인. 1H RSI 59 + CCI 132 — 반등 지속 중이나 74.5K 저항 근접"
         },
         scenarios: [
           {
@@ -88,17 +88,17 @@
       },
       {
         pair: "ETHUSDT",
-        price: 2243.9,
+        price: 2247,
         change24h: "+14.8%",
         bias: "약세",
         biasColor: "#f87171",
-        rsi: { "1D": 33.15, "4H": 38.94, "1H": 72.93 },
-        cci: { "1D": 20, "4H": 20, "1H": 192.65 },
+        rsi: { "1D": 33.15, "4H": 42.29, "1H": 74.67 },
+        cci: { "1D": 20, "4H": 20, "1H": 109.56 },
         oi: "+4.98%",
         funding: "-0.003%",
         ew: {
-          primary: "Large Bear Wave 3 또는 C 진행 중 — 현재 반등은 Wave 4/ii 되돌림",
-          alternate: "Double Bottom 구조 완성 후 Impulsive 상승 시작 가능성",
+          primary: "Large Bear Wave 3 또는 C 진행 중 — 현재 반등은 Wave 4/ii 되돌림. Death Cross 1D 확인",
+          alternate: "Double Bottom ($1,700–1,800) 완성 후 Impulsive 상승 시작 가능성",
           invalidation: "$2,500 돌파 시 Bear Primary Count 무효화",
           fibs: [
             { label: "0.382 되돌림", level: 2380 },
@@ -109,15 +109,15 @@
         ict: {
           bsl: [2300, 2380, 2450],
           ssl: [2100, 1900],
-          ob: { bull: [2180, 2220], bear: [2380, 2430] },
+          ob: { bull: [2100, 2200], bear: [2380, 2450] },
           fvg: { bull: [2230, 2260], bear: [2400, 2440] },
-          premDisc: "현재가 $2,243 — Equilibrium 부근 (0.5 Fib)"
+          premDisc: "현재가 $2,247 — Equilibrium 부근. 1H RSI 74.67 과매수 → 단기 되돌림 경계"
         },
         vrvp: { poc: 2200, lvn: [2280, 2350], hvn: [2150, 2220] },
         orderflow: {
-          heatmap: "저항 $2,300–2,400 강력 / 지지 $2,100–2,150",
-          cvd: "CVD 음수 유지 — 매도 우위 구조적 지속",
-          context: "Death Cross 확인 + 음수 펀딩 = 구조적 약세. OI 증가 폭 최소 (스퀴즈 한계)"
+          heatmap: "Short 청산 밀집 $2,500–2,800 / Long 청산 $1,800–2,000",
+          cvd: "1H 골든크로스 + 반등 확인. 단 H.Bear 다이버전스(1D) 존재 — 구조적 약세 유지",
+          context: "Death Cross(1D) + 음수 펀딩 + OI 최소 증가. 1H RSI 74.67 과매수로 $2,300 저항 거절 리스크"
         },
         scenarios: [
           {
@@ -151,18 +151,18 @@
       },
       {
         pair: "SOLUSDT",
-        price: 84.1,
+        price: 84.6,
         change24h: "+25.0%",
         bias: "중립",
         biasColor: "#fbbf24",
-        rsi: { "1D": 33.72, "4H": 43.46, "1H": 63.71 },
-        cci: { "1D": 20, "4H": 20, "1H": 216.60 },
+        rsi: { "1D": 33.72, "4H": 48.22, "1H": 61.83 },
+        cci: { "1D": 20, "4H": 20, "1H": 88.64 },
         oi: "+18.2%",
         funding: "+0.008%",
         ew: {
-          primary: "Wave (ii) 저점 확정 후 Wave (iii) 상승 전개 — $75–80 지지 검증 중",
-          alternate: "ABC 조정 내 B파 반등 — 추가 하락 C파 예상",
-          invalidation: "$72 이탈 시 (iii) Count 무효화",
+          primary: "Wave (ii) 저점 확정 후 Wave (iii) 상승 전개 — $80–82 지지 확인 중. 4H Bullish/Bearish Squeeze 발생",
+          alternate: "ABC 조정 내 B파 반등 — 추가 하락 C파 ($60–65) 예상",
+          invalidation: "$78 이탈 시 (iii) Count 무효화, $72 이탈 시 완전 무효화",
           fibs: [
             { label: "0.382 되돌림", level: 92 },
             { label: "0.5 되돌림", level: 97 },
@@ -174,13 +174,13 @@
           ssl: [78, 72],
           ob: { bull: [79, 82], bear: [92, 96] },
           fvg: { bull: [83, 85.5], bear: [90, 93] },
-          premDisc: "현재가 $84.1 — Fair Value Zone (0.382–0.618 Fib 사이)"
+          premDisc: "현재가 $84.6 — Fair Value Zone (0.382–0.618 Fib 사이)"
         },
         vrvp: { poc: 82, lvn: [86, 92], hvn: [78, 82] },
         orderflow: {
-          heatmap: "저항 $88–92 (다수 롱 청산) / 지지 $78–80",
-          cvd: "CVD 급격 양전환 — 대규모 시장가 매수 확인",
-          context: "OI 최대 증가 (+18.2%) — 스퀴즈 강도 최강. 하지만 CCI 216 극단적 과열"
+          heatmap: "Short 청산 $90–100 / Long 청산 $75–80. 4H Squeeze 후 방향성 결정 구간",
+          cvd: "CVD 양전환 확인. 4H RSI 48.22로 중립 — 1H RSI 61.83 반등 유지 중",
+          context: "OI 최대 증가 후 안정화. 4H Bullish/Bearish Squeeze = 변동성 확대 임박. CCI 88 이전보다 진정"
         },
         scenarios: [
           {
@@ -214,63 +214,63 @@
       },
       {
         pair: "HYPEUSDT",
-        price: 42.4,
+        price: 41.9,
         change24h: "+46.91%",
-        bias: "단기 과열",
-        biasColor: "#f59e0b",
-        rsi: { "1D": 36.09, "4H": 44.94, "1H": 76.28 },
-        cci: { "1D": -118.66, "4H": 20, "1H": 217.67 },
+        bias: "신중 강세",
+        biasColor: "#fbbf24",
+        rsi: { "1D": 36.09, "4H": 48.01, "1H": 68.25 },
+        cci: { "1D": 20, "4H": 20, "1H": 97.64 },
         oi: "+35.6%",
         funding: "+0.021%",
         ew: {
-          primary: "Wave 3 Extended 상승 중 — sub-wave ③ 고점 형성 후 ④ 조정 예상",
-          alternate: "Wave 5 마무리 단계 — 다이버전스 강화 시 조정 전환 가능",
-          invalidation: "$35 이탈 시 Wave 3 연장 Count 무효화",
+          primary: "하락 구조 이후 반등 Wave 시작. 추세선 돌파 + 1H 200일선 지지 조건 충족 시 Wave (iii) 전개",
+          alternate: "B파 반등 고점 형성 후 C파 재하락 — $37.885 SL 이탈 시 확정",
+          invalidation: "$37.885 이탈 시 Long 시나리오 전면 무효화 (차트 명시 SL)",
           fibs: [
-            { label: "0.382 조정", level: 37.5 },
-            { label: "0.5 조정", level: 35.5 },
+            { label: "1차 TP 목표", level: 45.0 },
+            { label: "2차 TP 목표", level: 47.5 },
             { label: "1.618 연장", level: 52.0 },
           ]
         },
         ict: {
-          bsl: [44, 48, 52],
-          ssl: [38, 35],
+          bsl: [44, 47, 52],
+          ssl: [37.885, 35],
           ob: { bull: [37, 39], bear: [45, 48] },
           fvg: { bull: [41, 42.5], bear: [46, 49] },
-          premDisc: "현재가 $42.4 — Premium Zone (1D 기준 과매수 구간)"
+          premDisc: "현재가 $41.9 — VRVP POC 근처. 3x Long 진입가 $41.596 (차트 명시). SL $37.885"
         },
-        vrvp: { poc: 38, lvn: [42, 46], hvn: [35, 39] },
+        vrvp: { poc: 41.5, lvn: [42, 46], hvn: [37, 41.5] },
         orderflow: {
-          heatmap: "저항 $44–48 극도 밀집 / 지지 $38–40",
-          cvd: "CVD 급등 후 둔화 징후 — 매수 모멘텀 약화 경계",
-          context: "OI +35.6% 최대 증가, 펀딩 +0.021% 과열. 1D CCI -118 vs 1H CCI 217 극단적 다이버전스"
+          heatmap: "Short 청산 집중 $45–50 (롱 TP 구간 일치) / Long 청산 $35–38 (SL 구간 일치)",
+          cvd: "4H 상승 모멘텀 확인. 1H RSI 68.25 — 이전 76대비 진정. 추가 상승 여력 존재",
+          context: "1D 차트 명시: '3x long / 진입 41.596 / SL 37.885 이하'. 조건: 추세선 돌파 + 200일선 지지 + VRVP 반근"
         },
         scenarios: [
           {
-            label: "A — 급격한 조정 (필수 냉각)",
-            prob: 55,
+            label: "A — 3x Long 시나리오 (차트 명시)",
+            prob: 50,
+            color: "#4ade80",
+            entry: "$41.596 (차트 명시 진입가)",
+            sl: "$37.885",
+            tp: ["$45.0", "$47.5", "$52.0"],
+            rr: "1:2.3"
+          },
+          {
+            label: "B — SL 이탈 후 재하락",
+            prob: 35,
             color: "#f87171",
-            entry: "Short $44–46",
-            sl: "$48.5",
-            tp: ["$38", "$35.5"],
+            entry: "Short $37–38 이탈 확인 후",
+            sl: "$40",
+            tp: ["$33", "$30"],
             rr: "1:2.5"
           },
           {
-            label: "B — $48–52 추가 상승 후 급락",
-            prob: 30,
-            color: "#fbbf24",
-            entry: "추격 금지 — $37–38 되돌림 대기",
-            sl: "$34",
-            tp: ["$44", "$48"],
-            rr: "1:2.0"
-          },
-          {
-            label: "C — 고점 유지 Grind",
+            label: "C — $43–47 박스권 횡보",
             prob: 15,
             color: "#a78bfa",
-            entry: "방향 미결정",
+            entry: "방향 확인 후 진입",
             sl: "N/A",
-            tp: ["N/A"],
+            tp: ["방향 확인 시"],
             rr: "N/A"
           }
         ]
@@ -535,26 +535,27 @@
 
           <Card>
             <SectionTitle>Market Maker 컨텍스트 — 2026-04-11</SectionTitle>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, alignItems: "start" }}>
               <div style={{ background: colors.panel, borderRadius: 6, padding: 12 }}>
-                <div style={{ color: colors.heatHigh, fontWeight: 700, marginBottom: 6 }}>Short Squeeze 완료</div>
+                <div style={{ color: colors.heatHigh, fontWeight: 700, marginBottom: 6 }}>Short Squeeze 이후 반등 지속</div>
                 <div style={{ color: colors.textSecondary, fontSize: 12, lineHeight: 1.6 }}>
-                  모든 페어에서 대규모 Short 청산 확인. HYPE +46.91%, SOL +25%, BTC +17.52% 동시 발생.
-                  OI 급증 (HYPE +35.6%, SOL +18.2%)은 신규 롱 진입을 의미.
+                  모든 페어에서 Short 청산 완료 후 반등 유지 중. BTC $68K→$72.8K, ETH $1,700→$2,247.
+                  1H CCI들이 이전 과열(100~217)에서 진정(88~132) — 추가 상승 여력 회복 중.
                 </div>
               </div>
               <div style={{ background: colors.panel, borderRadius: 6, padding: 12 }}>
-                <div style={{ color: colors.confluence, fontWeight: 700, marginBottom: 6 }}>ETH 구조적 약세</div>
+                <div style={{ color: colors.confluence, fontWeight: 700, marginBottom: 6 }}>ETH 구조적 약세 / HYPE 3x Long</div>
                 <div style={{ color: colors.textSecondary, fontSize: 12, lineHeight: 1.6 }}>
-                  ETH만 Death Cross (1D) + 음수 펀딩 + 최소 OI 증가 조합.
-                  스퀴즈 후에도 매도 우위 구조 유지. 다른 페어 대비 상대적 약세 포지션.
+                  ETH Death Cross(1D) + H.Bear 다이버전스 + 음수 펀딩. 1H RSI 74.67 과매수로 $2,300 저항 거절 리스크.
+                  반면 HYPE는 1D 차트에 명시된 3x Long 셋업 ($41.596 진입, $37.885 SL).
                 </div>
               </div>
               <div style={{ background: colors.panel, borderRadius: 6, padding: 12 }}>
-                <div style={{ color: colors.bear, fontWeight: 700, marginBottom: 6 }}>과열 경계 구간</div>
+                <div style={{ color: colors.bull, fontWeight: 700, marginBottom: 6 }}>BTC 핵심 레벨</div>
                 <div style={{ color: colors.textSecondary, fontSize: 12, lineHeight: 1.6 }}>
-                  1H CCI 100~217로 극단적 과매수. 추격매수 시 단기 조정 리스크 극대화.
-                  최적 진입은 되돌림 후 지지 확인 또는 High TF 방향 전환 시.
+                  '3번째 발 지지 확인 후 롱 진입' 구간($72K) 도달. 4H H Bull 시그널 확인.
+                  $74.5K–$75K (BSL/FVG) 돌파 시 $78K–$80K Short 청산 유동성까지 확장 가능.
+                  SL 기준: $68K 이탈 시 포지션 청산.
                 </div>
               </div>
             </div>
@@ -655,16 +656,16 @@
         {
           pair: "HYPEUSDT",
           priority: 4,
-          type: "Watch",
-          color: colors.neutral,
-          confidence: 40,
-          setup: "극단적 과열 — 조정 완료 후 재진입 대기",
-          entry: "$37–38 되돌림 후",
-          sl: "$34",
-          tp1: "$44",
-          tp2: "$48",
-          rr: "1:2.0",
-          note: "펀딩 +0.021% 과열 + 1H CCI 217. 현재가 직접 진입 금지. 조정 30–40% 후 Bull OB $37–39 확인 필수."
+          type: "Long",
+          color: colors.bull,
+          confidence: 55,
+          setup: "1D 차트 명시 3x Long 셋업 — 진입가 $41.596, SL $37.885",
+          entry: "$41.596 (차트 명시)",
+          sl: "$37.885",
+          tp1: "$45.0",
+          tp2: "$47.5",
+          rr: "1:2.3",
+          note: "조건: 추세선 돌파 + 1H 200일선 지지 + VRVP 반근 확인. 4H RSI 48 — 상승 여력 존재. SL $37.885 이하 이탈 시 즉시 포지션 청산."
         }
       ];
 
@@ -785,8 +786,9 @@
                 </div>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
-                <Badge color={colors.heatHigh}>Short Squeeze Day</Badge>
-                <Badge color={colors.bear}>1H 과열</Badge>
+                <Badge color={colors.heatHigh}>Short Squeeze 이후</Badge>
+                <Badge color={colors.neutral}>반등 지속 중</Badge>
+                <Badge color={colors.confluence}>HYPE 3x Long 셋업</Badge>
               </div>
             </div>
           </div>
