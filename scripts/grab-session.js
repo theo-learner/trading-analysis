@@ -369,23 +369,27 @@ function cleanup() {
 
 // ─── 메인 실행 ───────────────────────────────────────────────
 
-(async () => {
-  const target = process.argv[2] || 'all';
+if (require.main === module) {
+  (async () => {
+    const target = process.argv[2] || 'all';
 
-  console.log('=== Chrome 세션 추출기 (실행 중 Chrome 지원) ===');
-  console.log('Chrome을 종료하지 않아도 됩니다.\n');
+    console.log('=== Chrome 세션 추출기 (실행 중 Chrome 지원) ===');
+    console.log('Chrome을 종료하지 않아도 됩니다.\n');
 
-  try {
-    if (target === 'all') {
-      let successCount = 0;
-      for (const key of Object.keys(PLATFORMS)) {
-        if (grabSession(key)) successCount++;
+    try {
+      if (target === 'all') {
+        let successCount = 0;
+        for (const key of Object.keys(PLATFORMS)) {
+          if (grabSession(key)) successCount++;
+        }
+        console.log(`\n🎉 완료 — ${successCount}/${Object.keys(PLATFORMS).length}개 플랫폼 세션 저장됨`);
+      } else {
+        grabSession(target);
       }
-      console.log(`\n🎉 완료 — ${successCount}/${Object.keys(PLATFORMS).length}개 플랫폼 세션 저장됨`);
-    } else {
-      grabSession(target);
+    } finally {
+      cleanup();
     }
-  } finally {
-    cleanup();
-  }
-})();
+  })();
+}
+
+module.exports = { grabSession, cleanup, PLATFORMS };

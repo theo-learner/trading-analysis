@@ -4,130 +4,93 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trading Analysis Dashboard</title>
-<style>
+  <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #0b0e14; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #e8eaed; }
     button { font-family: inherit; cursor: pointer; }
-
     #nav {
       position: sticky; top: 0; z-index: 100;
       background: #131720; border-bottom: 1px solid #1e2535;
-      padding: 10px 20px;
-      display: flex; align-items: center; gap: 12px;
+      padding: 10px 20px; display: flex; align-items: center; gap: 12px;
     }
-    #nav .logo { font-size: 13px; color: #9ca3af; white-space: nowrap; }
-    #nav select {
+    .logo { font-size: 13px; color: #9ca3af; white-space: nowrap; }
+    select {
       background: #1a1f2e; color: #e8eaed;
       border: 1px solid #2a3147; border-radius: 6px;
-      padding: 6px 10px; font-size: 13px; cursor: pointer;
-      outline: none;
+      padding: 6px 10px; font-size: 13px; cursor: pointer; outline: none;
     }
-    #nav select:hover { border-color: #4ade80; }
-    #nav .nav-btn {
+    select:hover { border-color: #4ade80; }
+    .nav-btn {
       background: #1a1f2e; color: #9ca3af;
       border: 1px solid #2a3147; border-radius: 6px;
-      padding: 6px 12px; font-size: 13px;
-      transition: all 0.15s;
+      padding: 6px 12px; font-size: 13px; transition: all 0.15s;
     }
-    #nav .nav-btn:hover:not(:disabled) { background: #2a3147; color: #e8eaed; }
-    #nav .nav-btn:disabled { opacity: 0.3; cursor: default; }
-    #nav .spacer { flex: 1; }
-    #nav .count { font-size: 12px; color: #9ca3af; }
-
-    #root { min-height: calc(100vh - 49px); }
-    #status {
-      text-align: center; padding: 80px 20px;
-      font-size: 14px; color: #9ca3af;
+    .nav-btn:hover:not(:disabled) { background: #2a3147; color: #e8eaed; }
+    .nav-btn:disabled { opacity: 0.3; cursor: default; }
+    .spacer { flex: 1; }
+    .count { font-size: 12px; color: #9ca3af; }
+    #content { width: 100%; min-height: calc(100vh - 49px); }
+    #hint {
+      text-align: center; padding: 120px 20px; color: #9ca3af; font-size: 14px;
     }
-    #status .error { color: #f87171; font-size: 16px; margin-bottom: 12px; }
-    #status code {
-      display: inline-block; margin-top: 10px;
-      background: #1a1f2e; color: #60a5fa;
-      padding: 10px 16px; border-radius: 6px; font-size: 13px;
-    }
+    #hint .arrow { font-size: 32px; margin-bottom: 16px; color: #4ade80; }
+    #hint p { margin-top: 8px; }
   </style>
 </head>
 <body>
   <div id="nav">
     <span class="logo">Trading Analysis</span>
-    <button class="nav-btn" id="btn-prev">◀</button>
-    <select id="date-select"></select>
-    <button class="nav-btn" id="btn-next">▶</button>
+    <button class="nav-btn" id="btn-prev" onclick="navigate(-1)">&#9664;</button>
+    <select id="date-select" onchange="go(this.value)"></select>
+    <button class="nav-btn" id="btn-next" onclick="navigate(1)">&#9654;</button>
     <span class="spacer"></span>
     <span class="count" id="count-label"></span>
+    <button class="nav-btn" onclick="openCurrent()" style="color:#4ade80;border-color:#4ade80">새 탭으로 열기</button>
   </div>
-  <div id="root">
-    <div id="status"><p>Loading...</p></div>
+  <div id="content">
+    <div id="hint">
+      <div class="arrow">&#8593;</div>
+      <p>날짜를 선택하면 해당 대시보드 파일이 열립니다.</p>
+      <p style="margin-top:4px;font-size:12px;color:#6b7280">각 대시보드는 독립 HTML 파일입니다.</p>
+    </div>
   </div>
 
   <script>
-    let dashboards = [];  // [{date, file}, ...] 최신순
-    let currentIndex = 0;
-    let currentRoot = null;
+    const dashboards = [{"date":"2026-04-11","file":"20260411_dashboard.html"}];
+    let current = 0;
 
-    async function init() {
-      try {
-        // index.json 로드
-        const res = await fetch('./index.json');
-        if (!res.ok) throw new Error('index.json not found');
-        dashboards = await res.json();
-      } catch (e) {
-        // index.json 없으면 오늘 대시보드 직접 시도
-        const today = new Date().toISOString().slice(0,10).replace(/-/g,'');
-        dashboards = [{ date: today, file: `${today}_dashboard.html` }];
-      }
+    const sel = document.getElementById('date-select');
+    dashboards.forEach((d, i) => {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = d.date;
+      sel.appendChild(opt);
+    });
 
-      if (dashboards.length === 0) {
-        showStatus('<p>아직 생성된 대시보드가 없습니다.</p><p style="margin-top:8px">캡처 후 분석을 실행하세요: <code>npm run pipeline</code></p>');
-        return;
-      }
-
-      buildNav();
-      loadDashboard(0);
-    }
-
-    function buildNav() {
-      const select = document.getElementById('date-select');
-      select.innerHTML = '';
-      dashboards.forEach((d, i) => {
-        const opt = document.createElement('option');
-        const y = d.date.slice(0,4), m = d.date.slice(4,6), day = d.date.slice(6,8);
-        opt.value = i;
-        opt.textContent = `${y}-${m}-${day}`;
-        select.appendChild(opt);
-      });
-
-      select.addEventListener('change', e => loadDashboard(Number(e.target.value)));
-      document.getElementById('btn-prev').addEventListener('click', () => {
-        if (currentIndex > 0) loadDashboard(currentIndex - 1);
-      });
-      document.getElementById('btn-next').addEventListener('click', () => {
-        if (currentIndex < dashboards.length - 1) loadDashboard(currentIndex + 1);
-      });
-    }
-
-    function updateNavState() {
-      document.getElementById('date-select').value = currentIndex;
-      document.getElementById('btn-prev').disabled = currentIndex === 0;
-      document.getElementById('btn-next').disabled = currentIndex === dashboards.length - 1;
+    function updateNav() {
+      sel.value = current;
+      document.getElementById('btn-prev').disabled = current === 0;
+      document.getElementById('btn-next').disabled = current === dashboards.length - 1;
       document.getElementById('count-label').textContent =
-        `${currentIndex + 1} / ${dashboards.length}`;
+        (current + 1) + ' / ' + dashboards.length;
     }
 
-    function loadDashboard(index) {
-      currentIndex = index;
-      updateNavState();
-
-      const { file } = dashboards[index];
-      const rootEl = document.getElementById('root');
-      rootEl.innerHTML = `<iframe src="./${file}" style="width:100%;height:calc(100vh - 49px);border:none;" onload="this.style.opacity=1" onerror="document.getElementById('root').innerHTML='<div id=\\'status\\'><div class=\\'error\\'>파일을 불러올 수 없습니다: ${file}</div></div>'"></iframe>`;
+    function go(index) {
+      current = Number(index);
+      updateNav();
+      window.location.href = dashboards[current].file;
     }
 
-    function showStatus(html) {
-      document.getElementById('root').innerHTML = `<div id="status">${html}</div>`;
+    function navigate(dir) {
+      const next = current + dir;
+      if (next >= 0 && next < dashboards.length) go(next);
     }
 
-    init();
+    function openCurrent() {
+      window.open(dashboards[current].file, '_blank');
+    }
+
+    updateNav();
   </script>
 </body>
 </html>

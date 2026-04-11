@@ -17,6 +17,7 @@
     "capture:tv": "node scripts/capture.js --tv-only",
     "capture:orderflow": "node scripts/capture.js --orderflow-only",
     "grab-session": "node scripts/grab-session.js",
+    "grab-session:tv": "node scripts/grab-session.js tradingview",
     "grab-session:coinglass": "node scripts/grab-session.js coinglass",
     "grab-session:coinalyze": "node scripts/grab-session.js coinalyze",
     "grab-session:hyblock": "node scripts/grab-session.js hyblock",
