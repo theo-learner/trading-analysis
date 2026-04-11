@@ -85,7 +85,7 @@ run_capture() {
 # ── view.html 재생성 (날짜 목록 하드코딩 → file:// 직접 열기 가능) ─────────
 generate_index() {
   local reports_dir="$PROJECT_ROOT/reports"
-  local view_file="$reports_dir/view.html"
+  local view_file="$reports_dir/index.html"
 
   # YYYYMMDD_dashboard.html 파일을 최신순으로 수집
   local files

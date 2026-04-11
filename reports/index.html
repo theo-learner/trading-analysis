@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trading Analysis Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0b0e14; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #e8eaed; }
+    button { font-family: inherit; cursor: pointer; }
+    #nav {
+      position: sticky; top: 0; z-index: 100;
+      background: #131720; border-bottom: 1px solid #1e2535;
+      padding: 10px 20px; display: flex; align-items: center; gap: 12px;
+    }
+    .logo { font-size: 13px; color: #9ca3af; white-space: nowrap; }
+    select {
+      background: #1a1f2e; color: #e8eaed;
+      border: 1px solid #2a3147; border-radius: 6px;
+      padding: 6px 10px; font-size: 13px; cursor: pointer; outline: none;
+    }
+    select:hover { border-color: #4ade80; }
+    .nav-btn {
+      background: #1a1f2e; color: #9ca3af;
+      border: 1px solid #2a3147; border-radius: 6px;
+      padding: 6px 12px; font-size: 13px; transition: all 0.15s;
+    }
+    .nav-btn:hover:not(:disabled) { background: #2a3147; color: #e8eaed; }
+    .nav-btn:disabled { opacity: 0.3; cursor: default; }
+    .spacer { flex: 1; }
+    .count { font-size: 12px; color: #9ca3af; }
+    #content { width: 100%; min-height: calc(100vh - 49px); }
+    #hint {
+      text-align: center; padding: 120px 20px; color: #9ca3af; font-size: 14px;
+    }
+    #hint .arrow { font-size: 32px; margin-bottom: 16px; color: #4ade80; }
+    #hint p { margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div id="nav">
+    <span class="logo">Trading Analysis</span>
+    <button class="nav-btn" id="btn-prev" onclick="navigate(-1)">&#9664;</button>
+    <select id="date-select" onchange="go(this.value)"></select>
+    <button class="nav-btn" id="btn-next" onclick="navigate(1)">&#9654;</button>
+    <span class="spacer"></span>
+    <span class="count" id="count-label"></span>
+    <button class="nav-btn" onclick="openCurrent()" style="color:#4ade80;border-color:#4ade80">새 탭으로 열기</button>
+  </div>
+  <div id="content">
+    <div id="hint">
+      <div class="arrow">&#8593;</div>
+      <p>날짜를 선택하면 해당 대시보드 파일이 열립니다.</p>
+      <p style="margin-top:4px;font-size:12px;color:#6b7280">각 대시보드는 독립 HTML 파일입니다.</p>
+    </div>
+  </div>
+
+  <script>
+    const dashboards = [{"date":"2026-04-11","file":"20260411_dashboard.html"}];
+    let current = 0;
+
+    const sel = document.getElementById('date-select');
+    dashboards.forEach((d, i) => {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = d.date;
+      sel.appendChild(opt);
+    });
+
+    function updateNav() {
+      sel.value = current;
+      document.getElementById('btn-prev').disabled = current === 0;
+      document.getElementById('btn-next').disabled = current === dashboards.length - 1;
+      document.getElementById('count-label').textContent =
+        (current + 1) + ' / ' + dashboards.length;
+    }
+
+    function go(index) {
+      current = Number(index);
+      updateNav();
+      window.location.href = dashboards[current].file;
+    }
+
+    function navigate(dir) {
+      const next = current + dir;
+      if (next >= 0 && next < dashboards.length) go(next);
+    }
+
+    function openCurrent() {
+      window.open(dashboards[current].file, '_blank');
+    }
+
+    updateNav();
+  </script>
+</body>
+</html>
