@@ -1,0 +1,31 @@
+{
+  "sellButtonFound": true,
+  "buyButtonFound": true,
+  "sellButtonText": "72,690.8\nSELL",
+  "buyButtonText": "72,690.9\nBUY",
+  "mainLegendText": "B\nBitcoin / TetherUS PERPETUAL CONTRACT\n1D\nBinance\nO\n72,917.4\nH\n73,066.2\nL\n72,615.0\nC\n72,690.8\n−226.6 (−0.31%)\n72,690.8\nSELL\n0.1\n72,690.9\nBUY\nVol · BTC\n13.63 K",
+  "mainLegendLines": [
+    "B",
+    "Bitcoin / TetherUS PERPETUAL CONTRACT",
+    "1D",
+    "Binance",
+    "O",
+    "72,917.4",
+    "H",
+    "73,066.2",
+    "L",
+    "72,615.0",
+    "C",
+    "72,690.8",
+    "−226.6 (−0.31%)",
+    "72,690.8",
+    "SELL"
+  ],
+  "allLegendContainers": [
+    {
+      "index": 0,
+      "class": "legend-l31H9iuA noWrap-l31H9iuA wrappable-l31H9iuA chart-gui-wrapper__legend",
+      "text": "B\nBitcoin / TetherUS PERPETUAL CONTRACT\n1D\nBinance\nO\n72,917.4\nH\n73,066.2\nL\n72,615.0\nC\n72,690.8\n−226.6 (−0.31%)\n72,690.8\nSELL\n0.1\n72,690.9\nBUY\nVol · BT"
+    }
+  ]
+}

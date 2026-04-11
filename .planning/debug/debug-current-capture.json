@@ -1,0 +1,50 @@
+[
+  {
+    "pair": "BTCUSDT",
+    "tf": "1H",
+    "sellButtonFound": true,
+    "buyButtonFound": true,
+    "sellButtonText": "72,699.9\nSELL",
+    "buyButtonText": "72,700.0\nBUY",
+    "sellMatch": "72,699.9",
+    "buyMatch": "72,700.0",
+    "usedFallback": false,
+    "legendSellIdx": null,
+    "legendBuyIdx": null,
+    "fallbackSellText": null,
+    "fallbackBuyText": null,
+    "finalPrice": "72,699.9"
+  },
+  {
+    "pair": "BTCUSDT",
+    "tf": "4H",
+    "sellButtonFound": true,
+    "buyButtonFound": true,
+    "sellButtonText": "72,699.9\nSELL",
+    "buyButtonText": "72,700.0\nBUY",
+    "sellMatch": "72,699.9",
+    "buyMatch": "72,700.0",
+    "usedFallback": false,
+    "legendSellIdx": null,
+    "legendBuyIdx": null,
+    "fallbackSellText": null,
+    "fallbackBuyText": null,
+    "finalPrice": "72,699.9"
+  },
+  {
+    "pair": "BTCUSDT",
+    "tf": "1D",
+    "sellButtonFound": true,
+    "buyButtonFound": true,
+    "sellButtonText": "72,699.9\nSELL",
+    "buyButtonText": "72,700.0\nBUY",
+    "sellMatch": "72,699.9",
+    "buyMatch": "72,700.0",
+    "usedFallback": false,
+    "legendSellIdx": null,
+    "legendBuyIdx": null,
+    "fallbackSellText": null,
+    "fallbackBuyText": null,
+    "finalPrice": "72,699.9"
+  }
+]

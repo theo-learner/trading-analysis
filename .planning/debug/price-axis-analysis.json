@@ -1,0 +1,860 @@
+{
+  "60": {
+    "timeframe": "unknown",
+    "timestamp": "2026-04-11T04:17:16.219Z",
+    "possiblePriceLabels": [],
+    "priceAxisElements": [],
+    "priceRangeNumbers": [
+      {
+        "value": "72,835.1",
+        "class": "valueValue-l31H9iuA",
+        "childrenCount": 0,
+        "position": {
+          "x": 124.953125,
+          "y": 8
+        }
+      },
+      {
+        "value": "72,921.5",
+        "class": "valueValue-l31H9iuA",
+        "childrenCount": 0,
+        "position": {
+          "x": 197.78125,
+          "y": 8
+        }
+      },
+      {
+        "value": "72,687.7",
+        "class": "valueValue-l31H9iuA",
+        "childrenCount": 0,
+        "position": {
+          "x": 268.34375,
+          "y": 8
+        }
+      },
+      {
+        "value": "72,745.8",
+        "class": "valueValue-l31H9iuA",
+        "childrenCount": 0,
+        "position": {
+          "x": 340.828125,
+          "y": 8
+        }
+      },
+      {
+        "value": "72,745.8",
+        "class": "valueItem-l31H9iuA blockHidden-e6PF69Df",
+        "childrenCount": 2,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "72,745.8",
+        "class": "valueValue-l31H9iuA",
+        "childrenCount": 0,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "72,745.7\nSELL\n0.1\n72,745.8\nBUY",
+        "class": "container-SXMXfs_Z",
+        "childrenCount": 2,
+        "position": {
+          "x": 84,
+          "y": 28
+        }
+      },
+      {
+        "value": "72,745.7\nSELL\n0.1\n72,745.8\nBUY",
+        "class": "buttonsWrapper-SXMXfs_Z notAvailableOnMobile-SXMXfs_Z withoutBg-SXMXfs_Z",
+        "childrenCount": 2,
+        "position": {
+          "x": 84,
+          "y": 28
+        }
+      },
+      {
+        "value": "72,745.7\nSELL\n0.1\n72,745.8\nBUY",
+        "class": "sellBuyAndPresetsButtonsContainer-SXMXfs_Z",
+        "childrenCount": 1,
+        "position": {
+          "x": 89,
+          "y": 32
+        }
+      },
+      {
+        "value": "72,745.7\nSELL",
+        "class": "apply-common-tooltip button-SXMXfs_Z sellButton-SXMXfs_Z",
+        "childrenCount": 2,
+        "position": {
+          "x": 89,
+          "y": 32
+        }
+      },
+      {
+        "value": "72,745.8\nBUY",
+        "class": "apply-common-tooltip button-SXMXfs_Z buyButton-SXMXfs_Z",
+        "childrenCount": 2,
+        "position": {
+          "x": 198.21875,
+          "y": 32
+        }
+      },
+      {
+        "value": "72,711.573,585.071,838.0∅∅∅",
+        "class": "valuesWrapper-l31H9iuA blockHidden-e6PF69Df",
+        "childrenCount": 2,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "72,711.5",
+        "class": "valueItem-l31H9iuA blockHidden-e6PF69Df",
+        "childrenCount": 1,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "72,711.5",
+        "class": "valueValue-l31H9iuA apply-common-tooltip",
+        "childrenCount": 0,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "73,585.0",
+        "class": "valueItem-l31H9iuA blockHidden-e6PF69Df",
+        "childrenCount": 1,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "73,585.0",
+        "class": "valueValue-l31H9iuA apply-common-tooltip",
+        "childrenCount": 0,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "71,838.0",
+        "class": "valueItem-l31H9iuA blockHidden-e6PF69Df",
+        "childrenCount": 1,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "71,838.0",
+        "class": "valueValue-l31H9iuA apply-common-tooltip",
+        "childrenCount": 0,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "72,130.170,147.70.00.0",
+        "class": "valuesWrapper-l31H9iuA blockHidden-e6PF69Df",
+        "childrenCount": 2,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "72,130.1",
+        "class": "valueItem-l31H9iuA blockHidden-e6PF69Df",
+        "childrenCount": 1,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "72,130.1",
+        "class": "valueValue-l31H9iuA apply-common-tooltip",
+        "childrenCount": 0,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "70,147.7",
+        "class": "valueItem-l31H9iuA blockHidden-e6PF69Df",
+        "childrenCount": 1,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "70,147.7",
+        "class": "valueValue-l31H9iuA apply-common-tooltip",
+        "childrenCount": 0,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "72,859.2",
+        "class": "valuesWrapper-l31H9iuA",
+        "childrenCount": 2,
+        "position": {
+          "x": 167.859375,
+          "y": 214
+        }
+      },
+      {
+        "value": "72,859.2",
+        "class": "valueItem-l31H9iuA",
+        "childrenCount": 1,
+        "position": {
+          "x": 171.859375,
+          "y": 217.5
+        }
+      },
+      {
+        "value": "72,859.2",
+        "class": "valueValue-l31H9iuA apply-common-tooltip",
+        "childrenCount": 0,
+        "position": {
+          "x": 171.859375,
+          "y": 218
+        }
+      }
+    ],
+    "priceAxisCandidates": [],
+    "legendAnalysis": {
+      "count": 3,
+      "items": [
+        {
+          "index": 0,
+          "text": "O\n72,835.1\nH\n72,921.5\nL\n72,687.7\nC\n72,745.8\n−89.3 (−0.12%)\n72,745.7\nSELL\n0.1\n72,745.8\nBUY\nVRVP\nBB Ba",
+          "lines": [
+            "O",
+            "72,835.1",
+            "H",
+            "72,921.5",
+            "L",
+            "72,687.7",
+            "C",
+            "72,745.8"
+          ]
+        },
+        {
+          "index": 1,
+          "text": "RSI Divergence Indicator\n14\nclose\n54.17\n∅\n∅\n∅\n∅",
+          "lines": [
+            "RSI Divergence Indicator",
+            "14",
+            "close",
+            "54.17",
+            "∅",
+            "∅",
+            "∅",
+            "∅"
+          ]
+        },
+        {
+          "index": 2,
+          "text": "CCI\n20\nhlc3\n19.86",
+          "lines": [
+            "CCI",
+            "20",
+            "hlc3",
+            "19.86"
+          ]
+        }
+      ]
+    }
+  },
+  "240": {
+    "timeframe": "unknown",
+    "timestamp": "2026-04-11T04:17:25.473Z",
+    "possiblePriceLabels": [],
+    "priceAxisElements": [],
+    "priceRangeNumbers": [
+      {
+        "value": "72,835.1",
+        "class": "valueValue-l31H9iuA",
+        "childrenCount": 0,
+        "position": {
+          "x": 124.953125,
+          "y": 8
+        }
+      },
+      {
+        "value": "72,921.5",
+        "class": "valueValue-l31H9iuA",
+        "childrenCount": 0,
+        "position": {
+          "x": 197.78125,
+          "y": 8
+        }
+      },
+      {
+        "value": "72,687.7",
+        "class": "valueValue-l31H9iuA",
+        "childrenCount": 0,
+        "position": {
+          "x": 268.34375,
+          "y": 8
+        }
+      },
+      {
+        "value": "72,747.6",
+        "class": "valueValue-l31H9iuA",
+        "childrenCount": 0,
+        "position": {
+          "x": 340.828125,
+          "y": 8
+        }
+      },
+      {
+        "value": "72,747.6",
+        "class": "valueItem-l31H9iuA blockHidden-e6PF69Df",
+        "childrenCount": 2,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "72,747.6",
+        "class": "valueValue-l31H9iuA",
+        "childrenCount": 0,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "72,749.7\nSELL\n0.1\n72,749.8\nBUY",
+        "class": "container-SXMXfs_Z",
+        "childrenCount": 2,
+        "position": {
+          "x": 84,
+          "y": 28
+        }
+      },
+      {
+        "value": "72,749.7\nSELL\n0.1\n72,749.8\nBUY",
+        "class": "buttonsWrapper-SXMXfs_Z notAvailableOnMobile-SXMXfs_Z withoutBg-SXMXfs_Z",
+        "childrenCount": 2,
+        "position": {
+          "x": 84,
+          "y": 28
+        }
+      },
+      {
+        "value": "72,749.7\nSELL\n0.1\n72,749.8\nBUY",
+        "class": "sellBuyAndPresetsButtonsContainer-SXMXfs_Z",
+        "childrenCount": 1,
+        "position": {
+          "x": 89,
+          "y": 32
+        }
+      },
+      {
+        "value": "72,749.7\nSELL",
+        "class": "apply-common-tooltip button-SXMXfs_Z sellButton-SXMXfs_Z",
+        "childrenCount": 2,
+        "position": {
+          "x": 89,
+          "y": 32
+        }
+      },
+      {
+        "value": "72,749.8\nBUY",
+        "class": "apply-common-tooltip button-SXMXfs_Z buyButton-SXMXfs_Z",
+        "childrenCount": 2,
+        "position": {
+          "x": 198.21875,
+          "y": 32
+        }
+      },
+      {
+        "value": "71,827.473,188.470,466.3∅∅∅",
+        "class": "valuesWrapper-l31H9iuA blockHidden-e6PF69Df",
+        "childrenCount": 2,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "71,827.4",
+        "class": "valueItem-l31H9iuA blockHidden-e6PF69Df",
+        "childrenCount": 1,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "71,827.4",
+        "class": "valueValue-l31H9iuA apply-common-tooltip",
+        "childrenCount": 0,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "73,188.4",
+        "class": "valueItem-l31H9iuA blockHidden-e6PF69Df",
+        "childrenCount": 1,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "73,188.4",
+        "class": "valueValue-l31H9iuA apply-common-tooltip",
+        "childrenCount": 0,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "70,466.3",
+        "class": "valueItem-l31H9iuA blockHidden-e6PF69Df",
+        "childrenCount": 1,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "70,466.3",
+        "class": "valueValue-l31H9iuA apply-common-tooltip",
+        "childrenCount": 0,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "70,251.069,593.40.00.0",
+        "class": "valuesWrapper-l31H9iuA blockHidden-e6PF69Df",
+        "childrenCount": 2,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "70,251.0",
+        "class": "valueItem-l31H9iuA blockHidden-e6PF69Df",
+        "childrenCount": 1,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "70,251.0",
+        "class": "valueValue-l31H9iuA apply-common-tooltip",
+        "childrenCount": 0,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "69,593.4",
+        "class": "valueItem-l31H9iuA blockHidden-e6PF69Df",
+        "childrenCount": 1,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "69,593.4",
+        "class": "valueValue-l31H9iuA apply-common-tooltip",
+        "childrenCount": 0,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "72,561.1",
+        "class": "valuesWrapper-l31H9iuA",
+        "childrenCount": 2,
+        "position": {
+          "x": 167.859375,
+          "y": 214
+        }
+      },
+      {
+        "value": "72,561.1",
+        "class": "valueItem-l31H9iuA",
+        "childrenCount": 1,
+        "position": {
+          "x": 171.859375,
+          "y": 217.5
+        }
+      },
+      {
+        "value": "72,561.1",
+        "class": "valueValue-l31H9iuA apply-common-tooltip",
+        "childrenCount": 0,
+        "position": {
+          "x": 171.859375,
+          "y": 218
+        }
+      }
+    ],
+    "priceAxisCandidates": [],
+    "legendAnalysis": {
+      "count": 3,
+      "items": [
+        {
+          "index": 0,
+          "text": "O\n72,835.1\nH\n72,921.5\nL\n72,687.7\nC\n72,747.6\n−87.5 (−0.12%)\n72,749.7\nSELL\n0.1\n72,749.8\nBUY\nVRVP\nBB Ba",
+          "lines": [
+            "O",
+            "72,835.1",
+            "H",
+            "72,921.5",
+            "L",
+            "72,687.7",
+            "C",
+            "72,747.6"
+          ]
+        },
+        {
+          "index": 1,
+          "text": "RSI Divergence Indicator\n14\nclose\n66.43\n∅\n∅\n∅\n∅",
+          "lines": [
+            "RSI Divergence Indicator",
+            "14",
+            "close",
+            "66.43",
+            "∅",
+            "∅",
+            "∅",
+            "∅"
+          ]
+        },
+        {
+          "index": 2,
+          "text": "CCI\n20\nhlc3\n115.20",
+          "lines": [
+            "CCI",
+            "20",
+            "hlc3",
+            "115.20"
+          ]
+        }
+      ]
+    }
+  },
+  "1D": {
+    "timeframe": "unknown",
+    "timestamp": "2026-04-11T04:17:34.078Z",
+    "possiblePriceLabels": [],
+    "priceAxisElements": [],
+    "priceRangeNumbers": [
+      {
+        "value": "72,917.4",
+        "class": "valueValue-l31H9iuA",
+        "childrenCount": 0,
+        "position": {
+          "x": 124.953125,
+          "y": 8
+        }
+      },
+      {
+        "value": "73,066.2",
+        "class": "valueValue-l31H9iuA",
+        "childrenCount": 0,
+        "position": {
+          "x": 197.78125,
+          "y": 8
+        }
+      },
+      {
+        "value": "72,615.0",
+        "class": "valueValue-l31H9iuA",
+        "childrenCount": 0,
+        "position": {
+          "x": 268.34375,
+          "y": 8
+        }
+      },
+      {
+        "value": "72,750.0",
+        "class": "valueValue-l31H9iuA",
+        "childrenCount": 0,
+        "position": {
+          "x": 340.828125,
+          "y": 8
+        }
+      },
+      {
+        "value": "72,750.0",
+        "class": "valueItem-l31H9iuA blockHidden-e6PF69Df",
+        "childrenCount": 2,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "72,750.0",
+        "class": "valueValue-l31H9iuA",
+        "childrenCount": 0,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "72,749.9\nSELL\n0.1\n72,750.0\nBUY",
+        "class": "container-SXMXfs_Z",
+        "childrenCount": 2,
+        "position": {
+          "x": 84,
+          "y": 28
+        }
+      },
+      {
+        "value": "72,749.9\nSELL\n0.1\n72,750.0\nBUY",
+        "class": "buttonsWrapper-SXMXfs_Z notAvailableOnMobile-SXMXfs_Z withoutBg-SXMXfs_Z",
+        "childrenCount": 2,
+        "position": {
+          "x": 84,
+          "y": 28
+        }
+      },
+      {
+        "value": "72,749.9\nSELL\n0.1\n72,750.0\nBUY",
+        "class": "sellBuyAndPresetsButtonsContainer-SXMXfs_Z",
+        "childrenCount": 1,
+        "position": {
+          "x": 89,
+          "y": 32
+        }
+      },
+      {
+        "value": "72,749.9\nSELL",
+        "class": "apply-common-tooltip button-SXMXfs_Z sellButton-SXMXfs_Z",
+        "childrenCount": 2,
+        "position": {
+          "x": 89,
+          "y": 32
+        }
+      },
+      {
+        "value": "72,750.0\nBUY",
+        "class": "apply-common-tooltip button-SXMXfs_Z buyButton-SXMXfs_Z",
+        "childrenCount": 2,
+        "position": {
+          "x": 198.21875,
+          "y": 32
+        }
+      },
+      {
+        "value": "69,123.873,634.864,612.8∅∅∅",
+        "class": "valuesWrapper-l31H9iuA blockHidden-e6PF69Df",
+        "childrenCount": 2,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "69,123.8",
+        "class": "valueItem-l31H9iuA blockHidden-e6PF69Df",
+        "childrenCount": 1,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "69,123.8",
+        "class": "valueValue-l31H9iuA apply-common-tooltip",
+        "childrenCount": 0,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "73,634.8",
+        "class": "valueItem-l31H9iuA blockHidden-e6PF69Df",
+        "childrenCount": 1,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "73,634.8",
+        "class": "valueValue-l31H9iuA apply-common-tooltip",
+        "childrenCount": 0,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "64,612.8",
+        "class": "valueItem-l31H9iuA blockHidden-e6PF69Df",
+        "childrenCount": 1,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "64,612.8",
+        "class": "valueValue-l31H9iuA apply-common-tooltip",
+        "childrenCount": 0,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "70,686.983,501.80.00.0",
+        "class": "valuesWrapper-l31H9iuA blockHidden-e6PF69Df",
+        "childrenCount": 2,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "70,686.9",
+        "class": "valueItem-l31H9iuA blockHidden-e6PF69Df",
+        "childrenCount": 1,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "70,686.9",
+        "class": "valueValue-l31H9iuA apply-common-tooltip",
+        "childrenCount": 0,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "83,501.8",
+        "class": "valueItem-l31H9iuA blockHidden-e6PF69Df",
+        "childrenCount": 1,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "83,501.8",
+        "class": "valueValue-l31H9iuA apply-common-tooltip",
+        "childrenCount": 0,
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "value": "71,275.6",
+        "class": "valuesWrapper-l31H9iuA",
+        "childrenCount": 2,
+        "position": {
+          "x": 167.859375,
+          "y": 214
+        }
+      },
+      {
+        "value": "71,275.6",
+        "class": "valueItem-l31H9iuA",
+        "childrenCount": 1,
+        "position": {
+          "x": 171.859375,
+          "y": 217.5
+        }
+      },
+      {
+        "value": "71,275.6",
+        "class": "valueValue-l31H9iuA apply-common-tooltip",
+        "childrenCount": 0,
+        "position": {
+          "x": 171.859375,
+          "y": 218
+        }
+      }
+    ],
+    "priceAxisCandidates": [],
+    "legendAnalysis": {
+      "count": 3,
+      "items": [
+        {
+          "index": 0,
+          "text": "O\n72,917.4\nH\n73,066.2\nL\n72,615.0\nC\n72,750.0\n−167.4 (−0.23%)\n72,749.9\nSELL\n0.1\n72,750.0\nBUY\nVRVP\nBB B",
+          "lines": [
+            "O",
+            "72,917.4",
+            "H",
+            "73,066.2",
+            "L",
+            "72,615.0",
+            "C",
+            "72,750.0"
+          ]
+        },
+        {
+          "index": 1,
+          "text": "RSI Divergence Indicator\n14\nclose\n60.50\n∅\n∅\n∅\n∅",
+          "lines": [
+            "RSI Divergence Indicator",
+            "14",
+            "close",
+            "60.50",
+            "∅",
+            "∅",
+            "∅",
+            "∅"
+          ]
+        },
+        {
+          "index": 2,
+          "text": "CCI\n20\nhlc3\n131.95",
+          "lines": [
+            "CCI",
+            "20",
+            "hlc3",
+            "131.95"
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,413 @@
+{
+  "timestamp": "2026-04-11T04:09:39.042Z",
+  "fullscreen": "NO",
+  "viewport": "1920x1080",
+  "priceElements": [
+    {
+      "tag": "DIV",
+      "class": "group-BfVZxb4b lastGroup-BfVZxb4b",
+      "id": "",
+      "text": ""
+    },
+    {
+      "tag": "DIV",
+      "class": "chart-markup-table price-axis-container",
+      "id": "",
+      "text": "USDT"
+    },
+    {
+      "tag": "DIV",
+      "class": "price-axis",
+      "id": "",
+      "text": "USDT"
+    },
+    {
+      "tag": "DIV",
+      "class": "price-axis-currency-label-wrapper-y5H41VPj",
+      "id": "",
+      "text": "USDT"
+    },
+    {
+      "tag": "DIV",
+      "class": "price-axis-currency-label-y5H41VPj",
+      "id": "",
+      "text": "USDT"
+    },
+    {
+      "tag": "DIV",
+      "class": "price-axis-currency-label-text-y5H41VPj",
+      "id": "",
+      "text": "USDT"
+    },
+    {
+      "tag": "DIV",
+      "class": "price-axis-currency-label-arrow-down-y5H41VPj",
+      "id": "",
+      "text": ""
+    },
+    {
+      "tag": "DIV",
+      "class": "price-axis-currency-label-text-y5H41VPj",
+      "id": "",
+      "text": ""
+    },
+    {
+      "tag": "DIV",
+      "class": "price-axis-currency-label-text-y5H41VPj",
+      "id": "",
+      "text": ""
+    },
+    {
+      "tag": "DIV",
+      "class": "price-axis-currency-label-arrow-down-y5H41VPj",
+      "id": "",
+      "text": ""
+    },
+    {
+      "tag": "DIV",
+      "class": "price-axis-currency-label-text-y5H41VPj",
+      "id": "",
+      "text": ""
+    },
+    {
+      "tag": "DIV",
+      "class": "price-axis-currency-label-arrow-down-y5H41VPj",
+      "id": "",
+      "text": ""
+    },
+    {
+      "tag": "DIV",
+      "class": "price-axis__modeButtons price-axis__modeButtons_hidden",
+      "id": "",
+      "text": ""
+    },
+    {
+      "tag": "DIV",
+      "class": "priceScaleModeButtons-PEm49B2T",
+      "id": "",
+      "text": ""
+    },
+    {
+      "tag": "DIV",
+      "class": "priceScaleModeButtons__buttonWrapper-PEm49B2T",
+      "id": "",
+      "text": ""
+    },
+    {
+      "tag": "BUTTON",
+      "class": "priceScaleModeButton-okRV4Kjm priceScaleModeButtons__button-PEm49B2T apply-common-tooltip",
+      "id": "",
+      "text": ""
+    },
+    {
+      "tag": "DIV",
+      "class": "priceScaleModeButtons__buttonWrapper-PEm49B2T",
+      "id": "",
+      "text": ""
+    },
+    {
+      "tag": "BUTTON",
+      "class": "priceScaleModeButton-okRV4Kjm priceScaleModeButtons__button-PEm49B2T apply-common-tooltip",
+      "id": "",
+      "text": ""
+    },
+    {
+      "tag": "DIV",
+      "class": "item-l31H9iuA last-l31H9iuA blockHidden-e6PF69Df",
+      "id": "",
+      "text": ""
+    },
+    {
+      "tag": "DIV",
+      "class": "chart-markup-table price-axis-container",
+      "id": "",
+      "text": ""
+    }
+  ],
+  "legendElements": [
+    {
+      "tag": "DIV",
+      "class": "legend-l31H9iuA noWrap-l31H9iuA wrappable-l31H9iuA chart-gui-wrapper__legend",
+      "id": "",
+      "text": "O\n72,835.1\nH\n72,921.5\nL\n72,765.8\nC\n72,893.9\n+58.8 (+0.08%)\n72,893.9\nSELL\n0.1\n72,894.0\nBUY\nVRVP\nBB Ba"
+    },
+    {
+      "tag": "DIV",
+      "class": "legendMainSourceWrapper-l31H9iuA",
+      "id": "",
+      "text": "O\n72,835.1\nH\n72,921.5\nL\n72,765.8\nC\n72,893.9\n+58.8 (+0.08%)\n72,893.9\nSELL\n0.1\n72,894.0\nBUY"
+    },
+    {
+      "tag": "SPAN",
+      "class": "legendActionButton-ZR5j_8g1",
+      "id": "",
+      "text": ""
+    },
+    {
+      "tag": "DIV",
+      "class": "legend-l31H9iuA noWrap-l31H9iuA wrappable-l31H9iuA chart-gui-wrapper__legend",
+      "id": "",
+      "text": "RSI Divergence Indicator\n14\nclose\n57.26\n∅\n∅\n∅\n∅"
+    },
+    {
+      "tag": "DIV",
+      "class": "legend-l31H9iuA noWrap-l31H9iuA wrappable-l31H9iuA chart-gui-wrapper__legend",
+      "id": "",
+      "text": "CCI\n20\nhlc3\n33.50"
+    }
+  ],
+  "valueElements": [
+    {
+      "tag": "SPAN",
+      "class": "value-JQZ0HKD4",
+      "text": "BTCUSDT.P"
+    },
+    {
+      "tag": "DIV",
+      "class": "value-nkSYIvDw",
+      "text": "1m"
+    },
+    {
+      "tag": "DIV",
+      "class": "value-nkSYIvDw",
+      "text": "5m"
+    },
+    {
+      "tag": "DIV",
+      "class": "value-nkSYIvDw",
+      "text": "15m"
+    },
+    {
+      "tag": "DIV",
+      "class": "value-nkSYIvDw",
+      "text": "30m"
+    },
+    {
+      "tag": "DIV",
+      "class": "value-nkSYIvDw",
+      "text": "1h"
+    },
+    {
+      "tag": "DIV",
+      "class": "value-nkSYIvDw",
+      "text": "4h"
+    },
+    {
+      "tag": "DIV",
+      "class": "value-nkSYIvDw",
+      "text": "D"
+    },
+    {
+      "tag": "DIV",
+      "class": "value-nkSYIvDw",
+      "text": "W"
+    },
+    {
+      "tag": "DIV",
+      "class": "value-nkSYIvDw",
+      "text": "M"
+    },
+    {
+      "tag": "SPAN",
+      "class": "value-JQZ0HKD4",
+      "text": "BTCUSDT.P"
+    },
+    {
+      "tag": "DIV",
+      "class": "value-nkSYIvDw",
+      "text": "1m"
+    },
+    {
+      "tag": "DIV",
+      "class": "value-nkSYIvDw",
+      "text": "5m"
+    },
+    {
+      "tag": "DIV",
+      "class": "value-nkSYIvDw",
+      "text": "15m"
+    },
+    {
+      "tag": "DIV",
+      "class": "value-nkSYIvDw",
+      "text": "30m"
+    },
+    {
+      "tag": "DIV",
+      "class": "value-nkSYIvDw",
+      "text": "1h"
+    },
+    {
+      "tag": "DIV",
+      "class": "value-nkSYIvDw",
+      "text": "4h"
+    },
+    {
+      "tag": "DIV",
+      "class": "value-nkSYIvDw",
+      "text": "D"
+    },
+    {
+      "tag": "DIV",
+      "class": "value-nkSYIvDw",
+      "text": "W"
+    },
+    {
+      "tag": "DIV",
+      "class": "value-nkSYIvDw",
+      "text": "M"
+    },
+    {
+      "tag": "SPAN",
+      "class": "value-JQZ0HKD4",
+      "text": "BTCUSDT.P"
+    },
+    {
+      "tag": "DIV",
+      "class": "value-nkSYIvDw",
+      "text": "1m"
+    },
+    {
+      "tag": "DIV",
+      "class": "value-nkSYIvDw",
+      "text": "5m"
+    },
+    {
+      "tag": "DIV",
+      "class": "value-nkSYIvDw",
+      "text": "15m"
+    },
+    {
+      "tag": "DIV",
+      "class": "value-nkSYIvDw",
+      "text": "30m"
+    },
+    {
+      "tag": "DIV",
+      "class": "value-nkSYIvDw",
+      "text": "1h"
+    },
+    {
+      "tag": "DIV",
+      "class": "value-nkSYIvDw",
+      "text": "4h"
+    },
+    {
+      "tag": "DIV",
+      "class": "value-nkSYIvDw",
+      "text": "D"
+    },
+    {
+      "tag": "DIV",
+      "class": "value-nkSYIvDw",
+      "text": "W"
+    },
+    {
+      "tag": "DIV",
+      "class": "value-nkSYIvDw",
+      "text": "M"
+    }
+  ],
+  "numberElements": [
+    {
+      "tag": "DIV",
+      "class": "layout__area--topleft js-hidden",
+      "text": "54"
+    },
+    {
+      "tag": "DIV",
+      "class": "topLeftButton-hCWTCWBf",
+      "text": "54"
+    },
+    {
+      "tag": "DIV",
+      "class": "menu-U2jIw4km",
+      "text": "54"
+    },
+    {
+      "tag": "DIV",
+      "class": "buttonWrap-U2jIw4km",
+      "text": "54"
+    },
+    {
+      "tag": "SPAN",
+      "class": "menuNotifications-U2jIw4km notifications-U2jIw4km",
+      "text": "54"
+    },
+    {
+      "tag": "DIV",
+      "class": "valueValue-l31H9iuA",
+      "text": "72,835.1"
+    },
+    {
+      "tag": "DIV",
+      "class": "valueValue-l31H9iuA",
+      "text": "72,921.5"
+    },
+    {
+      "tag": "DIV",
+      "class": "valueValue-l31H9iuA",
+      "text": "72,765.8"
+    },
+    {
+      "tag": "DIV",
+      "class": "valueValue-l31H9iuA",
+      "text": "72,893.9"
+    },
+    {
+      "tag": "DIV",
+      "class": "valueItem-l31H9iuA blockHidden-e6PF69Df",
+      "text": "72,893.9"
+    },
+    {
+      "tag": "DIV",
+      "class": "valueValue-l31H9iuA",
+      "text": "72,893.9"
+    },
+    {
+      "tag": "DIV",
+      "class": "valueValue-l31H9iuA",
+      "text": "778.18"
+    },
+    {
+      "tag": "SPAN",
+      "class": "buttonText-SXMXfs_Z",
+      "text": "72,893.9"
+    },
+    {
+      "tag": "DIV",
+      "class": "spreadQtyWrapper-SXMXfs_Z withoutQty-SXMXfs_Z",
+      "text": "0.1"
+    },
+    {
+      "tag": "DIV",
+      "class": "apply-common-tooltip spread-SXMXfs_Z",
+      "text": "0.1"
+    },
+    {
+      "tag": "DIV",
+      "class": "apply-common-tooltip button-SXMXfs_Z qty-SXMXfs_Z blockHidden-e6PF69Df",
+      "text": "1"
+    },
+    {
+      "tag": "SPAN",
+      "class": "",
+      "text": "1"
+    },
+    {
+      "tag": "SPAN",
+      "class": "buttonText-SXMXfs_Z",
+      "text": "72,894.0"
+    },
+    {
+      "tag": "DIV",
+      "class": "counter-l31H9iuA",
+      "text": "8"
+    },
+    {
+      "tag": "DIV",
+      "class": "valueItem-l31H9iuA blockHidden-e6PF69Df",
+      "text": "72,718.9"
+    }
+  ]
+}
