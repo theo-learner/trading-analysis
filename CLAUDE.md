@@ -17,6 +17,7 @@ screenshots/YYYYMMDD/
 │                   # {PAIR}_{TF}_vrvp.png       — VRVP 우측 확대
 │                   # {PAIR}_{TF}_indicators.png — 보조지표 패널
 │                   # {PAIR}_{TF}_data.txt       — 현재가/OHLCV JSON
+│                   # change24h_data.json        — Coinglass+Coinalyze 교차검증 24h 변화율
 ├── exocharts/       # {PAIR}_{view}.png (히트맵, CVD)
 ├── coinalyze/       # {PAIR}_OI_funding.png
 └── hyblock/         # {PAIR}_liquidation.png
@@ -26,6 +27,8 @@ screenshots/YYYYMMDD/
 `reports/YYYYMMDD_dashboard.html` — standalone HTML 대시보드 파일
 
 ## 분석 순서
+분석 시작 전: `tradingview/change24h_data.json` — Coinglass+Coinalyze 교차검증 24h 변화율 (대시보드 change 필드에 사용)
+
 페어별로 아래 순서를 반복한다 (1D → 4H → 1H):
 
 1. `{PAIR}_{TF}_data.txt` — 수치 데이터를 텍스트로 먼저 확인

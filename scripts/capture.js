@@ -43,6 +43,14 @@ const HYBLOCK_TARGETS = [
   { pair: 'ETH', slug: 'eth' },
 ];
 
+// 24h 변화율 교차 검증 타겟
+const CHANGE24H_TARGETS = [
+  { pair: 'BTCUSDT', coinglass: 'BTC',  coinalyze: 'btcusdtperp-binance' },
+  { pair: 'ETHUSDT', coinglass: 'ETH',  coinalyze: 'ethusdtperp-binance' },
+  { pair: 'SOLUSDT', coinglass: 'SOL',  coinalyze: 'solusdtperp-binance' },
+  { pair: 'HYPEUSDT', coinglass: 'HYPE', coinalyze: 'hypeusdtperp-binance' },
+];
+
 const SESSION_DIR = path.join(__dirname, '..', 'sessions');
 const VIEWPORT = { width: 1920, height: 1080 };
 const DEVICE_SCALE = 2; // Retina 품질
@@ -355,14 +363,24 @@ async function captureCoinglass(_browser) {
     log('💡', '  → npm run import-cookies:coinglass 으로 세션 저장 후 재실행');
   }
 
-  // Cloudflare + 로그인 우회: 실제 Chrome 브라우저 사용
+  // Cloudflare + 로그인 우회: 실제 Chrome 브라우저 + 봇 감지 우회 플래그
   const chromeBrowser = await chromium.launch({
     channel: 'chrome',
     headless: false,
-    args: ['--window-size=1920,1080', '--no-sandbox'],
+    args: [
+      '--window-size=1920,1080',
+      '--no-sandbox',
+      '--disable-blink-features=AutomationControlled',
+      '--disable-infobars',
+      '--disable-dev-shm-usage',
+    ],
   });
 
-  const contextOpts = { viewport: VIEWPORT, deviceScaleFactor: DEVICE_SCALE };
+  const contextOpts = {
+    viewport: VIEWPORT,
+    deviceScaleFactor: DEVICE_SCALE,
+    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+  };
   if (sessionPath) contextOpts.storageState = sessionPath;
 
   const context = await chromeBrowser.newContext(contextOpts);
@@ -500,12 +518,164 @@ async function captureHyblock(browser) {
   log('💧', 'Hyblock 캡처 완료');
 }
 
+// ─── 24h 변화율 수집 (Coinglass + Coinalyze 교차 검증) ───
+
+// 봇 감지 우회 Chrome 공통 옵션
+function stealthChromeArgs() {
+  return [
+    '--window-size=1920,1080',
+    '--no-sandbox',
+    '--disable-blink-features=AutomationControlled',
+    '--disable-infobars',
+    '--disable-dev-shm-usage',
+  ];
+}
+
+const STEALTH_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+
+// DOM에서 심볼별 24h 변화율 추출 (page.evaluate에 직접 전달)
+const DOM_EXTRACT_PCT = (targets) => {
+  const result = {};
+  // 1단계: 테이블 행 탐색
+  const rows = Array.from(document.querySelectorAll('tr'));
+  for (const row of rows) {
+    const cells = Array.from(row.querySelectorAll('td'));
+    if (cells.length < 2) continue;
+    const rowText = row.innerText || '';
+    for (const sym of targets) {
+      if (result[sym]) continue;
+      if (!rowText.match(new RegExp(`\\b${sym}\\b`, 'i'))) continue;
+      const pctMatch = rowText.match(/([+\-−][\d.]+%)/);
+      if (pctMatch) result[sym] = pctMatch[1].replace('\u2212', '-');
+    }
+  }
+  // 2단계: 테이블 없을 경우 페이지 전체 텍스트
+  const missing = targets.filter(s => !result[s]);
+  if (missing.length > 0) {
+    const bodyText = document.body.innerText || '';
+    for (const sym of missing) {
+      const re = new RegExp(`\\b${sym}\\b[^\\n]{0,100}([+\\-\u2212][\\d.]+%)`, 'i');
+      const m = bodyText.match(re);
+      if (m) result[sym] = m[1].replace('\u2212', '-');
+    }
+  }
+  return result;
+};
+
+async function captureChange24h(_browser) {
+  log('📊', '24h 변화율 수집 시작 (Binance API + Coinalyze)...');
+
+  const caSession = sessionExists('coinalyze-session.json');
+
+  const binance = {};
+  const coinalyze = {};
+
+  // ① Binance Futures API — HTTP 직접 호출 (브라우저 불필요, 제한 없음)
+  try {
+    const res = await fetch('https://fapi.binance.com/fapi/v1/ticker/24hr');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const tickers = await res.json();
+    for (const ticker of tickers) {
+      const target = CHANGE24H_TARGETS.find(t => t.pair === ticker.symbol);
+      if (target) {
+        const pct = parseFloat(ticker.priceChangePercent);
+        binance[target.pair] = (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%';
+        log('📈', `Binance ${target.pair}: ${binance[target.pair]}`);
+      }
+    }
+  } catch (err) {
+    log('⚠️', `Binance API 24h 추출 실패: ${err.message}`);
+  }
+
+  // ② Coinalyze — 독립 브라우저 (Coinglass 충돌과 무관하게 실행)
+  {
+    let caBrowser = null;
+    try {
+      caBrowser = await chromium.launch({
+        channel: 'chrome',
+        headless: false,
+        args: stealthChromeArgs(),
+      });
+      const ctx = await caBrowser.newContext({
+        viewport: VIEWPORT,
+        deviceScaleFactor: DEVICE_SCALE,
+        userAgent: STEALTH_UA,
+        ...(caSession ? { storageState: caSession } : {}),
+      });
+      const page = await ctx.newPage();
+
+      await page.goto('https://coinalyze.net/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+
+      const caSymbols = CHANGE24H_TARGETS.map(t => t.coinglass); // ['BTC','ETH','SOL','HYPE']
+      const data = await page.evaluate(DOM_EXTRACT_PCT, caSymbols);
+      for (const [sym, pct] of Object.entries(data)) {
+        const target = CHANGE24H_TARGETS.find(t => t.coinglass === sym);
+        if (target) { coinalyze[target.pair] = pct; log('📉', `Coinalyze ${sym}: ${pct}`); }
+      }
+      await ctx.close();
+    } catch (err) {
+      log('⚠️', `Coinalyze 24h 추출 실패: ${err.message}`);
+    } finally {
+      if (caBrowser) await caBrowser.close().catch(() => {});
+    }
+  }
+
+  // ③ 교차 검증 및 최종값 결정
+  const change24hData = {};
+  for (const target of CHANGE24H_TARGETS) {
+    const bn = binance[target.pair];
+    const ca = coinalyze[target.pair];
+    const sources = { binance: bn || null, coinalyze: ca || null };
+    let value = null;
+    let confidence = 'unknown';
+
+    if (bn && ca) {
+      const bnNum = parseFloat(bn);
+      const caNum = parseFloat(ca);
+      const diff = Math.abs(bnNum - caNum);
+
+      if (diff <= 0.5) {
+        const avg = (bnNum + caNum) / 2;
+        value = (avg >= 0 ? '+' : '') + avg.toFixed(2) + '%';
+        confidence = 'confirmed'; // 두 소스 일치
+      } else if (diff <= 2.0) {
+        const avg = (bnNum + caNum) / 2;
+        value = (avg >= 0 ? '+' : '') + avg.toFixed(2) + '%';
+        confidence = 'approximate'; // 소폭 차이
+      } else {
+        value = bn; // Binance 우선 (원본 소스)
+        confidence = 'inconsistent';
+        log('⚠️', `${target.pair} 불일치: Binance ${bn} vs Coinalyze ${ca}`);
+      }
+    } else if (bn) {
+      value = bn;
+      confidence = 'binance_only';
+    } else if (ca) {
+      value = ca;
+      confidence = 'coinalyze_only';
+    } else {
+      log('⚠️', `${target.pair} 24h 변화율 수집 실패 (Binance + Coinalyze 모두 없음)`);
+    }
+
+    change24hData[target.pair] = { value, confidence, sources };
+    if (value) log('✅', `${target.pair} 24h: ${value} (${confidence})`);
+  }
+
+  // 저장: tradingview 디렉토리에 함께 보관
+  const saveDir = getSaveDir('tradingview');
+  const savePath = path.join(saveDir, 'change24h_data.json');
+  fs.writeFileSync(savePath, JSON.stringify(change24hData, null, 2));
+  log('💾', `24h 변화율 저장 완료: ${savePath}`);
+}
+
 // ─── 메인 실행 ───────────────────────────────────────────
 
 (async () => {
   const args = process.argv.slice(2);
   const tvOnly = args.includes('--tv-only');
   const ofOnly = args.includes('--orderflow-only');
+  const changeOnly = args.includes('--change24h-only');
 
   log('🚀', `=== 차트 캡처 시작 (${getDateDir()}) ===`);
   log('📋', `페어: ${PAIRS.join(', ')}`);
@@ -517,14 +687,19 @@ async function captureHyblock(browser) {
   });
 
   try {
-    if (!ofOnly) {
-      await captureTradingView(browser);
-    }
+    if (changeOnly) {
+      await captureChange24h(browser);
+    } else {
+      if (!ofOnly) {
+        await captureTradingView(browser);
+      }
 
-    if (!tvOnly) {
-      await captureCoinglass(browser);
-      await captureCoinalyze(browser);
-      await captureHyblock(browser);
+      if (!tvOnly) {
+        await captureCoinglass(browser);
+        await captureCoinalyze(browser);
+        await captureHyblock(browser);
+        await captureChange24h(browser);
+      }
     }
   } catch (err) {
     log('💥', `치명적 오류: ${err.message}`);
