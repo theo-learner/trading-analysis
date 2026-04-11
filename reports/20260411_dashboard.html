@@ -747,8 +747,6 @@
     function Dashboard() {
       const [activeTab, setActiveTab] = useState("Overview");
 
-      console.log("[Dashboard] activeTab:", activeTab);
-
       let tabContent;
       switch (activeTab) {
         case "Overview":
@@ -772,8 +770,6 @@
         default:
           tabContent = null;
       }
-
-      console.log("[Dashboard] tabContent:", tabContent);
 
       return (
         <div style={{ background: colors.bg, minHeight: "100vh", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
@@ -835,9 +831,6 @@
 
           {/* Content */}
           <div style={{ maxWidth: 1400, margin: "0 auto", padding: 24 }}>
-            <div style={{ color: "#4ade80", fontSize: 16, marginBottom: 16 }}>
-              [DEBUG] activeTab: {activeTab} / tabContent type: {tabContent ? typeof tabContent : "null"}
-            </div>
             {tabContent}
           </div>
         </div>
