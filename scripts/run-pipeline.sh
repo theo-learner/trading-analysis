@@ -109,7 +109,7 @@ generate_index() {
   done <<< "$files"
   js_array+="]"
 
-  # view.html 생성
+  # view.html 생성 (fetch/iframe/서버 불필요 — file:// 직접 열기)
   cat > "$view_file" <<HTMLEOF
 <!DOCTYPE html>
 <html lang="ko">
@@ -214,6 +214,22 @@ HTMLEOF
   log "✓ view.html 재생성 완료 (총 ${count}개 대시보드)"
 }
 
+# ── GitHub push (Vercel 자동 재배포 트리거) ────────────────────────────────
+push_to_github() {
+  log_sep
+  log "▶ GitHub push 시작"
+  git add reports/ || { log "✗ git add 실패"; return 0; }
+  if git diff-index --quiet HEAD --; then
+    log "ℹ git: 변경사항 없음, push 건너뜀"
+    return 0
+  fi
+  local date_str; date_str=$(date +%Y%m%d)
+  git commit -m "feat: dashboard ${date_str}" \
+    && git push origin main \
+    && log "✓ GitHub push 완료 → Vercel 자동 배포 트리거" \
+    || log "✗ git push 실패 (네트워크/권한 확인 필요)"
+}
+
 # ── 분석 실행 ──────────────────────────────────────────────────────────────
 run_analyze() {
   log_sep
@@ -226,6 +242,7 @@ run_analyze() {
     2>&1 | tee -a "$LOG_FILE"; then
     log "✓ 분석 완료"
     generate_index
+    push_to_github
   else
     log "✗ 분석 실패 (exit code: $?)"
     return 1
