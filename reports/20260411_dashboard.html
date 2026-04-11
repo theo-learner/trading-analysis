@@ -746,16 +746,23 @@
     function Dashboard() {
       const [activeTab, setActiveTab] = useState("Overview");
 
+      console.log("[Dashboard] activeTab:", activeTab);
+
       const renderTab = () => {
-        switch (activeTab) {
-          case "Overview": return <OverviewTab />;
-          case "Elliott Wave": return <EWTab />;
-          case "ICT/SMC": return <ICTTab />;
-          case "Orderflow": return <OrderflowTab />;
-          case "Scenarios": return <ScenariosTab />;
-          case "Risk": return <RiskTab />;
-          default: return null;
-        }
+        console.log("[renderTab] Current activeTab:", activeTab);
+        const result = (() => {
+          switch (activeTab) {
+            case "Overview": return <OverviewTab />;
+            case "Elliott Wave": return <EWTab />;
+            case "ICT/SMC": return <ICTTab />;
+            case "Orderflow": return <OrderflowTab />;
+            case "Scenarios": return <ScenariosTab />;
+            case "Risk": return <RiskTab />;
+            default: return null;
+          }
+        })();
+        console.log("[renderTab] Result:", result);
+        return result;
       };
 
       return (
