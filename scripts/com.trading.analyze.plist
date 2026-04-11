@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  com.trading.analyze.plist — macOS launchd 분석 자동화
+  ======================================================
+  등록:
+    cp scripts/com.trading.analyze.plist ~/Library/LaunchAgents/com.trading.analyze.plist
+    launchctl load ~/Library/LaunchAgents/com.trading.analyze.plist
+    launchctl list | grep trading
+
+  해제:
+    launchctl unload ~/Library/LaunchAgents/com.trading.analyze.plist
+
+  로그 확인:
+    tail -f /Users/theo/workspace_tokamak/trading-analysis/logs/launchd_analyze.log
+
+  즉시 테스트:
+    launchctl start com.trading.analyze
+-->
+<plist version="1.0">
+<dict>
+
+  <!-- 서비스 식별자 -->
+  <key>Label</key>
+  <string>com.trading.analyze</string>
+
+  <!-- 실행 명령어 -->
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/theo/workspace_tokamak/trading-analysis/scripts/run-pipeline.sh</string>
+    <string>--analyze</string>
+  </array>
+
+  <!-- 스케줄: 평일(월~금) 오전 08:30 -->
+  <key>StartCalendarInterval</key>
+  <array>
+    <dict>
+      <key>Weekday</key><integer>1</integer>
+      <key>Hour</key><integer>8</integer>
+      <key>Minute</key><integer>30</integer>
+    </dict>
+    <dict>
+      <key>Weekday</key><integer>2</integer>
+      <key>Hour</key><integer>8</integer>
+      <key>Minute</key><integer>30</integer>
+    </dict>
+    <dict>
+      <key>Weekday</key><integer>3</integer>
+      <key>Hour</key><integer>8</integer>
+      <key>Minute</key><integer>30</integer>
+    </dict>
+    <dict>
+      <key>Weekday</key><integer>4</integer>
+      <key>Hour</key><integer>8</integer>
+      <key>Minute</key><integer>30</integer>
+    </dict>
+    <dict>
+      <key>Weekday</key><integer>5</integer>
+      <key>Hour</key><integer>8</integer>
+      <key>Minute</key><integer>30</integer>
+    </dict>
+  </array>
+
+  <!-- 작업 디렉토리 -->
+  <key>WorkingDirectory</key>
+  <string>/Users/theo/workspace_tokamak/trading-analysis</string>
+
+  <!-- 환경 변수 -->
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/Users/theo/.nvm/versions/node/v20.20.1/bin:/Users/theo/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    <key>HOME</key>
+    <string>/Users/theo</string>
+    <key>NVM_DIR</key>
+    <string>/Users/theo/.nvm</string>
+  </dict>
+
+  <!-- 로그 -->
+  <key>StandardOutPath</key>
+  <string>/Users/theo/workspace_tokamak/trading-analysis/logs/launchd_analyze.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/theo/workspace_tokamak/trading-analysis/logs/launchd_analyze.log</string>
+
+  <!-- 시작 시 즉시 실행하지 않음 -->
+  <key>RunAtLoad</key>
+  <false/>
+
+</dict>
+</plist>

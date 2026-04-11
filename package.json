@@ -1,0 +1,33 @@
+{
+  "name": "trading-analysis",
+  "version": "1.0.0",
+  "description": "Crypto futures chart capture & analysis pipeline",
+  "private": true,
+  "scripts": {
+    "save-session": "node scripts/save-session.js",
+    "import-cookies:tv": "node scripts/import-cookies.js tradingview",
+    "import-cookies:coinglass": "node scripts/import-cookies.js coinglass",
+    "import-cookies:coinalyze": "node scripts/import-cookies.js coinalyze",
+    "import-cookies:hyblock": "node scripts/import-cookies.js hyblock",
+    "save-session:tv": "node scripts/save-session.js tradingview",
+    "save-session:coinglass": "node scripts/save-session.js coinglass",
+    "save-session:coinalyze": "node scripts/save-session.js coinalyze",
+    "save-session:hyblock": "node scripts/save-session.js hyblock",
+    "capture": "node scripts/capture.js",
+    "capture:tv": "node scripts/capture.js --tv-only",
+    "capture:orderflow": "node scripts/capture.js --orderflow-only",
+    "grab-session": "node scripts/grab-session.js",
+    "grab-session:coinglass": "node scripts/grab-session.js coinglass",
+    "grab-session:coinalyze": "node scripts/grab-session.js coinalyze",
+    "grab-session:hyblock": "node scripts/grab-session.js hyblock",
+    "grab-session:all": "node scripts/grab-session.js all",
+    "analyze": "claude --print \"run-analysis.md 에 정의된 절차대로 분석 실행\"",
+    "run": "npm run capture && npm run analyze",
+    "pipeline": "bash scripts/run-pipeline.sh",
+    "pipeline:capture": "bash scripts/run-pipeline.sh --capture",
+    "pipeline:analyze": "bash scripts/run-pipeline.sh --analyze"
+  },
+  "dependencies": {
+    "playwright": "^1.50.0"
+  }
+}
