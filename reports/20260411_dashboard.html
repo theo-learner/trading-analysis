@@ -748,22 +748,31 @@
 
       console.log("[Dashboard] activeTab:", activeTab);
 
-      const renderTab = () => {
-        console.log("[renderTab] Current activeTab:", activeTab);
-        const result = (() => {
-          switch (activeTab) {
-            case "Overview": return <OverviewTab />;
-            case "Elliott Wave": return <EWTab />;
-            case "ICT/SMC": return <ICTTab />;
-            case "Orderflow": return <OrderflowTab />;
-            case "Scenarios": return <ScenariosTab />;
-            case "Risk": return <RiskTab />;
-            default: return null;
-          }
-        })();
-        console.log("[renderTab] Result:", result);
-        return result;
-      };
+      let tabContent;
+      switch (activeTab) {
+        case "Overview":
+          tabContent = <OverviewTab />;
+          break;
+        case "Elliott Wave":
+          tabContent = <EWTab />;
+          break;
+        case "ICT/SMC":
+          tabContent = <ICTTab />;
+          break;
+        case "Orderflow":
+          tabContent = <OrderflowTab />;
+          break;
+        case "Scenarios":
+          tabContent = <ScenariosTab />;
+          break;
+        case "Risk":
+          tabContent = <RiskTab />;
+          break;
+        default:
+          tabContent = null;
+      }
+
+      console.log("[Dashboard] tabContent:", tabContent);
 
       return (
         <div style={{ background: colors.bg, minHeight: "100vh", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
@@ -825,7 +834,7 @@
 
           {/* Content */}
           <div style={{ maxWidth: 1400, margin: "0 auto", padding: 24 }}>
-            {renderTab()}
+            {tabContent}
           </div>
         </div>
       );
