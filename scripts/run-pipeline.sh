@@ -109,7 +109,7 @@ generate_index() {
   done <<< "$files"
   js_array+="]"
 
-  # view.html 생성 (fetch/iframe/서버 불필요 — file:// 직접 열기)
+  # index.html 생성 (iframe으로 대시보드 임베드 — Vercel/file:// 모두 동작)
   cat > "$view_file" <<HTMLEOF
 <!DOCTYPE html>
 <html lang="ko">
@@ -119,12 +119,12 @@ generate_index() {
   <title>Trading Analysis Dashboard</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #0b0e14; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #e8eaed; }
+    body { background: #0b0e14; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #e8eaed; overflow: hidden; }
     button { font-family: inherit; cursor: pointer; }
     #nav {
-      position: sticky; top: 0; z-index: 100;
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
       background: #131720; border-bottom: 1px solid #1e2535;
-      padding: 10px 20px; display: flex; align-items: center; gap: 12px;
+      padding: 10px 20px; display: flex; align-items: center; gap: 12px; height: 49px;
     }
     .logo { font-size: 13px; color: #9ca3af; white-space: nowrap; }
     select {
@@ -142,31 +142,23 @@ generate_index() {
     .nav-btn:disabled { opacity: 0.3; cursor: default; }
     .spacer { flex: 1; }
     .count { font-size: 12px; color: #9ca3af; }
-    #content { width: 100%; min-height: calc(100vh - 49px); }
-    #hint {
-      text-align: center; padding: 120px 20px; color: #9ca3af; font-size: 14px;
+    #frame {
+      position: fixed; top: 49px; left: 0; right: 0; bottom: 0;
+      width: 100%; border: none; background: #0b0e14;
     }
-    #hint .arrow { font-size: 32px; margin-bottom: 16px; color: #4ade80; }
-    #hint p { margin-top: 8px; }
   </style>
 </head>
 <body>
   <div id="nav">
     <span class="logo">Trading Analysis</span>
     <button class="nav-btn" id="btn-prev" onclick="navigate(-1)">&#9664;</button>
-    <select id="date-select" onchange="go(this.value)"></select>
+    <select id="date-select" onchange="go(Number(this.value))"></select>
     <button class="nav-btn" id="btn-next" onclick="navigate(1)">&#9654;</button>
     <span class="spacer"></span>
     <span class="count" id="count-label"></span>
     <button class="nav-btn" onclick="openCurrent()" style="color:#4ade80;border-color:#4ade80">새 탭으로 열기</button>
   </div>
-  <div id="content">
-    <div id="hint">
-      <div class="arrow">&#8593;</div>
-      <p>날짜를 선택하면 해당 대시보드 파일이 열립니다.</p>
-      <p style="margin-top:4px;font-size:12px;color:#6b7280">각 대시보드는 독립 HTML 파일입니다.</p>
-    </div>
-  </div>
+  <iframe id="frame" src=""></iframe>
 
   <script>
     const dashboards = ${js_array};
@@ -184,14 +176,13 @@ generate_index() {
       sel.value = current;
       document.getElementById('btn-prev').disabled = current === 0;
       document.getElementById('btn-next').disabled = current === dashboards.length - 1;
-      document.getElementById('count-label').textContent =
-        (current + 1) + ' / ' + dashboards.length;
+      document.getElementById('count-label').textContent = (current + 1) + ' / ' + dashboards.length;
     }
 
     function go(index) {
-      current = Number(index);
+      current = index;
       updateNav();
-      window.location.href = dashboards[current].file;
+      document.getElementById('frame').src = dashboards[current].file;
     }
 
     function navigate(dir) {
@@ -203,7 +194,7 @@ generate_index() {
       window.open(dashboards[current].file, '_blank');
     }
 
-    updateNav();
+    go(0); // 최신 대시보드 자동 로드
   </script>
 </body>
 </html>
@@ -211,7 +202,7 @@ HTMLEOF
 
   local count
   count=$(echo "$files" | wc -l | tr -d ' ')
-  log "✓ view.html 재생성 완료 (총 ${count}개 대시보드)"
+  log "✓ index.html 재생성 완료 (총 ${count}개 대시보드)"
 }
 
 # ── GitHub push (Vercel 자동 재배포 트리거) ────────────────────────────────
