@@ -518,17 +518,15 @@ function RiskTab() {
 function Dashboard() {
   const [tab, setTab] = React.useState('Overview');
 
-  const renderTab = () => {
-    switch (tab) {
-      case 'Overview': return <OverviewTab />;
-      case 'Elliott Wave': return <EWTab />;
-      case 'ICT/SMC': return <ICTTab />;
-      case 'Orderflow': return <OrderflowTab />;
-      case 'Scenarios': return <ScenariosTab />;
-      case 'Risk': return <RiskTab />;
-      default: return <OverviewTab />;
-    }
-  };
+  let tabContent;
+  switch (tab) {
+    case 'Elliott Wave': tabContent = <EWTab />; break;
+    case 'ICT/SMC':     tabContent = <ICTTab />; break;
+    case 'Orderflow':   tabContent = <OrderflowTab />; break;
+    case 'Scenarios':   tabContent = <ScenariosTab />; break;
+    case 'Risk':        tabContent = <RiskTab />; break;
+    default:            tabContent = <OverviewTab />;
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: C.bg, paddingBottom: 40 }}>
@@ -569,7 +567,7 @@ function Dashboard() {
 
       {/* Content */}
       <div style={{ padding: '16px 20px', maxWidth: 1400, margin: '0 auto' }}>
-        {renderTab()}
+        {tabContent}
       </div>
     </div>
   );
