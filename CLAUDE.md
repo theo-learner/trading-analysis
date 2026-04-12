@@ -35,7 +35,7 @@ screenshots/YYYYMMDD/
    - `https://www.investing.com/news/cryptocurrency-news` (24h)
    - `https://www.tradingview.com/news/` (crypto, 24h)
    - Velo (로그인 필요 시 스킵)
-   - 과거 12h + 향후 24h 윈도우 기준으로 `macro/events.json` 생성
+   - 과거 7일 + 향후 24h 윈도우 기준으로 `macro/events.json` 생성
 
 페어별로 아래 순서를 반복한다 (1D → 4H → 1H):
 

@@ -38,7 +38,7 @@ screenshots/YYYYMMDD/
 ### 분석 시작 전
 1. `tradingview/change24h_data.json` — Coinglass+Coinalyze 교차검증 24h 변화율 확인 (대시보드 change 필드에 사용)
 2. `macro/events.json` — 파일이 없거나 `generated_at`이 6시간 이상 오래되었으면 아래 순서로 수집:
-   a. WebFetch로 다음 소스를 24h 기준으로 조회 (과거 12h + 향후 24h 윈도우):
+   a. WebFetch로 다음 소스를 조회 (과거 7일 + 향후 24h 윈도우):
       - `https://www.investing.com/news/cryptocurrency-news`
       - `https://www.tradingview.com/news/` (crypto 관련)
       - Velo (로그인 필요 시 스킵 후 "velo_skipped: true" 메모)
@@ -49,7 +49,7 @@ screenshots/YYYYMMDD/
 ```json
 {
   "generated_at": "ISO8601+TZ",
-  "window_hours": 36,
+  "window_hours": 192,
   "sources": ["investing_crypto", "tradingview_news"],
   "events": [
     {
