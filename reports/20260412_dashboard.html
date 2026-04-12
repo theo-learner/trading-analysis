@@ -9,7 +9,8 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #0b0e14; color: #e8eaed; font-family: 'Segoe UI', system-ui, sans-serif; font-size: 13px; }
+    html, body { height: 100%; }
+    body { background: #0b0e14; color: #e8eaed; font-family: 'Segoe UI', system-ui, sans-serif; font-size: 13px; overflow-y: auto; }
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: #131720; }
     ::-webkit-scrollbar-thumb { background: #2a3044; border-radius: 3px; }
@@ -529,7 +530,7 @@ function Dashboard() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: C.bg, paddingBottom: 40, overflow: 'auto' }}>
+    <div style={{ minHeight: '100vh', background: C.bg, paddingBottom: 40 }}>
       {/* Header */}
       <div style={{ background: C.panel, borderBottom: `1px solid ${C.border}`, padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100 }}>
         <div>
