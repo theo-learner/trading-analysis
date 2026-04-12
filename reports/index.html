@@ -39,9 +39,9 @@
 <body>
   <div id="nav">
     <span class="logo">Trading Analysis</span>
-    <button class="nav-btn" id="btn-prev" onclick="navigate(-1)">&#9664;</button>
+    <button class="nav-btn" id="btn-prev" onclick="navigate(1)">&#9664;</button>
     <select id="date-select" onchange="go(Number(this.value))"></select>
-    <button class="nav-btn" id="btn-next" onclick="navigate(1)">&#9654;</button>
+    <button class="nav-btn" id="btn-next" onclick="navigate(-1)">&#9654;</button>
     <span class="spacer"></span>
     <span class="count" id="count-label"></span>
     <button class="nav-btn" onclick="openCurrent()" style="color:#4ade80;border-color:#4ade80">새 탭으로 열기</button>
@@ -62,8 +62,8 @@
 
     function updateNav() {
       sel.value = current;
-      document.getElementById('btn-prev').disabled = current === 0;
-      document.getElementById('btn-next').disabled = current === dashboards.length - 1;
+      document.getElementById('btn-prev').disabled = current === dashboards.length - 1;
+      document.getElementById('btn-next').disabled = current === 0;
       document.getElementById('count-label').textContent = (current + 1) + ' / ' + dashboards.length;
     }
 
