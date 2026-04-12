@@ -20,14 +20,22 @@ screenshots/YYYYMMDD/
 │                   # change24h_data.json        — Coinglass+Coinalyze 교차검증 24h 변화율
 ├── exocharts/       # {PAIR}_{view}.png (히트맵, CVD)
 ├── coinalyze/       # {PAIR}_OI_funding.png
-└── hyblock/         # {PAIR}_liquidation.png
+├── hyblock/         # {PAIR}_liquidation.png
+└── macro/
+    └── events.json  — Claude가 분석 시작 전 WebFetch로 수집 (없으면 자동 생성)
 ```
 
 ## 출력
 `reports/YYYYMMDD_dashboard.html` — standalone HTML 대시보드 파일
 
 ## 분석 순서
-분석 시작 전: `tradingview/change24h_data.json` — Coinglass+Coinalyze 교차검증 24h 변화율 (대시보드 change 필드에 사용)
+분석 시작 전:
+1. `tradingview/change24h_data.json` — Coinglass+Coinalyze 교차검증 24h 변화율 (대시보드 change 필드에 사용)
+2. `macro/events.json` — 파일이 없거나 `generated_at`이 6시간 이상 오래되었으면 WebFetch로 수집:
+   - `https://www.investing.com/news/cryptocurrency-news` (24h)
+   - `https://www.tradingview.com/news/` (crypto, 24h)
+   - Velo (로그인 필요 시 스킵)
+   - 과거 12h + 향후 24h 윈도우 기준으로 `macro/events.json` 생성
 
 페어별로 아래 순서를 반복한다 (1D → 4H → 1H):
 
@@ -40,7 +48,10 @@ screenshots/YYYYMMDD/
 멀티타임프레임 완료 후:
 6. 오더플로우 차트가 있으면 EW/ICT 분석과 교차 검증
 7. 통합 시나리오 (강세/약세/중립) + 확률 산출
+   - `importance: high` 이벤트가 분석 윈도우 내에 있으면 각 시나리오 트리거/무효화 조건에 이벤트 시점 명시
+   - 특정 뉴스의 `impact_assets`에 해당 페어가 포함되면 한 줄 명시
 8. 리스크 관리 제안 (SL, TP, R:R)
+   - `importance: high` 이벤트 ±2시간은 "entry 금지 구간"으로 표시, 포지션 사이즈 축소 권장
 
 ## 데이터 우선순위 규칙
 - `_data.txt` 수치와 차트 픽셀 읽기가 충돌하면 txt 우선
@@ -54,12 +65,14 @@ screenshots/YYYYMMDD/
 - 텍스트: 주요 #e8eaed, 보조 #9ca3af
 - 강세 #4ade80, 약세 #f87171, 중립 #fbbf24
 - 오더플로우 색상: 히트맵고밀도 #f59e0b, CVD양수 #22d3ee, CVD음수 #fb923c, 수렴 #a78bfa
-- 탭 구조: Overview / Elliott Wave / ICT / Orderflow / Scenarios / Risk
+- 탭 구조: Overview / Macro / Elliott Wave / ICT / Orderflow / Scenarios / Risk
+- **Macro 탭**: `const MACRO_EVENTS = [...]` 상수로 events.json 데이터 임베드, 시간순(KST) 카드 리스트, importance별 좌측 보더 color-coded (high `#f87171` / medium `#fbbf24` / low `#9ca3af`), `tabContent` 변수 패턴 필수
 
 ## 핵심 원칙
 - 차트에서 실제로 보이는 것만 분석. 보이지 않는 것을 추측하지 않음
 - EW 규칙 필수 준수, 확신도 과장 금지
 - 프레임워크 간 수렴(Confluence) 지점 강조
+- 매크로 이벤트는 기술적 분석을 오버라이드하지 않지만 Scenarios/Risk 판단에 반드시 반영
 - 항상 한국어로 출력
 
 

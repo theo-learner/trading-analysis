@@ -3,571 +3,701 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Crypto Analysis — 2026-04-12</title>
+  <title>Crypto Futures Analysis — 2026-04-12</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; }
-    body { background: #0b0e14; color: #e8eaed; font-family: 'Segoe UI', system-ui, sans-serif; font-size: 13px; overflow-y: auto; }
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: #131720; }
-    ::-webkit-scrollbar-thumb { background: #2a3044; border-radius: 3px; }
+    body { background: #0b0e14; color: #e8eaed; font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; }
+    ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #131720; } ::-webkit-scrollbar-thumb { background: #2d3748; border-radius: 3px; }
   </style>
 </head>
 <body>
-  <div id="root"></div>
-  <script type="text/babel">
-
-const C = {
-  bg: '#0b0e14', panel: '#131720', card: '#1a1f2e', border: '#252d3d',
-  text: '#e8eaed', sub: '#9ca3af',
-  bull: '#4ade80', bear: '#f87171', neutral: '#fbbf24',
-  heat: '#f59e0b', cvdP: '#22d3ee', cvdN: '#fb923c', conv: '#a78bfa', acc: '#3b82f6'
-};
-
-const DATA = {
-  meta: { date: '2026-04-12', time: '22:22 KST' },
-  pairs: {
-    BTCUSDT: {
-      sym: 'BTC', price: 71026, chg: -2.18, bias: 'neutral_bearish',
-      rsi: { '1D': 44.57, '4H': 59.38, '1H': 44.29 },
-      cci: { '1D': 20, '4H': 144.19, '1H': 20 },
-      levels: { res: [73000, 75500, 76800], sup: [69800, 68200, 65500], poc: 68500, bsl: 75500, ssl: 65500 },
-      ew: {
-        primary: 'ABC 조정 Wave B 구간 — ATH $109k 이후 첫 번째 하락 Wave A 완성 추정. 현재 B파 반등 시도 ($73–80k)',
-        alt: '더 큰 Wave 4 조정 진행 중, 이후 Wave 5로 $120k+ 신고점 가능성',
-        inv: '$65k 종가 하방 이탈 시 Wave 4 카운트 무효 — 더 깊은 조정 구조 진입'
-      },
-      ict: {
-        ob_res: '$73,000–$75,500 (1D 빨간 OB — 직전 하락 시작점)',
-        ob_sup: '$68,200–$69,800 (4H 녹색 OB — 강한 수요 존)',
-        model: 'Distribution 완료 후 Reaccumulation 전환 모색 단계',
-        pd: 'Discount 구간 ($72k 이하) — 잠재적 매집 영역'
-      },
-      of: {
-        liq_up: '$75,000–$78,000 (숏 스탑 밀집)',
-        liq_dn: '$65,000–$68,000 (롱 스탑 클러스터)',
-        oi: '+22.1%', fund: '+0.01%'
-      },
-      scenarios: [
-        { lbl: 'A — OB 지지 후 반등', prob: 35, desc: '$69.8k OB 지지 확인 → BSL $75.5k 스윕 → $77–80k', col: C.bull },
-        { lbl: 'B — 레인지 횡보', prob: 40, desc: '$69–74k 박스권 소화, 뚜렷한 방향 전환 트리거 대기', col: C.neutral },
-        { lbl: 'C — 하방 연장', prob: 25, desc: '$68k OB 이탈 → SSL $65k 스윕 → $58–62k 타겟', col: C.bear }
-      ],
-      risk: {
-        long: { entry: '69,800–70,200', sl: '67,800', tp1: '74,500', tp2: '77,000', rr: '2.3:1' },
-        short: { entry: '73,500–74,000', sl: '76,500', tp1: '70,000', tp2: '67,500', rr: '2.0:1' }
-      }
+<div id="root"></div>
+<script type="text/babel">
+const PAIRS = [
+  {
+    pair: "BTCUSDT",
+    name: "Bitcoin",
+    price: 71026,
+    change24h: "-2.18%",
+    sentiment: "bearish",
+    tf: {
+      "1D": { rsi: 44.57, cci: 20, note: "RSI 중립-하향, CCI 중립. 하강 MA 하방, $73K 저항 강함." },
+      "4H": { rsi: 59.38, cci: 144.19, note: "RSI 중립-상향, CCI 과매수 진입. 랠리 후 반전 구조." },
+      "1H": { rsi: 44.29, cci: 20, note: "RSI 중립 수렴, CCI 중립. 모멘텀 소멸." }
     },
-    ETHUSDT: {
-      sym: 'ETH', price: 2194, chg: -1.94, bias: 'oversold_bounce',
-      rsi: { '1D': 23.58, '4H': 65.59, '1H': 54.03 },
-      cci: { '1D': 20, '4H': 153.16, '1H': 151.48 },
-      levels: { res: [2300, 2400, 2550], sup: [2100, 2000, 1800], poc: 2200, bsl: 2400, ssl: 2000 },
-      ew: {
-        primary: '1D RSI 23.58 역사적 극저점 → Wave C 또는 Wave 5 of C 저점 완성 임박. 회복 목표: $2,400–$2,600',
-        alt: 'Wave 5 of C 추가 연장 가능성 — $1,600–$1,800 타겟 (확률 낮음)',
-        inv: '$1,800 종가 이탈 시 더 복잡한 조정 구조 진입 신호'
-      },
-      ict: {
-        ob_res: '$2,300–$2,400 (반등 1차 저항 OB)',
-        ob_sup: '$2,000–$2,100 (4H 녹색 OB — 핵심 지지)',
-        model: 'SSL 스윕 완료 추정 → Smart Money 재매집 초기 신호',
-        pd: 'Extreme Discount — ETH/BTC 비율 역사적 저점, 역발상 기회'
-      },
-      of: {
-        liq_up: '$2,400–$2,600 (숏 스탑 다수)',
-        liq_dn: '$1,900–$2,000 (롱 보호 영역)',
-        oi: '대폭 감소 (디레버리징)', fund: '음전환 중'
-      },
-      scenarios: [
-        { lbl: 'A — 강한 반등', prob: 45, desc: '1D RSI 23.58 극저 → $2,400 저항 돌파 → $2,600+ 회복', col: C.bull },
-        { lbl: 'B — 저점 재확인', prob: 35, desc: '$2,000–$2,200 횡보 소화 후 방향성 확인', col: C.neutral },
-        { lbl: 'C — 추가 하락', prob: 20, desc: '$2,000 OB 이탈 시 $1,600–$1,800 타겟', col: C.bear }
-      ],
-      risk: {
-        long: { entry: '2,100–2,150', sl: '1,980', tp1: '2,350', tp2: '2,500', rr: '2.5:1' },
-        short: { entry: '2,380–2,420', sl: '2,550', tp1: '2,200', tp2: '2,050', rr: '1.8:1' }
-      }
+    ew: {
+      structure: "수정파 진행 중 (A-B-C 또는 4파 조정)",
+      currentWave: "조정 B 또는 4파",
+      keyLevels: { resistance: ["$73,000 (직전 고점)", "$75,000–76,000 (HTF 공급구간)"], support: ["$71,000 (현재 지지)", "$68,000 (VRVP POC)", "$65,000 (주요 수요구간)"] },
+      invalidation: "$75,500 이상 돌파 시 조정 완료 시나리오 무효화",
+      confidence: "medium"
     },
-    SOLUSDT: {
-      sym: 'SOL', price: 82.0, chg: -2.51, bias: 'oversold_bounce',
-      rsi: { '1D': 24.62, '4H': 49.26, '1H': 58.86 },
-      cci: { '1D': 20, '4H': 59.99, '1H': 190.35 },
-      levels: { res: [87, 90, 95], sup: [80, 78, 75], poc: 90, bsl: 90, ssl: 75 },
-      ew: {
-        primary: 'Wave C of ABC 저점 형성 중 — $295 ATH 대비 72% 하락. RSI 24.62 극저점. 반등 목표: $95–$100',
-        alt: 'Wave 5 of C 연장 → $65–$70 타겟 (추세 가속 시)',
-        inv: '$70 종가 이탈 시 카운트 리셋 — 추세 붕괴'
-      },
-      ict: {
-        ob_res: '$87–$90 (4H 빨간 OB, POC 위치)',
-        ob_sup: '$78–$80 (1H 녹색 OB — 근접 지지)',
-        model: 'SSL 스윕 후 초기 회복 신호, 1H CCI 190 확장 주의',
-        pd: 'Extreme Discount — POC($90) 대비 -9% 할인 구간'
-      },
-      of: {
-        liq_up: '$90–$95 (숏 스탑 밀집)',
-        liq_dn: '$75–$78 (롱 스탑 클러스터)',
-        oi: '감소 추세', fund: '중립 근접'
-      },
-      scenarios: [
-        { lbl: 'A — 반등 개시', prob: 40, desc: '$80 OB 지지 후 POC $90 회복 → $95–$100', col: C.bull },
-        { lbl: 'B — 박스권 소화', prob: 35, desc: '$78–$87 레인지 압축 후 방향성 결정', col: C.neutral },
-        { lbl: 'C — 하방 연장', prob: 25, desc: '$78 이탈 → SSL $75 스윕 → $65–$70', col: C.bear }
-      ],
-      risk: {
-        long: { entry: '80.0–81.0', sl: '77.5', tp1: '88.0', tp2: '93.0', rr: '2.8:1' },
-        short: { entry: '88.0–90.0', sl: '93.0', tp1: '82.0', tp2: '78.0', rr: '2.0:1' }
-      }
+    ict: {
+      bias: "약세 편향",
+      pdArray: ["$73,000–73,500: HTF 공급구간 (미충족 OB)", "$68,000: 유동성 풀 (저점 군집)", "$65,000: 주요 수요구간 (이전 레인지 하단)"],
+      fvg: ["$71,500–72,000 구간: 미충족 FVG (차트 미확인, 4H 기준 추정)"],
+      orderblock: ["$73,200 HTF 베어리시 OB", "$65,000–65,500 불리시 OB"],
+      liquidity: "상방: $73K 고점 유동성 이미 스윕됨. 하방: $68K 저점 유동성 미청산"
     },
-    HYPEUSDT: {
-      sym: 'HYPE', price: 40.4, chg: -3.85, bias: 'bullish',
-      rsi: { '1D': 67.93, '4H': 45.83, '1H': 63.81 },
-      cci: { '1D': 118.25, '4H': 20, '1H': 171.01 },
-      levels: { res: [41.6, 43.0, 45.5], sup: [38.5, 37.9, 35.0], poc: 39.5, bsl: 43.0, ssl: 37.9 },
-      ew: {
-        primary: '4H Wave 4 조정 완료 후 Wave 5 상승 임박 — 1D RSI 67.93 강세 유지. 타겟: $44–$48',
-        alt: '더 깊은 조정 구조 진입 → $34–$36 재매집 가능성',
-        inv: '$37.9 (SL 레벨) 종가 하방 이탈 시 Wave 4 카운트 무효'
-      },
-      ict: {
-        ob_res: '$41.5–$43.0 (1H 빨간 OB — 직전 TP 레벨)',
-        ob_sup: '$37.9–$38.5 (주요 지지 OB — 차트 SL 레벨)',
-        model: 'Bull Market 구조 유지 — BTC/ETH/SOL 대비 상대 강세 지속',
-        pd: '중립 — POC($39.5) 근접, 공정가격 구간'
-      },
-      of: {
-        liq_up: '$42–$44 (숏 스탑 + 롱 청산)',
-        liq_dn: '$37.5–$38.5 (롱 SL 밀집)',
-        oi: '높은 수준 유지', fund: '양전'
-      },
-      userSetup: { type: '3x Long', entry: '현재가 부근 (~$40)', sl: '37,885', tp: '41,596',
-        note: '추세선 하단 + 3시간봉 200일선 지지 + VRVP 반복 지점 컨플루언스' },
-      scenarios: [
-        { lbl: 'A — Wave 5 상승', prob: 45, desc: '$38.5 OB 지지 → BSL $43 스윕 → $44–$48', col: C.bull },
-        { lbl: 'B — 레인지 압축', prob: 35, desc: '$38–$42 횡보 소화 후 재상승 시도', col: C.neutral },
-        { lbl: 'C — 조정 심화', prob: 20, desc: '$37.9 SL 이탈 시 $34–$36 재매집 구간', col: C.bear }
-      ],
-      risk: {
-        long: { entry: '39.5–40.5', sl: '37.9', tp1: '41.6', tp2: '43.5', rr: '2.1:1' },
-        short: { entry: '42.5–43.0', sl: '44.5', tp1: '39.5', tp2: '38.0', rr: '2.2:1' }
-      }
+    orderflow: {
+      oi: "차트 미확인 (coinalyze 종합 패널 기준 OI 전반 감소 추세)",
+      funding: "차트 미확인",
+      liquidation: "청산 히트맵: $73K 상방 롱 청산 군집 이미 처리됨. $68K 하방 숏 청산 군집 미청산",
+      cvd: "차트 미확인"
+    },
+    scenarios: [
+      { label: "강세", prob: 35, color: "#4ade80", trigger: "$71K 지지 + $72.5K 돌파", target: "$73,000 → $76,000", invalidate: "$69,500 이하 일봉 종가", macroNote: "이슬라마바드 회담 결렬로 지정학 불확실성 지속 → 강세 확률 제한" },
+      { label: "약세", prob: 50, color: "#f87171", trigger: "$71K 지지 붕괴 + $70K 이하 종가", target: "$68,000 → $65,000", invalidate: "$73,000 이상 4H 종가", macroNote: "NFP 강세 → 연준 금리 인하 기대 약화 → 리스크 자산 압박 지속" },
+      { label: "중립", prob: 15, color: "#fbbf24", trigger: "$70,000–73,000 레인지 내 박스권", target: "레인지 유지", invalidate: "어느 방향이든 3% 이상 이탈" }
+    ],
+    risk: {
+      longEntry: "$71,000 지지 재확인 + 4H RSI 재상승",
+      sl: "$69,500 (1D 종가 기준)",
+      tp: ["$73,000 (1차)", "$75,500 (2차)"],
+      rr: "1:2.1",
+      shortEntry: "$71K 붕괴 후 $70,500 리테스트",
+      shortSl: "$72,500",
+      shortTp: ["$68,000 (1차)", "$65,000 (2차)"],
+      entryForbid: "없음 (현재 윈도우 내 high-impact 예정 이벤트 없음)"
+    }
+  },
+  {
+    pair: "ETHUSDT",
+    name: "Ethereum",
+    price: 2194,
+    change24h: "-1.94%",
+    sentiment: "bearish",
+    tf: {
+      "1D": { rsi: 23.58, cci: 20, note: "RSI 23.58 — 극단적 과매도. CCI 20 중립. $4K+ 고점 대비 45% 하락." },
+      "4H": { rsi: 65.59, cci: 153.16, note: "RSI 65 이상, CCI 153 — 반등 구간 과열. V자 반등 후 모멘텀 확인 필요." },
+      "1H": { rsi: 54.03, cci: 151.48, note: "RSI 중립, CCI 과매수. 단기 모멘텀 소멸 신호." }
+    },
+    ew: {
+      structure: "충격파 5파 하락 완료 가능성 (1D RSI 극단 과매도)",
+      currentWave: "5파 말단 또는 A파 반등 초기",
+      keyLevels: { resistance: ["$2,300 (단기 저항)", "$2,500–2,600 (주요 공급구간)", "$3,000+ (HTF 공급)"], support: ["$2,100 (현재 하방 지지)", "$1,900 (주요 수요구간)", "$1,700 (차트 미확인)"] },
+      invalidation: "$1,900 이하 일봉 종가 — 5파 연장 시나리오로 전환",
+      confidence: "low"
+    },
+    ict: {
+      bias: "중립 (단기 과매도 반등 vs 구조적 하락)",
+      pdArray: ["$2,500–2,600: HTF 공급구간", "$2,100: 스윙 저점 유동성", "$1,900: 주요 수요구간"],
+      fvg: ["차트 미확인 — 4H 반등 과정에서 다수 FVG 생성 가능성"],
+      orderblock: ["$2,500 베어리시 OB (HTF)", "$2,100 불리시 OB (차트 미확인)"],
+      liquidity: "1D RSI 23 → 대규모 숏 포지션 누적 가능 → 숏 커버 반등 트리거 잠재력 높음"
+    },
+    orderflow: {
+      oi: "차트 미확인",
+      funding: "차트 미확인",
+      liquidation: "ETH 청산 히트맵: 하락 방향으로 급격한 가격 이동 확인. 상방 숏 청산 군집 $2,300 근방",
+      cvd: "차트 미확인"
+    },
+    scenarios: [
+      { label: "강세", prob: 30, color: "#4ade80", trigger: "$2,200 돌파 + 4H RSI 70 이상 유지", target: "$2,400 → $2,600", invalidate: "$2,100 이하 4H 종가", macroNote: "홍콩 스테이블코인 라이선스(HSBC/SC) — 아시아 규제 완화 → 중장기 ETH 우호적" },
+      { label: "약세", prob: 55, color: "#f87171", trigger: "$2,100 이하 4H 종가", target: "$1,900 → $1,700", invalidate: "$2,400 이상 1D 종가", macroNote: "USD/JPY 고점 + NFP 강세 → 달러 강세 지속 시 리스크 자산 전반 압박" },
+      { label: "중립", prob: 15, color: "#fbbf24", trigger: "$2,100–2,300 레인지 유지", target: "레인지 내 등락", invalidate: "3% 이상 어느 방향 이탈" }
+    ],
+    risk: {
+      longEntry: "1D RSI 25 이하 + 4H 강세 이탈 구조 확인",
+      sl: "$2,050 (1D 종가)",
+      tp: ["$2,300 (1차)", "$2,600 (2차)"],
+      rr: "1:2.0",
+      shortEntry: "$2,300 공급구간 리테스트 (리스크 낮음)",
+      shortSl: "$2,450",
+      shortTp: ["$2,100 (1차)", "$1,900 (2차)"],
+      entryForbid: "없음 (현재 윈도우 내 high-impact 예정 이벤트 없음)"
+    }
+  },
+  {
+    pair: "SOLUSDT",
+    name: "Solana",
+    price: 82.0,
+    change24h: "-2.51%",
+    sentiment: "bearish",
+    tf: {
+      "1D": { rsi: 24.62, cci: 20, note: "RSI 24.62 — ETH와 동반 극단 과매도. CCI 20 중립. $180 고점 대비 55% 하락." },
+      "4H": { rsi: 49.26, cci: 59.99, note: "RSI 중립(49), CCI 중립(60). 반등 시도 중이나 동력 미약." },
+      "1H": { rsi: 58.86, cci: 190.35, note: "RSI 중립-상향, CCI 190 과매수 진입. 단기 반등 모멘텀 존재." }
+    },
+    ew: {
+      structure: "충격파 하락 5파 진행 중 또는 말단",
+      currentWave: "5파 or C파 말단",
+      keyLevels: { resistance: ["$86–88 (VRVP POC 구간)", "$92–95 (중기 저항)", "$110+ (HTF 공급)"], support: ["$80 (현재 심리적 지지)", "$75 (주요 지지)", "$68–70 (주요 수요구간)"] },
+      invalidation: "$95 이상 1D 종가 — 하락 구조 무효화",
+      confidence: "low"
+    },
+    ict: {
+      bias: "약세 편향 (구조 미회복)",
+      pdArray: ["$88–90: HTF 공급구간", "$80: 심리적 지지 + 유동성", "$75: 이전 주요 저점"],
+      fvg: ["차트 미확인"],
+      orderblock: ["$88 베어리시 OB", "$75–76 불리시 OB (차트 미확인)"],
+      liquidity: "청산 히트맵 희박 — SOL 유동성 구조 약함. $80 이하 롱 청산 군집 주목"
+    },
+    orderflow: {
+      oi: "차트 미확인",
+      funding: "차트 미확인",
+      liquidation: "SOL 청산 히트맵: 전반적으로 희박한 편. $78 하방 롱 청산 군집 소규모 존재",
+      cvd: "차트 미확인"
+    },
+    scenarios: [
+      { label: "강세", prob: 25, color: "#4ade80", trigger: "$84 이상 4H 종가 + RSI 60 이상 회복", target: "$88 → $92", invalidate: "$78 이하 4H 종가", macroNote: "이란 휴전 기대 재부각 시 위험자산 선호 → SOL 수혜 가능성" },
+      { label: "약세", prob: 60, color: "#f87171", trigger: "$80 이하 종가", target: "$75 → $70", invalidate: "$90 이상 1D 종가", macroNote: "NFP 강세·달러 강세 지속 → SOL 추가 하락 압박" },
+      { label: "중립", prob: 15, color: "#fbbf24", trigger: "$78–86 레인지 박스권", target: "레인지 유지", invalidate: "3% 이상 어느 방향 이탈" }
+    ],
+    risk: {
+      longEntry: "1D RSI 25 이하 극단 + 4H 반등 구조 확인",
+      sl: "$77.5",
+      tp: ["$86 (1차, VRVP POC)", "$92 (2차)"],
+      rr: "1:1.8",
+      shortEntry: "$86–88 공급구간 진입 후 리젝션",
+      shortSl: "$91",
+      shortTp: ["$80 (1차)", "$75 (2차)"],
+      entryForbid: "없음 (현재 윈도우 내 high-impact 예정 이벤트 없음)"
+    }
+  },
+  {
+    pair: "HYPEUSDT",
+    name: "Hyperliquid",
+    price: 40.4,
+    change24h: "-3.85%",
+    sentiment: "neutral",
+    tf: {
+      "1D": { rsi: 67.93, cci: 118.25, note: "RSI 67.93 — 타 페어 대비 상대 강세. CCI 118 상승. 차트 'BB 1 2x long' 트레이드 표기 (TP $41,598, SL $37,885 근방)." },
+      "4H": { rsi: 45.83, cci: 20, note: "RSI 베어리시 크로스 표기. CCI 중립. $48→$40 급락 후 안정화." },
+      "1H": { rsi: 63.81, cci: 171.01, note: "RSI 상향, CCI 171 과매수. 단기 반등 시도 중." }
+    },
+    ew: {
+      structure: "충격파 상승 중 조정 (3파 이후 4파 조정)",
+      currentWave: "4파 조정 (A or B)",
+      keyLevels: { resistance: ["$41.6 (차트 표기 TP 레벨)", "$44–46 (이전 고점 구간)", "$48–50 (HTF 저항)"], support: ["$38–37.9 (차트 표기 SL 레벨, 주요 지지)", "$35 (중기 지지)", "$32 (주요 수요구간)"] },
+      invalidation: "$37.9 이하 일봉 종가 — 불리시 구조 무효화",
+      confidence: "medium-high"
+    },
+    ict: {
+      bias: "중립-강세 편향 (1D RSI 강세, 타 페어 대비 상대강세)",
+      pdArray: ["$41.6: 근접 TP 레벨 (차트 표기)", "$38: 지지 구간 + SL 근방", "$35–36: HTF 불리시 OB"],
+      fvg: ["$40–41 구간: 미충족 FVG 가능성 (차트 미확인)"],
+      orderblock: ["$48 베어리시 OB (4H 급락 기점)", "$38 불리시 OB"],
+      liquidity: "HYPE 청산 히트맵 고밀도. $40 근방 양방향 청산 군집. OI 변화 -4.63% (coinalyze 기준)"
+    },
+    orderflow: {
+      oi: "OI -4.63% (coinalyze 기준) — 포지션 청산 압박",
+      funding: "차트 미확인",
+      liquidation: "HYPE 청산 히트맵 고밀도: $40 근방 양방향 청산 군집. 하방 $37.5 롱 청산, 상방 $42 숏 청산",
+      cvd: "차트 미확인"
+    },
+    scenarios: [
+      { label: "강세", prob: 45, color: "#4ade80", trigger: "$40 지지 유지 + $41 이상 4H 종가", target: "$41.6 (TP 1차) → $44–46", invalidate: "$37.9 이하 일봉 종가", macroNote: "BTC ETF $350M 순유입 + 이란 휴전 기대 유지 시 HYPE 상대강세 지속" },
+      { label: "약세", prob: 40, color: "#f87171", trigger: "$37.9 (차트 SL) 이하 종가", target: "$35 → $32", invalidate: "$42 이상 4H 종가", macroNote: "이슬라마바드 회담 결렬 지정학 리스크 → 위험자산 전반 약세 시 하방 압박" },
+      { label: "중립", prob: 15, color: "#fbbf24", trigger: "$38–42 레인지 유지", target: "레인지 등락", invalidate: "어느 방향이든 5% 이상 이탈" }
+    ],
+    risk: {
+      longEntry: "$40 지지 재확인 (1H RSI 50 이상 유지)",
+      sl: "$37.9 (차트 표기 SL 레벨)",
+      tp: ["$41.6 (1차, 차트 TP)", "$44 (2차)"],
+      rr: "1:2.4",
+      shortEntry: "$42 숏 청산 군집 스윕 후 리젝션",
+      shortSl: "$43.5",
+      shortTp: ["$38 (1차)", "$35 (2차)"],
+      entryForbid: "없음 (현재 윈도우 내 high-impact 예정 이벤트 없음)"
     }
   }
-};
+];
 
-const PAIRS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'HYPEUSDT'];
-const TABS = ['Overview', 'Elliott Wave', 'ICT/SMC', 'Orderflow', 'Scenarios', 'Risk'];
+const MACRO_EVENTS = [
+  {
+    id: "iran-islamabad-deadlock-0412",
+    time_utc: "2026-04-11T20:19:00Z",
+    time_kst: "2026-04-12T05:19:00+09:00",
+    region: "GLOBAL",
+    category: "news",
+    title: "이슬라마바드 미-이란 평화회담 결렬 — BTC $71K 지지",
+    importance: "high",
+    actual: null, forecast: null, previous: null,
+    impact_assets: ["BTCUSDT", "ETHUSDT", "SOLUSDT", "HYPEUSDT"],
+    summary: "이슬라마바드 미-이란 평화회담이 교착상태로 종료, 지정학적 불확실성 지속. BTC는 $71,600 근방에서 저항력 유지",
+    source: "investing_crypto",
+    source_url: "https://www.investing.com/news/cryptocurrency-news/btc-defies-geopolitical-volatility-as-islamabad-summit-enters-deadlock-4609037"
+  },
+  {
+    id: "btc-etf-inflow-73k-0411",
+    time_utc: "2026-04-11T00:00:00Z",
+    time_kst: "2026-04-11T09:00:00+09:00",
+    region: "US",
+    category: "news",
+    title: "BTC $73,000 돌파 — 중동 지정학 완화 + 스팟 ETF $350M 순유입",
+    importance: "high",
+    actual: null, forecast: null, previous: null,
+    impact_assets: ["BTCUSDT"],
+    summary: "중동 지정학적 긴장 완화와 비트코인 스팟 ETF $350M 순유입으로 BTC가 $73,000 돌파. IBIT 중심 3일 연속 순유입",
+    source: "investing_crypto",
+    source_url: "https://www.investing.com/news/cryptocurrency-news/bitcoin-hits-73000-on-middle-east-geopolitical-relief-and-350m-etf-inflow-4608965"
+  },
+  {
+    id: "btc-weekly-best-since-oct2025-0410",
+    time_utc: "2026-04-09T15:00:00Z",
+    time_kst: "2026-04-10T00:00:00+09:00",
+    region: "GLOBAL",
+    category: "news",
+    title: "BTC 미-이란 휴전 후 2025년 10월 이후 최고 주간 상승률",
+    importance: "high",
+    actual: null, forecast: null, previous: null,
+    impact_assets: ["BTCUSDT", "ETHUSDT", "SOLUSDT", "HYPEUSDT"],
+    summary: "미-이란 휴전 이후 BTC가 2025년 10월 이후 최고의 주간 상승률 기록. CPI 데이터도 주목",
+    source: "investing_crypto",
+    source_url: "https://www.investing.com/news/cryptocurrency-news/bitcoin-rises-above-72k-with-usiran-talks-cpi-data-in-focus-4607105"
+  },
+  {
+    id: "hk-stablecoin-license-0410",
+    time_utc: "2026-04-09T06:00:00Z",
+    time_kst: "2026-04-09T15:00:00+09:00",
+    region: "HK",
+    category: "crypto_event",
+    title: "홍콩, HSBC·SC에 첫 스테이블코인 라이선스 발급",
+    importance: "medium",
+    actual: null, forecast: null, previous: null,
+    impact_assets: ["BTCUSDT", "ETHUSDT"],
+    summary: "홍콩 금융감독당국이 HSBC와 스탠다드차타드에 첫 스테이블코인 라이선스 발급 — 아시아 크립토 규제 완화 신호",
+    source: "investing_crypto",
+    source_url: "https://www.investing.com/news/cryptocurrency-news/hong-kong-issues-first-stablecoin-licences-to-hsbc-standard-chartered-93CH-4607300"
+  },
+  {
+    id: "us-iran-ceasefire-risk-on-0408",
+    time_utc: "2026-04-07T18:00:00Z",
+    time_kst: "2026-04-08T03:00:00+09:00",
+    region: "GLOBAL",
+    category: "news",
+    title: "이란 휴전 기대로 BTC $71K 유지 — 위험자산 선호 부활",
+    importance: "high",
+    actual: null, forecast: null, previous: null,
+    impact_assets: ["BTCUSDT", "ETHUSDT", "SOLUSDT", "HYPEUSDT"],
+    summary: "미-이란 휴전 기대로 위험자산 선호 증가, BTC $71,000 이상 유지. 단, 4월 7일 휴전 위반 보고로 불확실성 재부각",
+    source: "investing_crypto",
+    source_url: "https://www.investing.com/news/cryptocurrency-news/bitcoin-rallies-to-nearly-72k-as-usiran-ceasefire-boosts-risk-4601995"
+  },
+  {
+    id: "usdjpy-inflation-print-0408",
+    time_utc: "2026-04-08T00:00:00Z",
+    time_kst: "2026-04-08T09:00:00+09:00",
+    region: "US",
+    category: "macro_data",
+    title: "USD/JPY 수년만의 고점 — 미국 인플레이션 지표 발표 앞두고",
+    importance: "high",
+    actual: null, forecast: null, previous: null,
+    impact_assets: ["BTCUSDT", "ETHUSDT", "SOLUSDT", "HYPEUSDT"],
+    summary: "달러가 미국 인플레이션 발표를 앞두고 엔화 대비 수년만의 고점 도달 — 리스크 자산 전반에 영향",
+    source: "tradingview_news",
+    source_url: "https://www.tradingview.com/news/tradingview:946f79b27094b:0-usd-jpy-dollar-near-multi-year-high-against-yen-ahead-of-us-inflation-print/"
+  },
+  {
+    id: "dxy-crumble-post-ceasefire-0404",
+    time_utc: "2026-04-04T00:00:00Z",
+    time_kst: "2026-04-04T09:00:00+09:00",
+    region: "US",
+    category: "macro_data",
+    title: "달러 약세 — 미-이란 휴전 후 주요 통화 강세",
+    importance: "medium",
+    actual: null, forecast: null, previous: null,
+    impact_assets: ["BTCUSDT", "ETHUSDT", "SOLUSDT", "HYPEUSDT"],
+    summary: "미-이란 휴전 이후 DXY 약세 전환, 리스크 자산과 비달러 자산에 우호적 환경 조성",
+    source: "tradingview_news",
+    source_url: "https://www.tradingview.com/news/tradingview:681e09d1a094b:0-dxy-us-dollar-crumbles-as-rival-currencies-soar-after-us-iran-ceasefire/"
+  },
+  {
+    id: "us-nfp-march-0403",
+    time_utc: "2026-04-03T12:30:00Z",
+    time_kst: "2026-04-03T21:30:00+09:00",
+    region: "US",
+    category: "macro_data",
+    title: "미국 3월 NFP 178,000명 — 예상치 크게 상회",
+    importance: "high",
+    actual: "178,000",
+    forecast: "~140,000",
+    previous: null,
+    impact_assets: ["BTCUSDT", "ETHUSDT", "SOLUSDT", "HYPEUSDT"],
+    summary: "미국 3월 비농업 고용이 예상치를 크게 상회한 178,000명 — 연준 금리 인하 기대 약화, 리스크 자산 단기 압박 요인",
+    source: "tradingview_news",
+    source_url: "https://www.tradingview.com/news/tradingview:caa4dcbff094b:0-us-nfp-job-growth-explodes-with-178-000-march-hires-far-above-estimates/"
+  }
+];
 
-const biasLabel = (b) => ({ bullish: '강세', oversold_bounce: '과매도반등', neutral_bearish: '중립/약세', bearish: '약세' }[b] || b);
-const biasColor = (b) => ({ bullish: C.bull, oversold_bounce: C.cvdP, neutral_bearish: C.neutral, bearish: C.bear }[b] || C.sub);
+const TABS = ["Overview", "Macro", "Elliott Wave", "ICT", "Orderflow", "Scenarios", "Risk"];
 
-function Badge({ label, color }) {
-  return <span style={{ display: 'inline-block', padding: '2px 7px', borderRadius: 4, fontSize: 11, fontWeight: 700, background: color + '22', color, border: `1px solid ${color}44` }}>{label}</span>;
-}
+const sentimentColor = (s) => s === "bullish" ? "#4ade80" : s === "bearish" ? "#f87171" : "#fbbf24";
+const importanceColor = (i) => i === "high" ? "#f87171" : i === "medium" ? "#fbbf24" : "#9ca3af";
+const categoryLabel = { monetary_policy: "통화정책", macro_data: "거시지표", news: "뉴스", crypto_event: "크립토" };
 
-function Card({ children, style }) {
-  return <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: '12px 14px', ...style }}>{children}</div>;
-}
-
-function RSIBar({ value, label }) {
-  const color = value < 30 ? C.bull : value > 70 ? C.bear : value > 55 ? C.cvdP : C.sub;
+function Badge({ children, color, bg }) {
   return (
-    <div style={{ marginBottom: 5 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-        <span style={{ color: C.sub, fontSize: 11 }}>RSI {label}</span>
-        <span style={{ color, fontWeight: 700, fontSize: 12 }}>{value}</span>
+    <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 4, fontSize: 11, fontWeight: 600, color: color || "#e8eaed", background: bg || "#2d3748", marginRight: 4 }}>
+      {children}
+    </span>
+  );
+}
+
+function PairCard({ p, onClick, selected }) {
+  return (
+    <div onClick={() => onClick(p.pair)} style={{ background: selected ? "#1e2535" : "#1a1f2e", border: "1px solid " + (selected ? "#4a6fa5" : "#2d3748"), borderRadius: 8, padding: "12px 16px", cursor: "pointer" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span style={{ fontWeight: 700, fontSize: 15 }}>{p.pair}</span>
+        <span style={{ color: "#f87171", fontWeight: 600, fontSize: 13 }}>{p.change24h}</span>
       </div>
-      <div style={{ height: 4, background: C.border, borderRadius: 2 }}>
-        <div style={{ width: Math.min(value, 100) + '%', height: '100%', background: color, borderRadius: 2 }} />
-      </div>
-    </div>
-  );
-}
-
-function PairHeader({ pair }) {
-  const d = DATA.pairs[pair];
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-      <span style={{ fontWeight: 700, fontSize: 14, color: C.text }}>{d.sym}<span style={{ color: C.sub, fontWeight: 400, fontSize: 11 }}>/USDT</span></span>
-      <span style={{ fontWeight: 700, color: C.text }}>${d.price.toLocaleString()}</span>
-      <span style={{ fontSize: 12, color: C.bear }}>{d.chg}%</span>
-      <Badge label={biasLabel(d.bias)} color={biasColor(d.bias)} />
-    </div>
-  );
-}
-
-function OverviewTab() {
-  return (
-    <div>
-      <Card style={{ marginBottom: 12 }}>
-        <div style={{ fontWeight: 700, marginBottom: 10 }}>시장 전체 요약 — 2026-04-12</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginBottom: 12 }}>
-          {[
-            { k: '시장 바이어스', v: '전반적 약세 / ETH·SOL 극단 과매도 신호 포착', col: C.neutral },
-            { k: 'BTC 포지션', v: 'RSI 44.57 중립, OB $68-70k 방어 중 (핵심 구간)', col: C.cvdP },
-            { k: 'ETH RSI 1D', v: '23.58 — 역사적 극저점, 반등 트리거 임박', col: C.bull },
-            { k: 'HYPE 상대강도', v: 'RSI 1D 67.93 — 나머지 코인 대비 유일 강세 구조', col: C.bull },
-          ].map(i => (
-            <div key={i.k} style={{ background: C.panel, padding: '8px 10px', borderRadius: 6 }}>
-              <div style={{ color: C.sub, fontSize: 11, marginBottom: 2 }}>{i.k}</div>
-              <div style={{ color: i.col, fontWeight: 600, fontSize: 12 }}>{i.v}</div>
-            </div>
-          ))}
-        </div>
-        <div style={{ color: C.sub, fontSize: 12, lineHeight: 1.7, borderTop: `1px solid ${C.border}`, paddingTop: 8 }}>
-          <span style={{ color: C.neutral, fontWeight: 700 }}>핵심 관찰 ·</span>{' '}
-          오늘 4개 페어 전체 하락(-1.94%~-3.85%)했으나 구조적 위치는 상이하다.
-          ETH(RSI 23.58)·SOL(RSI 24.62)은 역사적 과매도 극단으로 반등 촉매 조건 충족,
-          BTC(RSI 44.57)는 중립 영역에서 4H OB($68-70k)를 방어하며 방향성 탐색 중.
-          HYPE는 1D RSI 67.93으로 완전히 다른 강세 국면 — 차트 내 3x 롱 셋업 애노테이션 확인됨.
-          오더플로우: 전체 OI 감소(디레버리징) 진행, 펀딩비 중립~음전환 — 과도한 레버리지 청산 후 구조 건강해질 수 있음.
-        </div>
-      </Card>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 12 }}>
-        {PAIRS.map(pair => {
-          const d = DATA.pairs[pair];
-          return (
-            <Card key={pair}>
-              <PairHeader pair={pair} />
-              <div style={{ marginBottom: 10 }}>
-                {['1D', '4H', '1H'].map(tf => <RSIBar key={tf} value={d.rsi[tf]} label={tf} />)}
-              </div>
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 11, color: C.sub }}>CCI:</span>
-                {Object.entries(d.cci).map(([tf, v]) => (
-                  <span key={tf} style={{ fontSize: 11, color: v > 100 ? C.cvdP : v < -100 ? C.bear : C.sub }}>
-                    {tf}: <b style={{ color: v > 100 ? C.cvdP : v < -100 ? C.bear : C.neutral }}>{v}</b>
-                  </span>
-                ))}
-              </div>
-            </Card>
-          );
-        })}
-      </div>
-
-      <Card>
-        <div style={{ fontWeight: 700, marginBottom: 10 }}>핵심 가격 레벨 요약</div>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-            <thead>
-              <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                {['페어', '현재가', '1차 저항', 'POC', '1차 지지', 'BSL', 'SSL'].map(h => (
-                  <th key={h} style={{ padding: '6px 12px', color: C.sub, textAlign: 'left', fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {PAIRS.map(pair => {
-                const d = DATA.pairs[pair];
-                const fmt = n => pair === 'BTCUSDT' ? `$${(n/1000).toFixed(1)}k` : `$${n.toLocaleString()}`;
-                return (
-                  <tr key={pair} style={{ borderBottom: `1px solid ${C.border}22` }}>
-                    <td style={{ padding: '7px 12px', color: C.text, fontWeight: 700 }}>{d.sym}</td>
-                    <td style={{ padding: '7px 12px', color: C.text }}>{fmt(d.price)}</td>
-                    <td style={{ padding: '7px 12px', color: C.bear }}>{fmt(d.levels.res[0])}</td>
-                    <td style={{ padding: '7px 12px', color: C.heat }}>{fmt(d.levels.poc)}</td>
-                    <td style={{ padding: '7px 12px', color: C.bull }}>{fmt(d.levels.sup[0])}</td>
-                    <td style={{ padding: '7px 12px', color: C.cvdP }}>{fmt(d.levels.bsl)}</td>
-                    <td style={{ padding: '7px 12px', color: C.cvdN }}>{fmt(d.levels.ssl)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-    </div>
-  );
-}
-
-function EWTab() {
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
-      {PAIRS.map(pair => {
-        const d = DATA.pairs[pair];
-        return (
-          <Card key={pair}>
-            <PairHeader pair={pair} />
-            <div style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 11, color: C.sub, marginBottom: 4 }}>Primary Count</div>
-              <div style={{ fontSize: 12, color: C.text, lineHeight: 1.6, background: C.panel, padding: '8px', borderRadius: 5, borderLeft: `3px solid ${C.bull}` }}>{d.ew.primary}</div>
-            </div>
-            <div style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 11, color: C.sub, marginBottom: 4 }}>Alternate Count</div>
-              <div style={{ fontSize: 12, color: C.neutral, lineHeight: 1.6, background: C.panel, padding: '8px', borderRadius: 5, borderLeft: `3px solid ${C.neutral}` }}>{d.ew.alt}</div>
-            </div>
-            <div style={{ fontSize: 12, lineHeight: 1.5, background: C.panel, padding: '7px 8px', borderRadius: 5, borderLeft: `3px solid ${C.bear}` }}>
-              <span style={{ color: C.bear, fontWeight: 700 }}>무효화: </span>
-              <span style={{ color: C.sub }}>{d.ew.inv}</span>
-            </div>
-            <div style={{ marginTop: 10, paddingTop: 8, borderTop: `1px solid ${C.border}` }}>
-              {['1D', '4H', '1H'].map(tf => <RSIBar key={tf} value={d.rsi[tf]} label={tf} />)}
-            </div>
-          </Card>
-        );
-      })}
-    </div>
-  );
-}
-
-function ICTTab() {
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
-      {PAIRS.map(pair => {
-        const d = DATA.pairs[pair];
-        const rows = [
-          { k: 'OB 저항', v: d.ict.ob_res, col: C.bear },
-          { k: 'OB 지지', v: d.ict.ob_sup, col: C.bull },
-          { k: 'Market Model', v: d.ict.model, col: C.conv },
-          { k: 'P/D Zone', v: d.ict.pd, col: C.cvdP },
-        ];
-        return (
-          <Card key={pair}>
-            <PairHeader pair={pair} />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 10 }}>
-              {rows.map(r => (
-                <div key={r.k} style={{ background: C.panel, padding: '7px 10px', borderRadius: 5, display: 'flex', gap: 8 }}>
-                  <span style={{ color: C.sub, fontSize: 11, minWidth: 80, paddingTop: 1, flexShrink: 0 }}>{r.k}</span>
-                  <span style={{ color: r.col, fontSize: 12, lineHeight: 1.4 }}>{r.v}</span>
-                </div>
-              ))}
-            </div>
-            <div style={{ color: C.sub, fontSize: 11, marginBottom: 5 }}>레벨 맵</div>
-            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-              {d.levels.res.map(r => (
-                <span key={r} style={{ background: C.bear + '22', color: C.bear, padding: '2px 7px', borderRadius: 4, fontSize: 11, border: `1px solid ${C.bear}44` }}>
-                  R ${r.toLocaleString()}
-                </span>
-              ))}
-              {d.levels.sup.map(s => (
-                <span key={s} style={{ background: C.bull + '22', color: C.bull, padding: '2px 7px', borderRadius: 4, fontSize: 11, border: `1px solid ${C.bull}44` }}>
-                  S ${s.toLocaleString()}
-                </span>
-              ))}
-            </div>
-          </Card>
-        );
-      })}
-    </div>
-  );
-}
-
-function OrderflowTab() {
-  return (
-    <div>
-      <Card style={{ marginBottom: 12 }}>
-        <div style={{ fontWeight: 700, marginBottom: 10 }}>Coinalyze 시장 전체 OI 현황</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 8 }}>
-          {[
-            { k: 'Total OI', v: '~$40.0B', col: C.cvdP },
-            { k: 'BTC OI', v: '$22.3B (+22.1%)', col: C.cvdP },
-            { k: '시장 상태', v: '디레버리징 진행 중', col: C.neutral },
-          ].map(i => (
-            <div key={i.k} style={{ background: C.panel, padding: '8px 10px', borderRadius: 6 }}>
-              <div style={{ color: C.sub, fontSize: 11, marginBottom: 2 }}>{i.k}</div>
-              <div style={{ color: i.col, fontWeight: 700 }}>{i.v}</div>
-            </div>
-          ))}
-        </div>
-        <div style={{ fontSize: 12, color: C.sub, lineHeight: 1.6 }}>
-          OI 감소 + 펀딩비 중립~음 전환: 과도 레버리지 청산 후 포지션 구조 건강해지는 신호. 다음 방향성 확인 시 더 강한 추세 형성 가능.
-        </div>
-      </Card>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
-        {PAIRS.map(pair => {
-          const d = DATA.pairs[pair];
-          return (
-            <Card key={pair}>
-              <PairHeader pair={pair} />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <div style={{ background: C.panel, padding: '8px 10px', borderRadius: 5 }}>
-                  <div style={{ fontSize: 11, color: C.sub, marginBottom: 2 }}>청산 히트맵 상방 (숏 SL)</div>
-                  <div style={{ fontSize: 12, color: C.bear, fontWeight: 600 }}>{d.of.liq_up}</div>
-                </div>
-                <div style={{ background: C.panel, padding: '8px 10px', borderRadius: 5 }}>
-                  <div style={{ fontSize: 11, color: C.sub, marginBottom: 2 }}>청산 히트맵 하방 (롱 SL)</div>
-                  <div style={{ fontSize: 12, color: C.bull, fontWeight: 600 }}>{d.of.liq_dn}</div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                  <div style={{ background: C.panel, padding: '8px 10px', borderRadius: 5 }}>
-                    <div style={{ fontSize: 11, color: C.sub, marginBottom: 2 }}>OI 변화</div>
-                    <div style={{ fontSize: 12, color: C.cvdP, fontWeight: 600 }}>{d.of.oi}</div>
-                  </div>
-                  <div style={{ background: C.panel, padding: '8px 10px', borderRadius: 5 }}>
-                    <div style={{ fontSize: 11, color: C.sub, marginBottom: 2 }}>펀딩비</div>
-                    <div style={{ fontSize: 12, color: C.heat, fontWeight: 600 }}>{d.of.fund}</div>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          );
-        })}
+      <div style={{ fontSize: 20, fontWeight: 700, margin: "4px 0" }}>${p.price.toLocaleString()}</div>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
+        <Badge color={sentimentColor(p.sentiment)} bg={sentimentColor(p.sentiment) + "22"}>{p.sentiment === "bearish" ? "약세" : p.sentiment === "bullish" ? "강세" : "중립"}</Badge>
+        {Object.entries(p.tf).map(([tf, v]) => (
+          <span key={tf} style={{ fontSize: 11, color: "#9ca3af" }}>RSI {tf} {v.rsi}</span>
+        ))}
       </div>
     </div>
   );
 }
 
-function ScenariosTab() {
+function Section({ title, children }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <Card>
-        <div style={{ fontWeight: 700, marginBottom: 10 }}>통합 시나리오 — 4개 페어 공통</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-          {[
-            { lbl: 'A — 시장 반등 (40%)', col: C.bull, desc: 'ETH/SOL 1D RSI 극단 과매도 → Smart Money 매집 → 반등 시작. BTC $74k+ 회복 시 확인. 트리거: 매크로 안정 + BTC OB 방어' },
-            { lbl: 'B — 횡보 압축 (38%)', col: C.neutral, desc: '각 핵심 지지 OB에서 소화 후 방향성 대기. 뚜렷한 뉴스/트리거 부재. BTC $69-74k 레인지 유지' },
-            { lbl: 'C — 추가 하락 (22%)', col: C.bear, desc: 'BTC $68k OB 이탈 시 동반 하락. ETH $2,000 / SOL $75 / HYPE $37.9 차례로 테스트. 매크로 악재 시 가속' },
-          ].map(s => (
-            <div key={s.lbl} style={{ background: C.panel, padding: '10px', borderRadius: 6, borderTop: `3px solid ${s.col}` }}>
-              <div style={{ color: s.col, fontWeight: 700, fontSize: 12, marginBottom: 6 }}>{s.lbl}</div>
-              <div style={{ fontSize: 11, color: C.sub, lineHeight: 1.6 }}>{s.desc}</div>
-            </div>
-          ))}
-        </div>
-      </Card>
-
-      {PAIRS.map(pair => {
-        const d = DATA.pairs[pair];
-        return (
-          <Card key={pair}>
-            <PairHeader pair={pair} />
-            <div style={{ display: 'flex', gap: 8 }}>
-              {d.scenarios.map(s => (
-                <div key={s.lbl} style={{ flex: 1, background: C.panel, padding: '8px', borderRadius: 6, borderLeft: `3px solid ${s.col}` }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                    <span style={{ color: s.col, fontWeight: 700, fontSize: 11 }}>{s.lbl}</span>
-                    <span style={{ color: s.col, fontWeight: 700 }}>{s.prob}%</span>
-                  </div>
-                  <div style={{ height: 3, background: C.border, borderRadius: 2, marginBottom: 5 }}>
-                    <div style={{ width: s.prob + '%', height: '100%', background: s.col, borderRadius: 2 }} />
-                  </div>
-                  <div style={{ fontSize: 11, color: C.sub, lineHeight: 1.5 }}>{s.desc}</div>
-                </div>
-              ))}
-            </div>
-          </Card>
-        );
-      })}
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, borderBottom: "1px solid #2d3748", paddingBottom: 4 }}>{title}</div>
+      {children}
     </div>
   );
 }
 
-function RiskTab() {
-  const hype = DATA.pairs.HYPEUSDT;
+function RsiBar({ label, value }) {
+  const color = value > 70 ? "#f87171" : value < 30 ? "#4ade80" : "#fbbf24";
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <Card style={{ borderColor: C.conv + '88' }}>
-        <div style={{ fontWeight: 700, color: C.conv, marginBottom: 8 }}>HYPE — 차트 애노테이션 셋업 (3x Long)</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 8 }}>
-          {[
-            { k: '타입', v: hype.userSetup.type, col: C.bull },
-            { k: '진입', v: hype.userSetup.entry, col: C.text },
-            { k: 'SL', v: '$' + hype.userSetup.sl, col: C.bear },
-            { k: 'TP', v: '$' + hype.userSetup.tp, col: C.bull },
-          ].map(i => (
-            <div key={i.k} style={{ background: C.panel, padding: '8px', borderRadius: 6, textAlign: 'center' }}>
-              <div style={{ color: C.sub, fontSize: 11, marginBottom: 3 }}>{i.k}</div>
-              <div style={{ color: i.col, fontWeight: 700 }}>{i.v}</div>
-            </div>
-          ))}
-        </div>
-        <div style={{ fontSize: 12, color: C.sub, background: C.panel, padding: '7px 10px', borderRadius: 5 }}>
-          컨플루언스: {hype.userSetup.note}
-        </div>
-      </Card>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+      <span style={{ color: "#9ca3af", width: 24, fontSize: 11 }}>{label}</span>
+      <div style={{ flex: 1, background: "#2d3748", borderRadius: 4, height: 8, overflow: "hidden" }}>
+        <div style={{ width: Math.min(100, Math.max(0, value)) + "%", height: "100%", background: color, borderRadius: 4 }} />
+      </div>
+      <span style={{ color, fontWeight: 600, fontSize: 12, width: 40, textAlign: "right" }}>{value.toFixed(1)}</span>
+    </div>
+  );
+}
 
-      {PAIRS.map(pair => {
-        const d = DATA.pairs[pair];
-        return (
-          <Card key={pair}>
-            <PairHeader pair={pair} />
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              {['long', 'short'].map(side => {
-                const r = d.risk[side];
-                const sc = side === 'long' ? C.bull : C.bear;
-                return (
-                  <div key={side} style={{ background: C.panel, padding: '10px', borderRadius: 6, borderTop: `2px solid ${sc}` }}>
-                    <div style={{ color: sc, fontWeight: 700, fontSize: 12, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>{side}</div>
-                    {[
-                      { k: '진입', v: '$' + r.entry, col: C.text },
-                      { k: 'SL', v: '$' + r.sl, col: C.bear },
-                      { k: 'TP1', v: '$' + r.tp1, col: C.bull },
-                      { k: 'TP2', v: '$' + r.tp2, col: C.bull },
-                      { k: 'R:R', v: r.rr, col: C.conv },
-                    ].map(i => (
-                      <div key={i.k} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                        <span style={{ color: C.sub, fontSize: 11 }}>{i.k}</span>
-                        <span style={{ color: i.col, fontWeight: 600, fontSize: 12 }}>{i.v}</span>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
-        );
-      })}
+function PairSelector({ selected, onChange }) {
+  return (
+    <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+      {PAIRS.map(p => (
+        <button key={p.pair} onClick={() => onChange(p.pair)}
+          style={{ padding: "4px 12px", borderRadius: 6, border: "none", cursor: "pointer", fontWeight: 600, fontSize: 12,
+            background: selected === p.pair ? "#4a6fa5" : "#2d3748", color: "#e8eaed" }}>
+          {p.pair.replace("USDT", "")}
+        </button>
+      ))}
     </div>
   );
 }
 
 function Dashboard() {
-  const [tab, setTab] = React.useState('Overview');
+  const [activeTab, setActiveTab] = React.useState("Overview");
+  const [selectedPair, setSelectedPair] = React.useState("BTCUSDT");
+  const pair = PAIRS.find(p => p.pair === selectedPair);
 
   let tabContent;
-  switch (tab) {
-    case 'Elliott Wave': tabContent = <EWTab />; break;
-    case 'ICT/SMC':     tabContent = <ICTTab />; break;
-    case 'Orderflow':   tabContent = <OrderflowTab />; break;
-    case 'Scenarios':   tabContent = <ScenariosTab />; break;
-    case 'Risk':        tabContent = <RiskTab />; break;
-    default:            tabContent = <OverviewTab />;
-  }
 
-  return (
-    <div style={{ minHeight: '100vh', background: C.bg, paddingBottom: 40 }}>
-      {/* Header */}
-      <div style={{ background: C.panel, borderBottom: `1px solid ${C.border}`, padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100 }}>
-        <div>
-          <div style={{ fontWeight: 700, fontSize: 15, color: C.text }}>Crypto Futures Analysis</div>
-          <div style={{ fontSize: 11, color: C.sub }}>2026-04-12 · 22:22 KST · EW + ICT/SMC + Orderflow</div>
+  if (activeTab === "Overview") {
+    tabContent = (
+      <div>
+        <div style={{ marginBottom: 16, padding: "12px 16px", background: "#1a1f2e", borderRadius: 8, borderLeft: "4px solid #f87171" }}>
+          <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 4 }}>2026-04-12 시장 요약</div>
+          <div style={{ color: "#e8eaed", fontSize: 14, lineHeight: 1.7 }}>
+            전 페어 하락 마감 (BTC -2.18%, ETH -1.94%, SOL -2.51%, HYPE -3.85%). 이슬라마바드 미-이란 회담 결렬로 지정학 불확실성 재확대.
+            ETH·SOL 1D RSI 극단 과매도(23~24), BTC $71K 지지선 방어 중. HYPE는 타 페어 대비 상대강세 유지(1D RSI 67.9).
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: 4 }}>
-          {[
-            { s: 'BTC', p: '$71,026', c: '-2.18%' },
-            { s: 'ETH', p: '$2,194', c: '-1.94%' },
-            { s: 'SOL', p: '$82.0', c: '-2.51%' },
-            { s: 'HYPE', p: '$40.4', c: '-3.85%' },
-          ].map(i => (
-            <div key={i.s} style={{ textAlign: 'right', padding: '0 10px', borderLeft: `1px solid ${C.border}` }}>
-              <div style={{ fontSize: 10, color: C.sub }}>{i.s}</div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{i.p}</div>
-              <div style={{ fontSize: 10, color: C.bear }}>{i.c}</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
+          {PAIRS.map(p => <PairCard key={p.pair} p={p} onClick={setSelectedPair} selected={selectedPair === p.pair} />)}
+        </div>
+        <div style={{ marginTop: 20 }}>
+          <Section title="선택 페어 멀티타임프레임">
+            <PairSelector selected={selectedPair} onChange={setSelectedPair} />
+            <div style={{ background: "#131720", borderRadius: 8, padding: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <div>
+                  <span style={{ fontWeight: 700, fontSize: 18 }}>{pair.pair}</span>
+                  <span style={{ color: "#9ca3af", fontSize: 13, marginLeft: 8 }}>{pair.name}</span>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontWeight: 700, fontSize: 20 }}>${pair.price.toLocaleString()}</div>
+                  <div style={{ color: "#f87171", fontSize: 13 }}>{pair.change24h} (24h)</div>
+                </div>
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 6 }}>RSI 멀티타임프레임</div>
+                {Object.entries(pair.tf).map(([tf, v]) => <RsiBar key={tf} label={tf} value={v.rsi} />)}
+              </div>
+              {Object.entries(pair.tf).map(([tf, v]) => (
+                <div key={tf} style={{ background: "#1a1f2e", borderRadius: 6, padding: "8px 12px", marginBottom: 8 }}>
+                  <span style={{ color: "#4a6fa5", fontWeight: 700, marginRight: 8 }}>{tf}</span>
+                  <span style={{ color: "#9ca3af", fontSize: 12 }}>{v.note}</span>
+                </div>
+              ))}
+            </div>
+          </Section>
+        </div>
+      </div>
+    );
+  } else if (activeTab === "Macro") {
+    tabContent = (
+      <div>
+        <div style={{ marginBottom: 12, color: "#9ca3af", fontSize: 12 }}>
+          수집 기준: 2026-04-13 00:00 KST 기준 과거 12h + 향후 24h 윈도우 (36h) | 소스: investing.com/crypto, tradingview/news | Velo 스킵(로그인 필요)
+        </div>
+        {MACRO_EVENTS.length === 0
+          ? <div style={{ color: "#9ca3af", textAlign: "center", padding: 40 }}>No macro events in 36h window</div>
+          : MACRO_EVENTS.map(ev => (
+            <div key={ev.id} style={{ background: "#1a1f2e", borderRadius: 8, padding: "14px 16px", marginBottom: 12, borderLeft: "4px solid " + importanceColor(ev.importance) }}>
+              <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+                <span style={{ color: "#9ca3af", fontSize: 12 }}>{ev.time_kst.replace("T", " ").replace("+09:00", " KST")}</span>
+                <Badge color="#e8eaed" bg="#2d3748">{ev.region}</Badge>
+                <Badge color={importanceColor(ev.importance)} bg={importanceColor(ev.importance) + "22"}>
+                  {ev.importance === "high" ? "HIGH" : ev.importance === "medium" ? "MED" : "LOW"}
+                </Badge>
+                <Badge color="#a78bfa" bg="#a78bfa22">{categoryLabel[ev.category] || ev.category}</Badge>
+              </div>
+              <div style={{ fontWeight: 600, fontSize: 14, color: "#e8eaed", marginBottom: 6 }}>{ev.title}</div>
+              {(ev.actual || ev.forecast || ev.previous) && (
+                <table style={{ borderCollapse: "collapse", marginBottom: 8, fontSize: 12 }}>
+                  <tbody>
+                    <tr>
+                      {ev.actual && <td style={{ padding: "2px 12px 2px 0", color: "#9ca3af" }}>실제</td>}
+                      {ev.forecast && <td style={{ padding: "2px 12px 2px 0", color: "#9ca3af" }}>예상</td>}
+                      {ev.previous && <td style={{ padding: "2px 12px 2px 0", color: "#9ca3af" }}>이전</td>}
+                    </tr>
+                    <tr>
+                      {ev.actual && <td style={{ padding: "2px 12px 2px 0", color: "#4ade80", fontWeight: 700 }}>{ev.actual}</td>}
+                      {ev.forecast && <td style={{ padding: "2px 12px 2px 0", color: "#fbbf24" }}>{ev.forecast}</td>}
+                      {ev.previous && <td style={{ padding: "2px 12px 2px 0", color: "#e8eaed" }}>{ev.previous}</td>}
+                    </tr>
+                  </tbody>
+                </table>
+              )}
+              <div style={{ color: "#9ca3af", fontSize: 13, marginBottom: 8 }}>{ev.summary}</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+                {ev.impact_assets.map(a => (
+                  <span key={a} style={{ padding: "2px 8px", borderRadius: 4, fontSize: 11, border: "1px solid #4ade80", color: "#4ade80" }}>{a.replace("USDT", "")}</span>
+                ))}
+                <a href={ev.source_url} target="_blank" rel="noopener noreferrer" style={{ color: "#4a6fa5", fontSize: 11, marginLeft: "auto" }}>{ev.source} →</a>
+              </div>
+            </div>
+          ))
+        }
+      </div>
+    );
+  } else if (activeTab === "Elliott Wave") {
+    tabContent = (
+      <div>
+        <PairSelector selected={selectedPair} onChange={setSelectedPair} />
+        <div style={{ background: "#131720", borderRadius: 8, padding: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div style={{ fontWeight: 700, fontSize: 16 }}>{pair.pair} — Elliott Wave</div>
+            <Badge color={pair.ew.confidence.includes("medium-high") ? "#4ade80" : pair.ew.confidence === "medium" ? "#fbbf24" : "#f87171"}
+              bg={(pair.ew.confidence.includes("medium-high") ? "#4ade80" : pair.ew.confidence === "medium" ? "#fbbf24" : "#f87171") + "22"}>
+              신뢰도: {pair.ew.confidence}
+            </Badge>
+          </div>
+          <Section title="파동 구조">
+            <div style={{ background: "#1a1f2e", borderRadius: 6, padding: 12 }}>
+              <div style={{ color: "#e8eaed", marginBottom: 4 }}>{pair.ew.structure}</div>
+              <div style={{ color: "#fbbf24", fontSize: 13 }}>현재 파동: {pair.ew.currentWave}</div>
+            </div>
+          </Section>
+          <Section title="주요 레벨">
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div>
+                <div style={{ fontSize: 11, color: "#f87171", fontWeight: 600, marginBottom: 6 }}>저항 (RESISTANCE)</div>
+                {pair.ew.keyLevels.resistance.map((l, i) => (
+                  <div key={i} style={{ color: "#e8eaed", fontSize: 13, marginBottom: 4, paddingLeft: 8, borderLeft: "2px solid #f87171" }}>{l}</div>
+                ))}
+              </div>
+              <div>
+                <div style={{ fontSize: 11, color: "#4ade80", fontWeight: 600, marginBottom: 6 }}>지지 (SUPPORT)</div>
+                {pair.ew.keyLevels.support.map((l, i) => (
+                  <div key={i} style={{ color: "#e8eaed", fontSize: 13, marginBottom: 4, paddingLeft: 8, borderLeft: "2px solid #4ade80" }}>{l}</div>
+                ))}
+              </div>
+            </div>
+          </Section>
+          <Section title="무효화 조건">
+            <div style={{ background: "#1a1f2e", borderRadius: 6, padding: 12, borderLeft: "4px solid #f59e0b" }}>
+              <span style={{ color: "#f59e0b", fontWeight: 600 }}>⚠ </span>
+              <span style={{ color: "#e8eaed", fontSize: 13 }}>{pair.ew.invalidation}</span>
+            </div>
+          </Section>
+        </div>
+      </div>
+    );
+  } else if (activeTab === "ICT") {
+    tabContent = (
+      <div>
+        <PairSelector selected={selectedPair} onChange={setSelectedPair} />
+        <div style={{ background: "#131720", borderRadius: 8, padding: 16 }}>
+          <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 16 }}>{pair.pair} — ICT/SMC</div>
+          <Section title="편향 (Bias)">
+            <div style={{ background: "#1a1f2e", borderRadius: 6, padding: 12 }}>
+              <span style={{ color: sentimentColor(pair.sentiment), fontWeight: 700 }}>{pair.ict.bias}</span>
+            </div>
+          </Section>
+          <Section title="PD Array">
+            {pair.ict.pdArray.map((l, i) => (
+              <div key={i} style={{ background: "#1a1f2e", borderRadius: 6, padding: "8px 12px", marginBottom: 6, color: "#e8eaed", fontSize: 13 }}>• {l}</div>
+            ))}
+          </Section>
+          <Section title="Fair Value Gap (FVG)">
+            {pair.ict.fvg.map((l, i) => (
+              <div key={i} style={{ background: "#1a1f2e", borderRadius: 6, padding: "8px 12px", marginBottom: 6, color: "#22d3ee", fontSize: 13 }}>◈ {l}</div>
+            ))}
+          </Section>
+          <Section title="Order Block">
+            {pair.ict.orderblock.map((l, i) => (
+              <div key={i} style={{ background: "#1a1f2e", borderRadius: 6, padding: "8px 12px", marginBottom: 6, color: "#a78bfa", fontSize: 13 }}>▣ {l}</div>
+            ))}
+          </Section>
+          <Section title="유동성 (Liquidity)">
+            <div style={{ background: "#1a1f2e", borderRadius: 6, padding: 12, color: "#f59e0b", fontSize: 13 }}>{pair.ict.liquidity}</div>
+          </Section>
+        </div>
+      </div>
+    );
+  } else if (activeTab === "Orderflow") {
+    tabContent = (
+      <div>
+        <PairSelector selected={selectedPair} onChange={setSelectedPair} />
+        <div style={{ background: "#131720", borderRadius: 8, padding: 16 }}>
+          <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 16 }}>{pair.pair} — Orderflow</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            {[
+              { label: "OI (미결제약정)", value: pair.orderflow.oi, color: "#22d3ee" },
+              { label: "Funding Rate", value: pair.orderflow.funding, color: "#a78bfa" },
+              { label: "CVD", value: pair.orderflow.cvd, color: "#fb923c" },
+              { label: "Liquidation", value: pair.orderflow.liquidation, color: "#f59e0b" }
+            ].map(item => (
+              <div key={item.label} style={{ background: "#1a1f2e", borderRadius: 6, padding: 12 }}>
+                <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 6, fontWeight: 600 }}>{item.label}</div>
+                <div style={{ color: item.value.includes("미확인") ? "#9ca3af" : item.color, fontSize: 13 }}>{item.value}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 16, padding: "12px 16px", background: "#1a1f2e", borderRadius: 8, borderLeft: "4px solid #4a6fa5" }}>
+            <div style={{ fontSize: 12, color: "#9ca3af" }}>
+              소스: Coinalyze 종합 패널, Coinglass 청산 히트맵. Exocharts(히트맵/CVD) 개별 이미지 미수집으로 해당 항목 차트 미확인.
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  } else if (activeTab === "Scenarios") {
+    tabContent = (
+      <div>
+        <PairSelector selected={selectedPair} onChange={setSelectedPair} />
+        <div style={{ background: "#131720", borderRadius: 8, padding: 16 }}>
+          <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 16 }}>{pair.pair} — 통합 시나리오</div>
+          <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+            {pair.scenarios.map(s => (
+              <div key={s.label} style={{ flex: 1, textAlign: "center", padding: "8px 4px", background: s.color + "22", borderRadius: 6, borderTop: "3px solid " + s.color }}>
+                <div style={{ color: s.color, fontWeight: 700, fontSize: 13 }}>{s.label}</div>
+                <div style={{ color: "#e8eaed", fontWeight: 700, fontSize: 18 }}>{s.prob}%</div>
+              </div>
+            ))}
+          </div>
+          {pair.scenarios.map(s => (
+            <div key={s.label} style={{ background: "#1a1f2e", borderRadius: 8, padding: "12px 14px", marginBottom: 12, borderLeft: "4px solid " + s.color }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ color: s.color, fontWeight: 700 }}>{s.label} ({s.prob}%)</span>
+                <span style={{ color: "#e8eaed", fontWeight: 600 }}>목표: {s.target}</span>
+              </div>
+              <div style={{ color: "#9ca3af", fontSize: 12, marginBottom: 4 }}>트리거: <span style={{ color: "#e8eaed" }}>{s.trigger}</span></div>
+              <div style={{ color: "#9ca3af", fontSize: 12, marginBottom: 4 }}>무효화: <span style={{ color: "#f59e0b" }}>{s.invalidate}</span></div>
+              <div style={{ color: "#4a6fa5", fontSize: 12 }}>매크로: {s.macroNote}</div>
             </div>
           ))}
         </div>
       </div>
+    );
+  } else if (activeTab === "Risk") {
+    tabContent = (
+      <div>
+        <PairSelector selected={selectedPair} onChange={setSelectedPair} />
+        <div style={{ background: "#131720", borderRadius: 8, padding: 16 }}>
+          <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 16 }}>{pair.pair} — 리스크 관리</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+            <div style={{ background: "#4ade8011", border: "1px solid #4ade8033", borderRadius: 8, padding: 12 }}>
+              <div style={{ color: "#4ade80", fontWeight: 700, marginBottom: 8 }}>▲ 롱 전략</div>
+              <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 4 }}>진입</div>
+              <div style={{ color: "#e8eaed", fontSize: 13, marginBottom: 8 }}>{pair.risk.longEntry}</div>
+              <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 4 }}>SL</div>
+              <div style={{ color: "#f87171", fontWeight: 600, fontSize: 13, marginBottom: 8 }}>{pair.risk.sl}</div>
+              <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 4 }}>TP</div>
+              {pair.risk.tp.map((t, i) => <div key={i} style={{ color: "#4ade80", fontSize: 13 }}>{i + 1}차: {t}</div>)}
+              <div style={{ marginTop: 8, fontSize: 12, color: "#9ca3af" }}>R:R — <span style={{ color: "#fbbf24", fontWeight: 700 }}>{pair.risk.rr}</span></div>
+            </div>
+            <div style={{ background: "#f8717111", border: "1px solid #f8717133", borderRadius: 8, padding: 12 }}>
+              <div style={{ color: "#f87171", fontWeight: 700, marginBottom: 8 }}>▼ 숏 전략</div>
+              <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 4 }}>진입</div>
+              <div style={{ color: "#e8eaed", fontSize: 13, marginBottom: 8 }}>{pair.risk.shortEntry}</div>
+              <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 4 }}>SL</div>
+              <div style={{ color: "#4ade80", fontWeight: 600, fontSize: 13, marginBottom: 8 }}>{pair.risk.shortSl}</div>
+              <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 4 }}>TP</div>
+              {pair.risk.shortTp.map((t, i) => <div key={i} style={{ color: "#f87171", fontSize: 13 }}>{i + 1}차: {t}</div>)}
+            </div>
+          </div>
+          <div style={{ padding: "10px 14px", background: "#1a1f2e", borderRadius: 6, fontSize: 12 }}>
+            <span style={{ color: "#9ca3af" }}>Entry 금지 구간: </span>
+            <span style={{ color: pair.risk.entryForbid.startsWith("없음") ? "#4ade80" : "#f87171" }}>{pair.risk.entryForbid}</span>
+          </div>
+        </div>
+        <div style={{ marginTop: 16, background: "#1a1f2e", borderRadius: 8, padding: "12px 16px" }}>
+          <div style={{ fontSize: 12, color: "#9ca3af", fontWeight: 700, marginBottom: 8 }}>전체 리스크 요약</div>
+          <div style={{ color: "#e8eaed", fontSize: 13, lineHeight: 1.8 }}>
+            • 이슬라마바드 회담 결렬 → 지정학 불확실성 고조 → 포지션 사이즈 축소 권장<br />
+            • ETH·SOL 1D RSI 극단 과매도 → 반등 트리거 주의, 숏 신규진입 리스크 높음<br />
+            • BTC $71K 지지선 붕괴 여부가 전체 시장 방향 결정 핵심 변수<br />
+            • HYPE: 차트 표기 SL $37.9 이하 일봉 종가 시 포지션 정리 필수<br />
+            • high-impact 예정 이벤트 없음 → 지정학 헤드라인 리스크 상시 모니터링
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-      {/* Tabs */}
-      <div style={{ background: C.panel, borderBottom: `1px solid ${C.border}`, padding: '0 20px', display: 'flex' }}>
-        {TABS.map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{
-            background: 'none', border: 'none',
-            borderBottom: `2px solid ${tab === t ? C.acc : 'transparent'}`,
-            color: tab === t ? C.text : C.sub,
-            padding: '10px 16px', cursor: 'pointer', fontSize: 12,
-            fontWeight: tab === t ? 700 : 400
-          }}>{t}</button>
+  return (
+    <div style={{ minHeight: "100vh", background: "#0b0e14" }}>
+      <div style={{ background: "#131720", borderBottom: "1px solid #2d3748", padding: "12px 20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 18, color: "#e8eaed" }}>Crypto Futures Analysis</div>
+            <div style={{ color: "#9ca3af", fontSize: 12 }}>2026-04-12 | EW + ICT/SMC + Orderflow</div>
+          </div>
+          <div style={{ display: "flex", gap: 16 }}>
+            {PAIRS.map(p => (
+              <div key={p.pair} style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 11, color: "#9ca3af" }}>{p.pair.replace("USDT", "")}</div>
+                <div style={{ fontWeight: 600, fontSize: 13, color: "#f87171" }}>{p.change24h}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div style={{ display: "flex", borderBottom: "1px solid #2d3748", background: "#131720", overflowX: "auto" }}>
+        {TABS.map(tab => (
+          <button key={tab} onClick={() => setActiveTab(tab)}
+            style={{ padding: "10px 18px", border: "none", cursor: "pointer", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap",
+              background: "transparent", color: activeTab === tab ? "#e8eaed" : "#9ca3af",
+              borderBottom: "2px solid " + (activeTab === tab ? "#4a6fa5" : "transparent") }}>
+            {tab}
+            {tab === "Macro" && (
+              <span style={{ marginLeft: 4, background: "#f87171", color: "#fff", borderRadius: 10, padding: "1px 5px", fontSize: 10 }}>
+                {MACRO_EVENTS.filter(e => e.importance === "high").length}
+              </span>
+            )}
+          </button>
         ))}
       </div>
-
-      {/* Content */}
-      <div style={{ padding: '16px 20px', maxWidth: 1400, margin: '0 auto' }}>
+      <div style={{ maxWidth: 900, margin: "0 auto", padding: "20px 16px" }}>
         {tabContent}
       </div>
     </div>
@@ -575,6 +705,6 @@ function Dashboard() {
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<Dashboard />);
-  </script>
+</script>
 </body>
 </html>
