@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mobile Wireframe — Trading Analysis Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #060810;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: #e8eaed;
+      padding: 40px 32px;
+    }
+    h1 { font-size: 20px; font-weight: 700; color: #e8eaed; margin-bottom: 6px; }
+    .subtitle { font-size: 13px; color: #6b7280; margin-bottom: 48px; }
+    .subtitle span { color: #4ade80; }
+
+    /* Layout: frames in a row, wrapping */
+    .frames-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 48px 36px;
+      align-items: flex-start;
+    }
+
+    /* Each frame = phone shell + label */
+    .frame-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+    .frame-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: #4b5563;
+    }
+
+    /* Phone shell */
+    .phone {
+      width: 393px;
+      background: #0b0e14;
+      border-radius: 40px;
+      border: 2px solid #1e2535;
+      box-shadow: 0 0 0 1px #0d1117, 0 32px 64px rgba(0,0,0,0.6);
+      overflow: hidden;
+      position: relative;
+    }
+    /* notch bar */
+    .phone::before {
+      content: '';
+      display: block;
+      width: 120px;
+      height: 28px;
+      background: #060810;
+      border-radius: 0 0 20px 20px;
+      margin: 0 auto 0;
+      position: absolute;
+      top: 0; left: 50%; transform: translateX(-50%);
+      z-index: 10;
+    }
+    .phone-inner {
+      padding-top: 20px;
+    }
+
+    /* ===== Shared components ===== */
+    .top-nav {
+      height: 49px;
+      background: #131720;
+      border-bottom: 1px solid #1e2535;
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      gap: 8px;
+    }
+    .nav-btn {
+      background: #1a1f2e;
+      border: 1px solid #2a3147;
+      border-radius: 6px;
+      color: #9ca3af;
+      font-size: 13px;
+      padding: 8px 12px;
+      min-width: 36px;
+      text-align: center;
+    }
+    .nav-select {
+      flex: 1;
+      background: #1a1f2e;
+      border: 1px solid #2a3147;
+      border-radius: 6px;
+      color: #e8eaed;
+      font-size: 13px;
+      padding: 7px 10px;
+    }
+    .nav-open {
+      background: none;
+      border: 1px solid #4ade80;
+      border-radius: 6px;
+      color: #4ade80;
+      font-size: 14px;
+      padding: 8px 10px;
+    }
+
+    /* Dashboard header */
+    .dash-header {
+      background: #131720;
+      border-bottom: 1px solid #1e2535;
+      padding: 12px;
+    }
+    .dash-title { font-size: 16px; font-weight: 700; color: #e8eaed; margin-bottom: 3px; }
+    .dash-sub { font-size: 11px; color: #6b7280; margin-bottom: 10px; }
+    .badge-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .badge {
+      padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: 600;
+    }
+    .badge-red { background: #f8717122; color: #f87171; }
+    .badge-gray { background: #1a1f2e; color: #9ca3af; }
+
+    /* Tab bar */
+    .tab-bar {
+      background: #131720;
+      border-bottom: 1px solid #1e2535;
+      display: flex;
+      padding: 0 12px;
+      overflow-x: auto;
+      gap: 0;
+    }
+    .tab-bar::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      padding: 14px 14px;
+      background: none;
+      border: none;
+      font-size: 13px;
+      white-space: nowrap;
+      color: #6b7280;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+    }
+    .tab-btn.active {
+      color: #e8eaed;
+      font-weight: 600;
+      border-bottom-color: #3b82f6;
+    }
+    .tab-badge {
+      margin-left: 5px;
+      background: #f87171;
+      color: #0b0e14;
+      border-radius: 999px;
+      font-size: 10px;
+      padding: 1px 5px;
+      font-weight: 700;
+    }
+
+    /* Content area */
+    .content { padding: 14px 12px; }
+
+    /* Card */
+    .card {
+      background: #1a1f2e;
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+    .card:last-child { margin-bottom: 0; }
+    .sec-title {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px; color: #4b5563; margin-bottom: 8px;
+    }
+
+    /* Overview carousel */
+    .carousel-track {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      margin: 0 -12px;
+      padding: 0 12px 8px;
+    }
+    .carousel-track::-webkit-scrollbar { display: none; }
+    .carousel-card {
+      min-width: 78%;
+      background: #1a1f2e;
+      border-radius: 8px;
+      padding: 14px;
+      scroll-snap-align: start;
+      flex-shrink: 0;
+    }
+    .pair-header {
+      display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;
+    }
+    .pair-name { font-size: 15px; font-weight: 700; color: #e8eaed; }
+    .pair-change { font-size: 13px; font-weight: 600; color: #4ade80; }
+    .pair-price { font-size: 22px; font-weight: 700; color: #e8eaed; margin-bottom: 4px; }
+    .pair-bias {
+      display: inline-block;
+      padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;
+      background: #4ade8022; color: #4ade80; margin-bottom: 10px;
+    }
+    .rsi-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .rsi-label { font-size: 11px; color: #6b7280; width: 28px; flex-shrink: 0; }
+    .rsi-bar-track { flex: 1; height: 4px; background: #0b0e14; border-radius: 2px; }
+    .rsi-bar-fill { height: 100%; border-radius: 2px; background: #4ade80; }
+    .rsi-val { font-size: 12px; font-weight: 600; color: #e8eaed; width: 28px; text-align: right; }
+    .oi-row { display: flex; gap: 8px; margin-top: 10px; }
+    .oi-item { flex: 1; background: #0b0e14; border-radius: 6px; padding: 8px; }
+    .oi-lbl { font-size: 10px; color: #6b7280; margin-bottom: 3px; }
+    .oi-val { font-size: 13px; font-weight: 600; }
+
+    /* Dot indicators */
+    .dot-row { display: flex; justify-content: center; gap: 6px; margin-bottom: 14px; }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: #374151; }
+    .dot.active { background: #4ade80; }
+
+    /* Grid 2-col */
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    /* Accordion */
+    .accordion-item {
+      background: #1a1f2e; border-radius: 8px; overflow: hidden; margin-bottom: 8px;
+    }
+    .accordion-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 14px 16px; cursor: pointer;
+    }
+    .accordion-title { font-size: 15px; font-weight: 700; color: #e8eaed; }
+    .accordion-arrow { color: #6b7280; font-size: 12px; }
+    .accordion-body { padding: 0 16px 14px; }
+
+    /* VRVP toggle */
+    .tf-toggle { display: flex; gap: 6px; margin-bottom: 10px; }
+    .tf-btn {
+      padding: 6px 14px; border-radius: 6px; border: none; cursor: pointer;
+      font-size: 13px; font-family: inherit;
+    }
+    .tf-btn.active { background: #3b82f6; color: #fff; }
+    .tf-btn.inactive { background: #1a1f2e; color: #9ca3af; }
+
+    /* Macro event */
+    .event-card {
+      border-radius: 6px; padding: 12px; margin-bottom: 8px;
+      background: #1a1f2e;
+    }
+    .event-header { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+    .event-title { font-size: 13px; font-weight: 600; color: #e8eaed; }
+    .event-time { font-size: 11px; color: #6b7280; }
+    .event-desc { font-size: 12px; color: #9ca3af; }
+
+    /* Scenarios */
+    .scenario-card {
+      background: #0b0e14; border-radius: 6px; padding: 12px;
+      margin-bottom: 8px;
+    }
+    .scenario-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
+    .prob-bar { height: 6px; border-radius: 3px; margin-bottom: 10px; }
+
+    /* Risk setup */
+    .setup-block { margin-bottom: 10px; }
+    .setup-label { font-size: 11px; font-weight: 600; margin-bottom: 6px; }
+    .setup-grid { background: #0b0e14; border-radius: 6px; padding: 10px; }
+    .kv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 12px; }
+    .kv-lbl { color: #6b7280; }
+
+    /* Warning banner */
+    .warn-banner {
+      background: #1a1f2e; border-radius: 8px; padding: 12px;
+      border-left: 4px solid #f87171; margin-bottom: 12px;
+    }
+    .warn-title { color: #f87171; font-weight: 700; font-size: 13px; margin-bottom: 6px; }
+    .warn-item { font-size: 11px; color: #9ca3af; padding: 2px 0; }
+
+    /* Footer */
+    .dash-footer {
+      border-top: 1px solid #1e2535;
+      padding: 12px;
+      margin-top: 16px;
+    }
+    .footer-line { font-size: 11px; color: #374151; margin-bottom: 4px; }
+    .footer-line:last-child { margin-bottom: 0; }
+
+    /* Skeleton bars */
+    .skel { background: #1e2535; border-radius: 3px; }
+    .skel-line { height: 10px; margin-bottom: 6px; }
+    .skel-line.w40 { width: 40%; }
+    .skel-line.w60 { width: 60%; }
+    .skel-line.w80 { width: 80%; }
+    .skel-line.w100 { width: 100%; }
+
+    /* Annotation markers */
+    .annotation {
+      position: absolute;
+      right: -220px;
+      width: 200px;
+      font-size: 11px;
+      color: #4b5563;
+      line-height: 1.5;
+    }
+    .annotation::before {
+      content: '←';
+      color: #374151;
+      margin-right: 6px;
+    }
+    .frame-relative { position: relative; }
+
+    /* Section divider */
+    .section-divider {
+      width: 100%;
+      padding: 32px 0 20px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #374151;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      border-top: 1px solid #1a1f2e;
+      margin-top: 12px;
+    }
+
+    /* Orderflow 2x2 */
+    .of-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+    .of-card { background: #1a1f2e; border-radius: 8px; padding: 12px; }
+    .of-lbl { font-size: 10px; color: #6b7280; margin-bottom: 5px; }
+    .of-val { font-size: 18px; font-weight: 700; }
+    .of-note { font-size: 10px; color: #6b7280; margin-top: 3px; }
+  </style>
+</head>
+<body>
+
+<h1>Mobile Wireframe</h1>
+<div class="subtitle">Trading Analysis Dashboard · 393px (iPhone 14 Pro) · <span>구현 기준 2026-04-13</span></div>
+
+<div class="frames-row">
+
+  <!-- ===== FRAME 0: index.html nav + iframe shell ===== -->
+  <div class="frame-wrap">
+    <div class="frame-label">index.html — Nav Shell</div>
+    <div class="phone">
+      <div class="phone-inner">
+        <!-- index.html top nav -->
+        <div class="top-nav">
+          <!-- logo hidden on mobile -->
+          <div class="nav-btn">◀</div>
+          <div class="nav-select">2026-04-13</div>
+          <div class="nav-btn">▶</div>
+          <div style="flex:1"></div>
+          <div style="font-size:12px;color:#6b7280;">1 / 3</div>
+          <div class="nav-open">↗</div>
+        </div>
+        <!-- iframe area -->
+        <div style="height:320px;background:#0b0e14;display:flex;align-items:center;justify-content:center;">
+          <div style="text-align:center;">
+            <div style="font-size:11px;color:#374151;margin-bottom:8px;">iframe</div>
+            <div style="font-size:10px;color:#1e2535;">calc(100dvh − 49px)</div>
+          </div>
+        </div>
+        <div style="padding:12px;background:#0b0e14;">
+          <div style="font-size:10px;color:#374151;text-align:center;">100dvh 기준 — 주소창 축소 시에도 잘리지 않음</div>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:10px;color:#4b5563;text-align:center;max-width:200px;line-height:1.5;">
+      로고 숨김 · 버튼 40px+ · 날짜 select 130px+ · 새탭 → ↗ 아이콘
+    </div>
+  </div>
+
+  <!-- ===== FRAME 1: Overview tab ===== -->
+  <div class="frame-wrap">
+    <div class="frame-label">Overview Tab</div>
+    <div class="phone">
+      <div class="phone-inner">
+        <div class="dash-header">
+          <div class="dash-title">Crypto Futures Analysis</div>
+          <div class="dash-sub">2026-04-13 · EW + ICT/SMC + Orderflow</div>
+          <div class="badge-row">
+            <div class="badge badge-red">⚠️ 지정학 HIGH 3건</div>
+            <div class="badge badge-red">WTI $104.63 +8.35%</div>
+            <div class="badge badge-gray">BTC RSI(1D) 14 극과매도</div>
+          </div>
+        </div>
+        <div class="tab-bar">
+          <div class="tab-btn active">Overview</div>
+          <div class="tab-btn">Macro<span class="tab-badge">3</span></div>
+          <div class="tab-btn">Elliott Wave</div>
+          <div class="tab-btn">ICT / SMC</div>
+          <div class="tab-btn">Orderflow</div>
+        </div>
+        <div class="content">
+          <!-- Pair carousel -->
+          <div class="carousel-track">
+            <div class="carousel-card">
+              <div class="pair-header">
+                <div>
+                  <div class="pair-name">BTC</div>
+                  <div class="pair-change">+17.52%</div>
+                </div>
+                <div class="pair-bias">신중 강세</div>
+              </div>
+              <div class="pair-price">$70,606</div>
+              <div class="rsi-row">
+                <div class="rsi-label">1D</div>
+                <div class="rsi-bar-track"><div class="rsi-bar-fill" style="width:14%;background:#f87171;"></div></div>
+                <div class="rsi-val" style="color:#f87171;">14</div>
+              </div>
+              <div class="rsi-row">
+                <div class="rsi-label">4H</div>
+                <div class="rsi-bar-track"><div class="rsi-bar-fill" style="width:38%;"></div></div>
+                <div class="rsi-val">38</div>
+              </div>
+              <div class="rsi-row">
+                <div class="rsi-label">1H</div>
+                <div class="rsi-bar-track"><div class="rsi-bar-fill" style="width:52%;background:#fbbf24;"></div></div>
+                <div class="rsi-val" style="color:#fbbf24;">52</div>
+              </div>
+              <div class="oi-row">
+                <div class="oi-item">
+                  <div class="oi-lbl">OI 24h</div>
+                  <div class="oi-val" style="color:#f87171;">−8.3%</div>
+                </div>
+                <div class="oi-item">
+                  <div class="oi-lbl">Funding</div>
+                  <div class="oi-val" style="color:#9ca3af;">−0.002%</div>
+                </div>
+              </div>
+            </div>
+            <!-- Ghost of next card -->
+            <div class="carousel-card" style="opacity:0.35;">
+              <div class="pair-name">ETH</div>
+              <div class="pair-price" style="margin-top:4px;">$2,193</div>
+            </div>
+          </div>
+          <!-- Dot indicators -->
+          <div class="dot-row">
+            <div class="dot active"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+          </div>
+          <!-- RSI/CCI table (1 col on mobile) -->
+          <div class="card" style="margin-bottom:10px;">
+            <div class="sec-title">RSI · CCI Summary</div>
+            <table style="width:100%;border-collapse:collapse;font-size:12px;">
+              <thead>
+                <tr style="color:#6b7280;border-bottom:1px solid #1e2535;">
+                  <th style="padding:6px 0;text-align:left;font-weight:500;">페어</th>
+                  <th style="padding:6px 0;text-align:right;font-weight:500;">RSI 1D</th>
+                  <th style="padding:6px 0;text-align:right;font-weight:500;">CCI 4H</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="border-bottom:1px solid #1e2535;">
+                  <td style="padding:7px 0;font-weight:600;">BTC</td>
+                  <td style="padding:7px 0;text-align:right;color:#f87171;">14</td>
+                  <td style="padding:7px 0;text-align:right;color:#f87171;">−218</td>
+                </tr>
+                <tr style="border-bottom:1px solid #1e2535;">
+                  <td style="padding:7px 0;font-weight:600;">ETH</td>
+                  <td style="padding:7px 0;text-align:right;color:#f87171;">22</td>
+                  <td style="padding:7px 0;text-align:right;color:#f87171;">−190</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <!-- VRVP mini toggle -->
+          <div class="card">
+            <div class="sec-title">VRVP</div>
+            <div class="tf-toggle">
+              <button class="tf-btn active">1D</button>
+              <button class="tf-btn inactive">4H</button>
+              <button class="tf-btn inactive">1H</button>
+            </div>
+            <div style="font-size:12px;margin-bottom:4px;"><span style="color:#6b7280;">POC: </span><span style="color:#f59e0b;font-weight:600;">$69,000</span></div>
+            <div style="font-size:12px;margin-bottom:4px;"><span style="color:#6b7280;">HVN: </span><span style="color:#e8eaed;">$68k–$70k</span></div>
+            <div style="font-size:12px;"><span style="color:#6b7280;">LVN: </span><span style="color:#e8eaed;">$70k–$72k</span></div>
+          </div>
+        </div>
+        <div class="dash-footer">
+          <div class="footer-line">데이터 기준: 2026-04-13 00:02 UTC</div>
+          <div class="footer-line">투자 참고용, 투자 결정은 본인 책임</div>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:10px;color:#4b5563;text-align:center;max-width:200px;line-height:1.5;">
+      캐러셀 snap · dot 인디케이터 · VRVP 미니 토글
+    </div>
+  </div>
+
+  <!-- ===== FRAME 2: Macro tab ===== -->
+  <div class="frame-wrap">
+    <div class="frame-label">Macro Tab</div>
+    <div class="phone">
+      <div class="phone-inner">
+        <div class="dash-header">
+          <div class="dash-title">Crypto Futures Analysis</div>
+          <div class="dash-sub">2026-04-13 · EW + ICT/SMC + Orderflow</div>
+          <div class="badge-row">
+            <div class="badge badge-red">⚠️ 지정학 HIGH 3건</div>
+          </div>
+        </div>
+        <div class="tab-bar">
+          <div class="tab-btn">Overview</div>
+          <div class="tab-btn active">Macro<span class="tab-badge">3</span></div>
+          <div class="tab-btn">Elliott Wave</div>
+        </div>
+        <div class="content">
+          <!-- Warning banner -->
+          <div style="background:#1a1f2e;border-radius:8px;padding:12px;border-left:4px solid #f87171;margin-bottom:12px;font-size:13px;">
+            <span style="color:#f87171;font-weight:700;">진입 금지:</span>
+            <span style="color:#9ca3af;"> 뉴스 전후 ±2h 포지션 금지</span>
+          </div>
+          <!-- Event cards -->
+          <div class="event-card" style="border-left:4px solid #f87171;">
+            <div class="event-header">
+              <div class="event-title">미국-이란 항만 봉쇄 반응</div>
+              <div class="event-time">KST 09:00</div>
+            </div>
+            <div class="event-desc">호르무즈 해협 부분 봉쇄 확인. 원유 선물 즉각 반응 예상</div>
+          </div>
+          <div class="event-card" style="border-left:4px solid #f87171;">
+            <div class="event-header">
+              <div class="event-title">WSJ 이란 협상 보도</div>
+              <div class="event-time">KST 15:00</div>
+            </div>
+            <div class="event-desc">JCPOA 재개 협상 재개 여부 — 크립토 리스크온/오프 전환점</div>
+          </div>
+          <div class="event-card" style="border-left:4px solid #fbbf24;">
+            <div class="event-header">
+              <div class="event-title">Fed Beige Book</div>
+              <div class="event-time">KST 03:00</div>
+            </div>
+            <div class="event-desc">경기 현황 보고서. DXY 방향성에 영향</div>
+          </div>
+          <div class="event-card" style="border-left:4px solid #9ca3af;">
+            <div class="event-header">
+              <div class="event-title">BTC ETF 순유입</div>
+              <div class="event-time">어제 발표</div>
+            </div>
+            <div class="event-desc">Blackrock IBIT +$1.2B 순유입 — 기관 수요 지속</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:10px;color:#4b5563;text-align:center;max-width:200px;line-height:1.5;">
+      이벤트 세로 리스트 · importance 색상 보더 · flex-wrap 헤더
+    </div>
+  </div>
+
+  <!-- ===== FRAME 3: EW Tab (accordion) ===== -->
+  <div class="frame-wrap">
+    <div class="frame-label">Elliott Wave — Accordion</div>
+    <div class="phone">
+      <div class="phone-inner">
+        <div class="dash-header">
+          <div class="dash-title">Crypto Futures Analysis</div>
+          <div class="dash-sub">2026-04-13</div>
+          <div class="badge-row"><div class="badge badge-red">⚠️ HIGH 3건</div></div>
+        </div>
+        <div class="tab-bar">
+          <div class="tab-btn">Overview</div>
+          <div class="tab-btn">Macro<span class="tab-badge">3</span></div>
+          <div class="tab-btn active">Elliott Wave</div>
+        </div>
+        <div class="content">
+          <!-- BTC open -->
+          <div class="accordion-item">
+            <div class="accordion-header">
+              <div>
+                <div class="accordion-title">BTC Elliott Wave</div>
+                <div style="margin-top:2px;"><span style="font-size:11px;background:#4ade8022;color:#4ade80;padding:2px 7px;border-radius:3px;">신중 강세</span></div>
+              </div>
+              <div class="accordion-arrow">▲</div>
+            </div>
+            <div class="accordion-body">
+              <div style="margin-bottom:10px;">
+                <div class="sec-title">Primary Count</div>
+                <div style="font-size:13px;color:#e8eaed;line-height:1.5;">1D: Impulse Wave (1)~(2) 완성, Wave (3) 진행 중 가능성. 70,000 이상 유지 시 유효</div>
+              </div>
+              <div style="margin-bottom:10px;">
+                <div class="sec-title">Alternate Count</div>
+                <div style="font-size:13px;color:#9ca3af;line-height:1.5;">WXY 복합 조정 Wave Y 진행 중</div>
+              </div>
+              <div style="background:#f8717122;border-radius:6px;padding:8px 10px;font-size:12px;color:#f87171;">
+                ⚠️ $67,000 이탈 시 카운트 무효화
+              </div>
+            </div>
+          </div>
+          <!-- ETH collapsed -->
+          <div class="accordion-item">
+            <div class="accordion-header">
+              <div>
+                <div class="accordion-title">ETH Elliott Wave</div>
+                <div style="margin-top:2px;"><span style="font-size:11px;background:#f8717122;color:#f87171;padding:2px 7px;border-radius:3px;">약세</span></div>
+              </div>
+              <div class="accordion-arrow">▼</div>
+            </div>
+          </div>
+          <!-- SOL collapsed -->
+          <div class="accordion-item">
+            <div class="accordion-header">
+              <div>
+                <div class="accordion-title">SOL Elliott Wave</div>
+                <div style="margin-top:2px;"><span style="font-size:11px;background:#fbbf2422;color:#fbbf24;padding:2px 7px;border-radius:3px;">중립</span></div>
+              </div>
+              <div class="accordion-arrow">▼</div>
+            </div>
+          </div>
+          <!-- HYPE collapsed -->
+          <div class="accordion-item">
+            <div class="accordion-header">
+              <div>
+                <div class="accordion-title">HYPE Elliott Wave</div>
+                <div style="margin-top:2px;"><span style="font-size:11px;background:#4ade8022;color:#4ade80;padding:2px 7px;border-radius:3px;">단기 과열</span></div>
+              </div>
+              <div class="accordion-arrow">▼</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:10px;color:#4b5563;text-align:center;max-width:200px;line-height:1.5;">
+      selectedPair(BTC) 기본 펼침 · 나머지 접힘 · 헤더 클릭으로 토글
+    </div>
+  </div>
+
+  <!-- ===== FRAME 4: ICT Tab (accordion) ===== -->
+  <div class="frame-wrap">
+    <div class="frame-label">ICT / SMC — Accordion</div>
+    <div class="phone">
+      <div class="phone-inner">
+        <div class="dash-header">
+          <div class="dash-title">Crypto Futures Analysis</div>
+          <div class="dash-sub">2026-04-13</div>
+          <div class="badge-row"><div class="badge badge-red">⚠️ HIGH 3건</div></div>
+        </div>
+        <div class="tab-bar">
+          <div class="tab-btn">Overview</div>
+          <div class="tab-btn">Macro<span class="tab-badge">3</span></div>
+          <div class="tab-btn">EW</div>
+          <div class="tab-btn active">ICT / SMC</div>
+        </div>
+        <div class="content">
+          <!-- BTC open -->
+          <div class="accordion-item">
+            <div class="accordion-header">
+              <span class="accordion-title">BTC ICT/SMC</span>
+              <span class="accordion-arrow">▲</span>
+            </div>
+            <div class="accordion-body">
+              <div style="margin-bottom:10px;">
+                <div class="sec-title">BoS (구조 전환)</div>
+                <div style="font-size:13px;color:#f87171;background:#f8717122;padding:6px 10px;border-radius:4px;">4H 하락 BoS 확인 → 단기 약세 구조</div>
+              </div>
+              <div style="margin-bottom:10px;">
+                <div class="sec-title">Order Blocks</div>
+                <div style="background:#0b0e14;border-radius:4px;padding:8px;margin-bottom:4px;">
+                  <div style="display:flex;gap:6px;align-items:center;margin-bottom:2px;">
+                    <span style="color:#e8eaed;font-size:13px;font-weight:600;">$71,000–$72,500</span>
+                    <span style="background:#f8717122;color:#f87171;font-size:11px;padding:2px 6px;border-radius:3px;">Bearish OB</span>
+                  </div>
+                  <div style="color:#9ca3af;font-size:12px;">레지스탕스 역할 중</div>
+                </div>
+              </div>
+              <div style="padding:8px 10px;background:#1e2535;border-radius:4px;font-size:13px;color:#9ca3af;">
+                <span style="color:#fbbf24;">종합: </span>현재 Premium Zone 위치. 조정 후 Discount 재진입 대기
+              </div>
+            </div>
+          </div>
+          <div class="accordion-item">
+            <div class="accordion-header">
+              <span class="accordion-title">ETH ICT/SMC</span>
+              <span class="accordion-arrow">▼</span>
+            </div>
+          </div>
+          <div class="accordion-item">
+            <div class="accordion-header">
+              <span class="accordion-title">SOL ICT/SMC</span>
+              <span class="accordion-arrow">▼</span>
+            </div>
+          </div>
+          <div class="accordion-item">
+            <div class="accordion-header">
+              <span class="accordion-title">HYPE ICT/SMC</span>
+              <span class="accordion-arrow">▼</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:10px;color:#4b5563;text-align:center;max-width:200px;line-height:1.5;">
+      EW와 동일 accordion 패턴 · ICTCardBody 헬퍼 컴포넌트 재사용
+    </div>
+  </div>
+
+  <!-- ===== FRAME 5: Orderflow ===== -->
+  <div class="frame-wrap">
+    <div class="frame-label">Orderflow Tab</div>
+    <div class="phone">
+      <div class="phone-inner">
+        <div class="dash-header">
+          <div class="dash-title">Crypto Futures Analysis</div>
+          <div class="dash-sub">2026-04-13</div>
+          <div class="badge-row"><div class="badge badge-red">⚠️ HIGH 3건</div></div>
+        </div>
+        <div class="tab-bar">
+          <div class="tab-btn">Overview</div>
+          <div class="tab-btn">EW</div>
+          <div class="tab-btn active">Orderflow</div>
+          <div class="tab-btn">Scenarios</div>
+        </div>
+        <div class="content">
+          <!-- 2x2 macro cards -->
+          <div class="of-grid">
+            <div class="of-card">
+              <div class="of-lbl">24h 청산 규모</div>
+              <div class="of-val" style="color:#f87171;font-size:16px;">~$2.5B</div>
+              <div class="of-note">대규모 디레버리징</div>
+            </div>
+            <div class="of-card">
+              <div class="of-lbl">WTI 유가</div>
+              <div class="of-val" style="color:#f87171;font-size:16px;">$104.63</div>
+              <div class="of-note">+8.35% 호르무즈 우려</div>
+            </div>
+            <div class="of-card">
+              <div class="of-lbl">DXY 달러지수</div>
+              <div class="of-val" style="color:#fbbf24;font-size:16px;">98.89</div>
+              <div class="of-note">+0.45% 달러 강세</div>
+            </div>
+            <div class="of-card">
+              <div class="of-lbl">US 10Y 채권</div>
+              <div class="of-val" style="color:#fbbf24;font-size:16px;">4.357%</div>
+              <div class="of-note">+1.02% 위험회피</div>
+            </div>
+          </div>
+          <!-- OI Table scroll hint -->
+          <div class="card" style="margin-bottom:10px;">
+            <div class="sec-title">OI · Funding (Coinalyze)</div>
+            <div style="overflow-x:auto;">
+              <table style="width:100%;min-width:480px;border-collapse:collapse;font-size:12px;">
+                <thead>
+                  <tr style="color:#6b7280;border-bottom:1px solid #1e2535;">
+                    <th style="padding:6px 0;text-align:left;font-weight:500;">페어</th>
+                    <th style="padding:6px 0;text-align:right;font-weight:500;">OI</th>
+                    <th style="padding:6px 0;text-align:right;font-weight:500;">24h 변화</th>
+                    <th style="padding:6px 0;text-align:right;font-weight:500;">Funding</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style="border-bottom:1px solid #1e2535;">
+                    <td style="padding:8px 0;font-weight:600;">BTC</td>
+                    <td style="padding:8px 0;text-align:right;color:#e8eaed;">$18.2B</td>
+                    <td style="padding:8px 0;text-align:right;color:#f87171;">−8.3%</td>
+                    <td style="padding:8px 0;text-align:right;color:#f87171;">−0.002%</td>
+                  </tr>
+                  <tr style="border-bottom:1px solid #1e2535;">
+                    <td style="padding:8px 0;font-weight:600;">ETH</td>
+                    <td style="padding:8px 0;text-align:right;color:#e8eaed;">$8.4B</td>
+                    <td style="padding:8px 0;text-align:right;color:#f87171;">−5.1%</td>
+                    <td style="padding:8px 0;text-align:right;color:#9ca3af;">0.000%</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div style="font-size:10px;color:#374151;margin-top:6px;text-align:right;">← 좌우 스크롤</div>
+          </div>
+          <!-- Liq heatmap: 1 col on mobile -->
+          <div class="card">
+            <div class="sec-title">청산 히트맵 (Coinglass)</div>
+            <div style="display:grid;grid-template-columns:1fr;gap:8px;">
+              <div style="background:#0b0e14;border-radius:6px;padding:10px;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                  <span style="font-weight:700;color:#e8eaed;">BTC</span>
+                  <span style="color:#9ca3af;font-size:12px;">$70,606</span>
+                </div>
+                <div style="font-size:12px;margin-bottom:3px;"><span style="color:#6b7280;">숏 청산: </span><span style="color:#22d3ee;">$73k–$74k</span></div>
+                <div style="font-size:12px;"><span style="color:#6b7280;">롱 청산: </span><span style="color:#fb923c;">$67k–$68k</span></div>
+              </div>
+              <div style="background:#0b0e14;border-radius:6px;padding:10px;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                  <span style="font-weight:700;color:#e8eaed;">ETH</span>
+                  <span style="color:#9ca3af;font-size:12px;">$2,193</span>
+                </div>
+                <div style="font-size:12px;margin-bottom:3px;"><span style="color:#6b7280;">숏 청산: </span><span style="color:#22d3ee;">$2,380–$2,400</span></div>
+                <div style="font-size:12px;"><span style="color:#6b7280;">롱 청산: </span><span style="color:#fb923c;">$2,000 하방</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:10px;color:#4b5563;text-align:center;max-width:200px;line-height:1.5;">
+      4카드 2×2 · 테이블 overflow-x:auto · 청산 히트맵 1열
+    </div>
+  </div>
+
+  <!-- ===== FRAME 6: Scenarios ===== -->
+  <div class="frame-wrap">
+    <div class="frame-label">Scenarios Tab</div>
+    <div class="phone">
+      <div class="phone-inner">
+        <div class="dash-header">
+          <div class="dash-title">Crypto Futures Analysis</div>
+          <div class="dash-sub">2026-04-13</div>
+          <div class="badge-row"><div class="badge badge-red">⚠️ HIGH 3건</div></div>
+        </div>
+        <div class="tab-bar">
+          <div class="tab-btn">Overview</div>
+          <div class="tab-btn">EW</div>
+          <div class="tab-btn">Orderflow</div>
+          <div class="tab-btn active">Scenarios</div>
+          <div class="tab-btn">Risk</div>
+        </div>
+        <div class="content">
+          <div style="background:#1a1f2e;border-radius:8px;padding:12px;margin-bottom:12px;border-left:4px solid #f87171;font-size:12px;">
+            <span style="color:#f87171;font-weight:700;">매크로 오버라이드: </span>
+            <span style="color:#9ca3af;">뉴스 전후 ±2h 진입 금지</span>
+          </div>
+          <!-- BTC card -->
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+              <span style="font-size:15px;font-weight:700;color:#e8eaed;">BTC — 시나리오</span>
+              <span style="color:#9ca3af;font-size:12px;">$70,606</span>
+            </div>
+            <!-- ProbBar -->
+            <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;margin-bottom:12px;">
+              <div style="width:45%;background:#4ade80;"></div>
+              <div style="width:30%;background:#fbbf24;"></div>
+              <div style="width:25%;background:#f87171;"></div>
+            </div>
+            <!-- Scenarios: 1 col stack on mobile -->
+            <div style="display:grid;grid-template-columns:1fr;gap:8px;">
+              <div class="scenario-card" style="border-top:3px solid #4ade80;">
+                <div class="scenario-header">
+                  <span style="color:#4ade80;font-weight:700;font-size:14px;">강세</span>
+                  <span style="color:#4ade80;font-weight:700;">45%</span>
+                </div>
+                <div style="font-size:12px;color:#9ca3af;margin-bottom:3px;"><span style="color:#6b7280;">트리거: </span>$71k 회복 + OI 증가</div>
+                <div style="font-size:12px;color:#9ca3af;"><span style="color:#6b7280;">타깃: </span>$73k→$76k</div>
+              </div>
+              <div class="scenario-card" style="border-top:3px solid #fbbf24;">
+                <div class="scenario-header">
+                  <span style="color:#fbbf24;font-weight:700;font-size:14px;">중립</span>
+                  <span style="color:#fbbf24;font-weight:700;">30%</span>
+                </div>
+                <div style="font-size:12px;color:#9ca3af;margin-bottom:3px;"><span style="color:#6b7280;">트리거: </span>$68k–$71k 레인지</div>
+                <div style="font-size:12px;color:#9ca3af;"><span style="color:#6b7280;">타깃: </span>박스권 지속</div>
+              </div>
+              <div class="scenario-card" style="border-top:3px solid #f87171;">
+                <div class="scenario-header">
+                  <span style="color:#f87171;font-weight:700;font-size:14px;">약세</span>
+                  <span style="color:#f87171;font-weight:700;">25%</span>
+                </div>
+                <div style="font-size:12px;color:#9ca3af;margin-bottom:3px;"><span style="color:#6b7280;">트리거: </span>$67k 이탈</div>
+                <div style="font-size:12px;color:#9ca3af;"><span style="color:#6b7280;">타깃: </span>$63k–$65k</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:10px;color:#4b5563;text-align:center;max-width:200px;line-height:1.5;">
+      시나리오 3분할 → 1열 stack · ProbBar 풀폭 유지
+    </div>
+  </div>
+
+  <!-- ===== FRAME 7: Risk ===== -->
+  <div class="frame-wrap">
+    <div class="frame-label">Risk Tab</div>
+    <div class="phone">
+      <div class="phone-inner">
+        <div class="dash-header">
+          <div class="dash-title">Crypto Futures Analysis</div>
+          <div class="dash-sub">2026-04-13</div>
+          <div class="badge-row"><div class="badge badge-red">⚠️ HIGH 3건</div></div>
+        </div>
+        <div class="tab-bar">
+          <div class="tab-btn">Overview</div>
+          <div class="tab-btn">Scenarios</div>
+          <div class="tab-btn active">Risk</div>
+        </div>
+        <div class="content">
+          <div class="warn-banner">
+            <div class="warn-title">⛔ 전체 진입 금지 구간 (지정학 고위험)</div>
+            <div class="warn-item">• KST 09:00–11:00 — 미국-이란 항만 봉쇄 초기 반응 (±2h)</div>
+            <div class="warn-item">• KST 13:00–17:00 — WSJ 이란 협상 뉴스 발표 전후 (±2h)</div>
+            <div class="warn-item">• 이란 속보 발생 시 — 포지션 사이즈 50% 이하 축소</div>
+          </div>
+          <!-- BTC Risk card (single col on mobile) -->
+          <div class="card" style="margin-bottom:10px;">
+            <div style="font-size:15px;font-weight:700;color:#e8eaed;margin-bottom:12px;">BTC 리스크 관리</div>
+            <div class="setup-block">
+              <div class="setup-label" style="color:#4ade80;">롱 셋업 (Long Setup)</div>
+              <div class="setup-grid">
+                <div class="kv-grid">
+                  <div><span class="kv-lbl">진입: </span><span style="color:#4ade80;font-weight:600;">$69,500</span></div>
+                  <div><span class="kv-lbl">R:R: </span><span style="color:#a78bfa;font-weight:700;">1:2.8</span></div>
+                  <div><span class="kv-lbl">SL: </span><span style="color:#f87171;">$67,000</span></div>
+                  <div><span class="kv-lbl">TP: </span><span style="color:#4ade80;">$76,500</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="setup-block">
+              <div class="setup-label" style="color:#f87171;">숏 셋업 (Short Setup)</div>
+              <div class="setup-grid">
+                <div class="kv-grid">
+                  <div><span class="kv-lbl">진입: </span><span style="color:#f87171;font-weight:600;">$72,000</span></div>
+                  <div><span class="kv-lbl">R:R: </span><span style="color:#a78bfa;font-weight:700;">1:2.2</span></div>
+                  <div><span class="kv-lbl">SL: </span><span style="color:#f87171;">$74,500</span></div>
+                  <div><span class="kv-lbl">TP: </span><span style="color:#4ade80;">$67,000</span></div>
+                </div>
+              </div>
+            </div>
+            <div style="padding:8px 10px;background:#fbbf2422;border-radius:4px;font-size:12px;color:#fbbf24;">
+              ⚠️ 이란 이슈 고위험 — 포지션 50% 이하 유지
+            </div>
+          </div>
+          <!-- ETH card -->
+          <div class="card" style="opacity:0.6;">
+            <div style="font-size:15px;font-weight:700;color:#e8eaed;margin-bottom:8px;">ETH 리스크 관리</div>
+            <div class="skel skel-line w80"></div>
+            <div class="skel skel-line w60" style="margin-top:8px;"></div>
+          </div>
+        </div>
+        <div class="dash-footer">
+          <div class="footer-line">데이터 기준: 2026-04-13 00:02 UTC</div>
+          <div class="footer-line">투자 참고용, 투자 결정은 본인 책임</div>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:10px;color:#4b5563;text-align:center;max-width:200px;line-height:1.5;">
+      페어 카드 2열 → 1열 · 롱/숏 kv-grid(1fr 1fr) 유지
+    </div>
+  </div>
+
+</div>
+
+<!-- Legend -->
+<div style="margin-top:60px;padding-top:24px;border-top:1px solid #1a1f2e;">
+  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#374151;margin-bottom:16px;">설계 원칙 요약</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;">
+    <div style="background:#131720;border-radius:8px;padding:14px;">
+      <div style="font-size:12px;font-weight:600;color:#4ade80;margin-bottom:6px;">breakpoint</div>
+      <div style="font-size:12px;color:#9ca3af;">768px 미만 → 모바일 분기. JS <code style="color:#a78bfa;">useIsMobile()</code> 훅. @media 쿼리 없음 (inline style 제약)</div>
+    </div>
+    <div style="background:#131720;border-radius:8px;padding:14px;">
+      <div style="font-size:12px;font-weight:600;color:#4ade80;margin-bottom:6px;">touch target</div>
+      <div style="font-size:12px;color:#9ca3af;">모든 버튼 ≥40px. 탭 버튼 padding 14px 14px. Nav 버튼 10px 14px.</div>
+    </div>
+    <div style="background:#131720;border-radius:8px;padding:14px;">
+      <div style="font-size:12px;font-weight:600;color:#4ade80;margin-bottom:6px;">정보 손실 0</div>
+      <div style="font-size:12px;color:#9ca3af;">배치 변경만. 숫자/색상/항목 동일. 숨김 없음. 카드 → carousel/accordion으로 재구성.</div>
+    </div>
+    <div style="background:#131720;border-radius:8px;padding:14px;">
+      <div style="font-size:12px;font-weight:600;color:#4ade80;margin-bottom:6px;">viewport</div>
+      <div style="font-size:12px;color:#9ca3af;">index.html iframe: <code style="color:#a78bfa;">100dvh</code>. 주소창 동적 변화 대응.</div>
+    </div>
+    <div style="background:#131720;border-radius:8px;padding:14px;">
+      <div style="font-size:12px;font-weight:600;color:#4ade80;margin-bottom:6px;">future dashboards</div>
+      <div style="font-size:12px;color:#9ca3af;">CLAUDE.md 규칙에 기록됨. <code style="color:#a78bfa;">_mobile_snippet.md</code> 코드 재사용. 매일 자동 생성에 자동 포함.</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
