@@ -8,4 +8,11 @@
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
 | #13851 | 1:43 PM | 🔵 | Trading Analysis Dashboard Output Format and Analysis Framework | ~631 |
+
+### Apr 13, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #14199 | 7:14 PM | ⚖️ | VRVP Auto-Collection Architecture via Pine Script Legend Wrapper | ~628 |
+| #14195 | 7:05 PM | 🔵 | VRVP Data Discrepancy Detected for BTC 1D POC | ~407 |
 </claude-mem-context>
