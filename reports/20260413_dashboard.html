@@ -4,16 +4,31 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Crypto Futures Analysis — 2026-04-13</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@600;700;800&family=Space+Mono:wght@400;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #0b0e14; color: #e8eaed; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; min-height: 100vh; }
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    body {
+      background: #0b0e14;
+      background-image: radial-gradient(circle, rgba(255,255,255,0.022) 1px, transparent 1px);
+      background-size: 28px 28px;
+      color: #e8eaed;
+      font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+    }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: #131720; }
-    ::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+    ::-webkit-scrollbar-thumb { background: #2d3748; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #4a5568; }
+    @keyframes tabFadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .tab-content { animation: tabFadeIn 0.2s ease; }
   </style>
 </head>
 <body>
@@ -397,18 +412,38 @@ function useIsMobile() {
   return m;
 }
 
+// ─── Mono ─────────────────────────────────────────────────────────────────
+const Mono = ({ children, style }) => (
+  <span style={{ fontFamily: "'Space Mono', monospace", ...style }}>{children}</span>
+);
+
+// ─── RSIBar ───────────────────────────────────────────────────────────────
+function RSIBar({ value, tf }) {
+  const color = value >= 70 ? '#f87171' : value <= 30 ? '#4ade80' : '#e8eaed';
+  return (
+    <div style={{ background: '#131720', borderRadius: '6px', padding: '8px 6px', textAlign: 'center' }}>
+      <div style={{ fontSize: '10px', color: '#6b7280', marginBottom: '4px' }}>RSI {tf}</div>
+      <div style={{ fontSize: '13px', fontWeight: 700, color, fontFamily: "'Space Mono', monospace" }}>{value.toFixed(1)}</div>
+      <div style={{ marginTop: '5px', height: '2px', background: '#2d3748', borderRadius: '1px' }}>
+        <div style={{ height: '100%', width: `${Math.min(value, 100)}%`, background: color, borderRadius: '1px' }} />
+      </div>
+    </div>
+  );
+}
+
 // ─── Card ─────────────────────────────────────────────────────────────────
 function Card({ children, style }) {
   return (
-    <div style={{ background: '#1a1f2e', borderRadius: '10px', padding: '16px', ...style }}>
+    <div style={{ background: '#1a1f2e', borderRadius: '10px', padding: '16px', border: '1px solid #1f2937', boxShadow: '0 2px 8px rgba(0,0,0,0.25)', ...style }}>
       {children}
     </div>
   );
 }
 
-function SectionTitle({ children }) {
+function SectionTitle({ children, accent }) {
   return (
-    <div style={{ fontSize: '11px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '12px' }}>
+      <div style={{ width: '3px', height: '12px', background: accent || '#3b82f6', borderRadius: '2px', flexShrink: 0 }} />
       {children}
     </div>
   );
@@ -423,33 +458,30 @@ function OverviewTab({ pairs, selectedPair, onSelectPair, isMobile }) {
       style={{
         background: selectedPair === p.symbol ? '#1e2640' : '#1a1f2e',
         border: `1px solid ${selectedPair === p.symbol ? '#3b82f6' : '#1f2937'}`,
+        boxShadow: selectedPair === p.symbol ? '0 0 0 1px rgba(59,130,246,0.25), 0 4px 16px rgba(59,130,246,0.08)' : '0 2px 6px rgba(0,0,0,0.2)',
         borderRadius: '10px', padding: '16px', cursor: 'pointer',
+        transition: 'border-color 0.15s, box-shadow 0.15s',
         ...(isMobile ? { minWidth: '78%', scrollSnapAlign: 'start', flexShrink: 0 } : {})
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
         <div>
-          <div style={{ fontSize: '16px', fontWeight: 700, color: '#e8eaed' }}>{p.short}</div>
-          <div style={{ fontSize: '11px', color: '#6b7280' }}>{p.name}</div>
+          <div style={{ fontSize: '17px', fontWeight: 700, color: '#e8eaed', fontFamily: "'Oxanium', sans-serif", letterSpacing: '0.04em' }}>{p.short}</div>
+          <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '1px' }}>{p.name}</div>
         </div>
-        <div style={{ background: `${biasColor(p.bias)}22`, border: `1px solid ${biasColor(p.bias)}55`, borderRadius: '6px', padding: '3px 8px', fontSize: '11px', fontWeight: 700, color: biasColor(p.bias) }}>
+        <div style={{ background: `${biasColor(p.bias)}1a`, border: `1px solid ${biasColor(p.bias)}44`, borderRadius: '6px', padding: '3px 8px', fontSize: '11px', fontWeight: 600, color: biasColor(p.bias) }}>
           {p.biasLabel}
         </div>
       </div>
-      <div style={{ fontSize: '22px', fontWeight: 700, color: '#e8eaed', marginBottom: '4px' }}>
+      <div style={{ fontSize: '21px', fontWeight: 700, color: '#e8eaed', marginBottom: '4px', fontFamily: "'Space Mono', monospace" }}>
         {fmtPrice(p.price)}
       </div>
-      <div style={{ fontSize: '13px', fontWeight: 600, color: p.change24h >= 0 ? '#4ade80' : '#f87171', marginBottom: '14px' }}>
+      <div style={{ fontSize: '13px', fontWeight: 600, color: p.change24h >= 0 ? '#4ade80' : '#f87171', marginBottom: '14px', fontFamily: "'Space Mono', monospace" }}>
         {p.change24h >= 0 ? '+' : ''}{p.change24h}% (24h)
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
         {['1D','4H','1H'].map(tf => (
-          <div key={tf} style={{ background: '#131720', borderRadius: '6px', padding: '8px', textAlign: 'center' }}>
-            <div style={{ fontSize: '10px', color: '#6b7280', marginBottom: '3px' }}>RSI {tf}</div>
-            <div style={{ fontSize: '14px', fontWeight: 700, color: p.rsi[tf] >= 70 ? '#f87171' : p.rsi[tf] <= 30 ? '#4ade80' : '#e8eaed' }}>
-              {p.rsi[tf].toFixed(1)}
-            </div>
-          </div>
+          <RSIBar key={tf} value={p.rsi[tf]} tf={tf} />
         ))}
       </div>
     </div>
@@ -481,27 +513,29 @@ function OverviewTab({ pairs, selectedPair, onSelectPair, isMobile }) {
         return (
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
             <Card>
-              <SectionTitle>Key Levels — {p.short}</SectionTitle>
-              <div style={{ marginBottom: '10px' }}>
-                <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '6px' }}>저항</div>
+              <SectionTitle accent="#f87171">Key Levels — {p.short}</SectionTitle>
+              <div style={{ marginBottom: '12px' }}>
+                <div style={{ fontSize: '10px', color: '#6b7280', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '6px' }}>저항</div>
                 {p.keyLevels.resistance.map((l,i) => (
-                  <div key={i} style={{ fontSize: '13px', color: '#f87171', padding: '3px 0', borderBottom: '1px solid #1f2937' }}>{l}</div>
+                  <div key={i} style={{ fontSize: '12px', color: '#f87171', padding: '4px 0', borderBottom: '1px solid #1f2937', fontFamily: "'DM Sans', sans-serif" }}>{l}</div>
                 ))}
               </div>
               <div>
-                <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '6px' }}>지지</div>
+                <div style={{ fontSize: '10px', color: '#6b7280', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '6px' }}>지지</div>
                 {p.keyLevels.support.map((l,i) => (
-                  <div key={i} style={{ fontSize: '13px', color: '#4ade80', padding: '3px 0', borderBottom: '1px solid #1f2937' }}>{l}</div>
+                  <div key={i} style={{ fontSize: '12px', color: '#4ade80', padding: '4px 0', borderBottom: '1px solid #1f2937', fontFamily: "'DM Sans', sans-serif" }}>{l}</div>
                 ))}
               </div>
             </Card>
             <Card>
-              <SectionTitle>VRVP 요약 — {p.short}</SectionTitle>
+              <SectionTitle accent="#fbbf24">VRVP 요약 — {p.short}</SectionTitle>
               {['1D','4H','1H'].map(tf => (
                 <div key={tf} style={{ marginBottom: '10px', paddingBottom: '10px', borderBottom: '1px solid #1f2937' }}>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '4px' }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '4px', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '11px', fontWeight: 700, color: '#3b82f6', background: '#1e3a5f', padding: '2px 6px', borderRadius: '4px' }}>{tf}</span>
-                    <span style={{ fontSize: '12px', color: '#9ca3af' }}>POC: <span style={{ color: '#fbbf24' }}>{fmtPrice(p.vrvp[tf].poc)}</span></span>
+                    <span style={{ fontSize: '12px', color: '#9ca3af' }}>POC: <span style={{ color: '#fbbf24', fontWeight: 700, fontFamily: "'Space Mono', monospace" }}>{fmtPrice(p.vrvp[tf].poc)}</span></span>
+                    <span style={{ fontSize: '12px', color: '#9ca3af' }}>VAH: <span style={{ color: '#f87171', fontFamily: "'Space Mono', monospace" }}>{fmtPrice(p.vrvp[tf].vah)}</span></span>
+                    <span style={{ fontSize: '12px', color: '#9ca3af' }}>VAL: <span style={{ color: '#4ade80', fontFamily: "'Space Mono', monospace" }}>{fmtPrice(p.vrvp[tf].val)}</span></span>
                   </div>
                   <div style={{ fontSize: '12px', color: '#6b7280' }}>{p.vrvp[tf].note}</div>
                 </div>
@@ -517,7 +551,12 @@ function OverviewTab({ pairs, selectedPair, onSelectPair, isMobile }) {
 // ─── Macro Tab ────────────────────────────────────────────────────────────
 function MacroTab({ isMobile }) {
   const catLabel = c => ({ monetary_policy:'금리/통화', macro_data:'매크로 지표', news:'뉴스', crypto_event:'크립토 이벤트' }[c] || c);
-  const sorted = [...MACRO_EVENTS].sort((a,b) => new Date(a.time_utc) - new Date(b.time_utc));
+  const impRank = { high: 0, medium: 1, low: 2 };
+  const sorted = [...MACRO_EVENTS].sort((a, b) => {
+    const rankDiff = (impRank[a.importance] ?? 3) - (impRank[b.importance] ?? 3);
+    if (rankDiff !== 0) return rankDiff;
+    return new Date(b.time_utc) - new Date(a.time_utc);
+  });
 
   return (
     <div>
@@ -747,7 +786,7 @@ function OrderflowTab({ pairs, isMobile }) {
 
       {/* 수렴 포인트 테이블 */}
       <Card style={{ marginBottom: '16px' }}>
-        <SectionTitle>프레임워크 수렴 (Confluence)</SectionTitle>
+        <SectionTitle accent="#a78bfa">프레임워크 수렴 (Confluence)</SectionTitle>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', minWidth: isMobile ? '480px' : 'auto', borderCollapse: 'collapse', fontSize: '12px' }}>
             <thead>
@@ -781,7 +820,7 @@ function OrderflowTab({ pairs, isMobile }) {
 
       {/* 매크로 오더플로우 코멘트 */}
       <Card>
-        <SectionTitle>매크로 교차 검증</SectionTitle>
+        <SectionTitle accent="#22d3ee">매크로 교차 검증</SectionTitle>
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '10px' }}>
           {[
             { title:'이란 봉쇄 영향', color:'#f87171', desc:'유가 $104 급등 = 리스크오프 압력. BTC/ETH 직격. SOL·HYPE는 독립성 일부 유지 중.' },
@@ -813,13 +852,13 @@ function ScenariosTab({ pairs, isMobile }) {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '10px' }}>
             {p.scenarios.map((s,i) => (
-              <div key={i} style={{ background: '#131720', borderRadius: '8px', padding: '12px', borderTop: `3px solid ${s.color}` }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                  <span style={{ fontSize: '14px', fontWeight: 700, color: s.color }}>{s.label}</span>
-                  <span style={{ fontSize: '18px', fontWeight: 700, color: s.color }}>{s.prob}%</span>
+              <div key={i} style={{ background: '#131720', borderRadius: '8px', padding: '12px', borderTop: `3px solid ${s.color}`, boxShadow: `inset 0 1px 0 ${s.color}18` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: s.color, fontFamily: "'DM Sans', sans-serif" }}>{s.label}</span>
+                  <span style={{ fontSize: '22px', fontWeight: 700, color: s.color, fontFamily: "'Space Mono', monospace" }}>{s.prob}%</span>
                 </div>
-                <div style={{ height: '4px', background: '#1f2937', borderRadius: '2px', marginBottom: '10px', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${s.prob}%`, background: s.color, borderRadius: '2px' }} />
+                <div style={{ height: '5px', background: '#2d3748', borderRadius: '3px', marginBottom: '12px', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${s.prob}%`, background: s.color, borderRadius: '3px', boxShadow: `0 0 8px ${s.color}88` }} />
                 </div>
                 <div style={{ marginBottom: '6px' }}>
                   <div style={{ fontSize: '10px', color: '#6b7280', marginBottom: '2px' }}>트리거</div>
@@ -855,7 +894,7 @@ function RiskTab({ pairs, isMobile }) {
   const riskCard = (p) => (
     <Card key={p.symbol}>
       <div style={{ marginBottom: '14px' }}>
-        <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '8px' }}>롱 / 숏 셋업</div>
+        <div style={{ fontSize: '10px', color: '#6b7280', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '8px' }}>롱 / 숏 셋업</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
           {[
             { label:'롱', color:'#4ade80', setup: p.risk.long },
@@ -871,7 +910,7 @@ function RiskTab({ pairs, isMobile }) {
               ].map(([k,v]) => (
                 <div key={k} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                   <span style={{ fontSize: '11px', color: '#6b7280' }}>{k}</span>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: k === 'R:R' ? '#fbbf24' : k === 'SL' ? '#f87171' : k === 'TP' ? '#4ade80' : '#e8eaed' }}>{v}</span>
+                  <span style={{ fontSize: k === 'R:R' ? '13px' : '12px', fontWeight: 700, color: k === 'R:R' ? '#fbbf24' : k === 'SL' ? '#f87171' : k === 'TP' ? '#4ade80' : '#e8eaed', fontFamily: "'Space Mono', monospace" }}>{v}</span>
                 </div>
               ))}
             </div>
@@ -977,31 +1016,33 @@ function Dashboard() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#0b0e14' }}>
+      {/* Top accent stripe */}
+      <div style={{ height: '3px', background: 'linear-gradient(90deg, #3b82f6 0%, #a78bfa 50%, #22d3ee 100%)' }} />
+
       {/* Header */}
       <div style={{ background: '#131720', borderBottom: '1px solid #1f2937', padding: isMobile ? '12px' : '14px 24px' }}>
         {isMobile ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div>
-              <div style={{ fontSize: '16px', fontWeight: 700, color: '#e8eaed' }}>Crypto Futures Analysis</div>
-              <div style={{ fontSize: '11px', color: '#6b7280' }}>2026-04-13 17:00 KST · EW + ICT/SMC + Orderflow</div>
+              <div style={{ fontSize: '16px', fontWeight: 800, color: '#e8eaed', fontFamily: "'Oxanium', sans-serif", letterSpacing: '0.03em' }}>Crypto Futures Analysis</div>
+              <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>2026-04-13 17:00 KST · EW + ICT/SMC + Orderflow</div>
             </div>
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '11px', background: '#f8717122', color: '#f87171', border: '1px solid #f8717144', padding: '3px 8px', borderRadius: '6px', fontWeight: 700 }}>⚠️ 이란 봉쇄 진행 중</span>
-              <span style={{ fontSize: '11px', background: '#f8717122', color: '#f87171', border: '1px solid #f8717144', padding: '3px 8px', borderRadius: '6px' }}>유가 $104.63</span>
-              <span style={{ fontSize: '11px', background: '#4ade8022', color: '#4ade80', border: '1px solid #4ade8044', padding: '3px 8px', borderRadius: '6px' }}>HYPE +1.12%</span>
+              <span style={{ fontSize: '11px', background: '#f8717118', color: '#f87171', border: '1px solid #f8717140', padding: '3px 8px', borderRadius: '5px', fontWeight: 700 }}>⚠️ 이란 봉쇄 진행 중</span>
+              <span style={{ fontSize: '11px', background: '#f8717118', color: '#f87171', border: '1px solid #f8717140', padding: '3px 8px', borderRadius: '5px', fontFamily: "'Space Mono', monospace" }}>WTI $104.63</span>
+              <span style={{ fontSize: '11px', background: '#4ade8018', color: '#4ade80', border: '1px solid #4ade8040', padding: '3px 8px', borderRadius: '5px', fontFamily: "'Space Mono', monospace" }}>HYPE +1.12%</span>
             </div>
           </div>
         ) : (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <div style={{ fontSize: '18px', fontWeight: 700, color: '#e8eaed' }}>Crypto Futures Analysis</div>
-              <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>2026-04-13 17:00 KST · EW + ICT/SMC + Orderflow · BTCUSDT ETHUSDT SOLUSDT HYPEUSDT</div>
+              <div style={{ fontSize: '19px', fontWeight: 800, color: '#e8eaed', fontFamily: "'Oxanium', sans-serif", letterSpacing: '0.03em' }}>Crypto Futures Analysis</div>
+              <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '3px' }}>2026-04-13 17:00 KST · EW + ICT/SMC + Orderflow · BTCUSDT ETHUSDT SOLUSDT HYPEUSDT</div>
             </div>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-              <span style={{ fontSize: '12px', background: '#f8717122', color: '#f87171', border: '1px solid #f8717144', padding: '4px 10px', borderRadius: '6px', fontWeight: 700 }}>⚠️ 이란 봉쇄 진행 중</span>
-              <span style={{ fontSize: '12px', background: '#f8717122', color: '#f87171', border: '1px solid #f8717144', padding: '4px 10px', borderRadius: '6px' }}>WTI $104.63 (+8.35%)</span>
-              <span style={{ fontSize: '12px', background: '#4ade8022', color: '#4ade80', border: '1px solid #4ade8044', padding: '4px 10px', borderRadius: '6px' }}>HYPE +1.12%</span>
-              <span style={{ fontSize: '11px', color: '#6b7280' }}>BTC {fmtPrice(PAIRS[0].price)} | ETH {fmtPrice(PAIRS[1].price)} | SOL {fmtPrice(PAIRS[2].price)} | HYPE {fmtPrice(PAIRS[3].price)}</span>
+              <span style={{ fontSize: '12px', background: '#f8717118', color: '#f87171', border: '1px solid #f8717140', padding: '4px 10px', borderRadius: '5px', fontWeight: 700 }}>⚠️ 이란 봉쇄 진행 중</span>
+              <span style={{ fontSize: '12px', background: '#f8717118', color: '#f87171', border: '1px solid #f8717140', padding: '4px 10px', borderRadius: '5px', fontFamily: "'Space Mono', monospace" }}>WTI $104.63 (+8.35%)</span>
+              <span style={{ fontSize: '12px', background: '#4ade8018', color: '#4ade80', border: '1px solid #4ade8040', padding: '4px 10px', borderRadius: '5px', fontFamily: "'Space Mono', monospace" }}>HYPE +1.12%</span>
             </div>
           </div>
         )}
@@ -1015,13 +1056,15 @@ function Dashboard() {
             data-active={activeTab === t.id ? 'true' : 'false'}
             onClick={() => setActiveTab(t.id)}
             style={{
-              background: 'none', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
-              padding: isMobile ? '14px 14px' : '12px 20px',
-              fontSize: isMobile ? '13px' : '13px',
+              background: activeTab === t.id ? 'rgba(59,130,246,0.07)' : 'none',
+              border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
+              padding: isMobile ? '14px 14px' : '11px 20px',
+              fontSize: '13px',
+              fontFamily: "'DM Sans', sans-serif",
               color: activeTab === t.id ? '#e8eaed' : '#6b7280',
-              fontWeight: activeTab === t.id ? 700 : 400,
+              fontWeight: activeTab === t.id ? 600 : 400,
               borderBottom: activeTab === t.id ? '2px solid #3b82f6' : '2px solid transparent',
-              transition: 'all 0.15s'
+              transition: 'all 0.15s',
             }}
           >
             {t.label}
@@ -1030,7 +1073,7 @@ function Dashboard() {
       </div>
 
       {/* Content */}
-      <div style={{ padding: contentPadding, maxWidth: '1400px', margin: '0 auto' }}>
+      <div key={activeTab} className="tab-content" style={{ padding: contentPadding, maxWidth: '1400px', margin: '0 auto' }}>
         {tabContent}
       </div>
 
