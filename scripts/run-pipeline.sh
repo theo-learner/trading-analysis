@@ -237,20 +237,22 @@ run_analyze() {
     return 1
   fi
 
-  local report_file="$PROJECT_ROOT/reports/${latest_date}_dashboard.html"
+  # 대시보드 파일명은 분석 실행일(오늘) 기준
+  local today_date; today_date=$(date +%Y%m%d)
+  local report_file="$PROJECT_ROOT/reports/${today_date}_dashboard.html"
   if [ -f "$report_file" ]; then
-    log "ℹ 이미 대시보드 존재: reports/${latest_date}_dashboard.html — 분석 건너뜀"
+    log "ℹ 이미 대시보드 존재: reports/${today_date}_dashboard.html — 분석 건너뜀"
     return 0
   fi
 
-  log "📅 분석 대상: screenshots/${latest_date}/"
+  log "📅 분석 실행일: ${today_date} / 스크린샷: screenshots/${latest_date}/"
 
   # shell alias는 cron 환경에서 동작하지 않으므로 --dangerously-skip-permissions 명시
   if "$CLAUDE_BIN" --dangerously-skip-permissions --print \
-    "오늘 분석 대상 날짜는 ${latest_date}입니다.
+    "오늘 날짜는 ${today_date}입니다.
 screenshots/${latest_date}/ 폴더의 캡처 데이터를 사용하여
 run-analysis.md 에 정의된 절차대로 전체 분석을 실행하고
-reports/${latest_date}_dashboard.html 을 생성하세요.
+reports/${today_date}_dashboard.html 을 생성하세요.
 대시보드 생성이 완료되면 파일 경로를 출력하세요." \
     2>&1 | tee -a "$LOG_FILE"; then
     log "✓ 분석 완료"
@@ -258,7 +260,7 @@ reports/${latest_date}_dashboard.html 을 생성하세요.
       generate_index
       push_to_github
     else
-      log "✗ 대시보드 파일이 생성되지 않았습니다: $report_file"
+      log "✗ 대시보드 파일이 생성되지 않았습니다: reports/${today_date}_dashboard.html"
       return 1
     fi
   else
