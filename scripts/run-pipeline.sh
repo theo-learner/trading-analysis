@@ -227,13 +227,40 @@ run_analyze() {
   log "▶ 분석 시작 (claude --print)"
   log_sep
 
+  # 가장 최근 스크린샷 폴더 탐색 (YYYYMMDD 형식만)
+  local latest_date
+  latest_date=$(ls -d "$PROJECT_ROOT/screenshots"/[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9] 2>/dev/null \
+    | sort | tail -1 | xargs basename 2>/dev/null || true)
+
+  if [ -z "$latest_date" ]; then
+    log "✗ screenshots/ 하위에 날짜 폴더가 없습니다. 캡처를 먼저 실행하세요."
+    return 1
+  fi
+
+  local report_file="$PROJECT_ROOT/reports/${latest_date}_dashboard.html"
+  if [ -f "$report_file" ]; then
+    log "ℹ 이미 대시보드 존재: reports/${latest_date}_dashboard.html — 분석 건너뜀"
+    return 0
+  fi
+
+  log "📅 분석 대상: screenshots/${latest_date}/"
+
   # shell alias는 cron 환경에서 동작하지 않으므로 --dangerously-skip-permissions 명시
   if "$CLAUDE_BIN" --dangerously-skip-permissions --print \
-    "run-analysis.md 에 정의된 절차대로 분석 실행" \
+    "오늘 분석 대상 날짜는 ${latest_date}입니다.
+screenshots/${latest_date}/ 폴더의 캡처 데이터를 사용하여
+run-analysis.md 에 정의된 절차대로 전체 분석을 실행하고
+reports/${latest_date}_dashboard.html 을 생성하세요.
+대시보드 생성이 완료되면 파일 경로를 출력하세요." \
     2>&1 | tee -a "$LOG_FILE"; then
     log "✓ 분석 완료"
-    generate_index
-    push_to_github
+    if [ -f "$report_file" ]; then
+      generate_index
+      push_to_github
+    else
+      log "✗ 대시보드 파일이 생성되지 않았습니다: $report_file"
+      return 1
+    fi
   else
     log "✗ 분석 실패 (exit code: $?)"
     return 1
