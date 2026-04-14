@@ -115,35 +115,7 @@ function OverviewTab({ pairs, selectedPair, onSelectPair, isMobile }) {
 
 ---
 
-## 5. VRVP 미니 토글 (모바일)
-
-```jsx
-const [vrvpTf, setVrvpTf] = React.useState('1D');
-const vrvpTfs = ['1D', '4H', '1H'];
-
-{isMobile ? (
-  <div>
-    <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
-      {vrvpTfs.map(tf => (
-        <button key={tf} onClick={() => setVrvpTf(tf)} style={{
-          padding: '6px 14px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '13px',
-          background: vrvpTf === tf ? '#3b82f6' : '#1a1f2e',
-          color: vrvpTf === tf ? '#fff' : '#9ca3af'
-        }}>{tf}</button>
-      ))}
-    </div>
-    {/* vrvpTf에 해당하는 단일 VRVP 카드만 표시 */}
-  </div>
-) : (
-  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-    {/* 3개 동시 표시 */}
-  </div>
-)}
-```
-
----
-
-## 6. EW / ICT / Risk — Accordion (모바일)
+## 5. EW / ICT / Risk — Accordion (모바일)
 
 ```jsx
 function EWTab({ pairs, selectedPair, isMobile }) {

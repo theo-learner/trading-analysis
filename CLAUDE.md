@@ -14,7 +14,6 @@
 screenshots/YYYYMMDD/
 ├── tradingview/     # {PAIR}_{TF}.png           — 전체 차트
 │                   # {PAIR}_{TF}_price_zoom.png — 최근 봉 확대
-│                   # {PAIR}_{TF}_vrvp.png       — VRVP 우측 확대
 │                   # {PAIR}_{TF}_indicators.png — 보조지표 패널
 │                   # {PAIR}_{TF}_data.txt       — 현재가/OHLCV JSON
 │                   # change24h_data.json        — Coinglass+Coinalyze 교차검증 24h 변화율
@@ -59,8 +58,7 @@ screenshots/YYYYMMDD/
 1. `{PAIR}_{TF}_data.txt` — 수치 데이터를 텍스트로 먼저 확인
 2. `{PAIR}_{TF}.png` — 전체 구조 파악
 3. `{PAIR}_{TF}_price_zoom.png` — 캔들 구조 및 레벨 정밀 확인
-4. `{PAIR}_{TF}_vrvp.png` — 볼륨 프로파일 확인
-5. `{PAIR}_{TF}_indicators.png` — 보조지표 수치 확인
+4. `{PAIR}_{TF}_indicators.png` — 보조지표 수치 확인
 
 멀티타임프레임 완료 후:
 6. 오더플로우 차트가 있으면 EW/ICT 분석과 교차 검증
@@ -91,7 +89,6 @@ screenshots/YYYYMMDD/
   - Tabs: 버튼 `padding: isMobile ? '14px 14px' : '12px 16px'` (터치 타겟 ≥40px), tab bar에 `ref` 붙여 탭 전환 시 활성 버튼 `scrollIntoView({ inline: 'center' })`
   - Overview 페어 4카드: horizontal snap carousel (`scroll-snap-type: x mandatory`, 각 카드 `minWidth: '78%', scrollSnapAlign: 'start'`)
   - EW/ICT/Risk: pair accordion (`useState(selectedPair)` 기본 펼침)
-  - VRVP 3분할: `useState('1D')` + 1D/4H/1H 미니 토글 버튼으로 단일 카드 표시
   - Orderflow 4카드: `repeat(2, 1fr)`, 테이블은 `overflowX: 'auto'` wrapper + `minWidth: '480px'`
   - Scenarios 3분할: `isMobile ? '1fr' : 'repeat(3, 1fr)'`
   - 본문 폰트 ≥13px, 카드 padding ≥14px
@@ -100,7 +97,7 @@ screenshots/YYYYMMDD/
 
 ## 차트 주석 처리 규칙
 - 캡처는 `scripts/config/clean-layout.json`에 정의된 clean 레이아웃으로 수행되므로 사용자 드로잉이 포함되지 않는다
-- TradingView 내장 지표(EMA, RSI, MACD, VRVP 등)는 신뢰한다
+- TradingView 내장 지표(EMA, RSI, MACD 등)는 신뢰한다
 - 만에 하나 차트에 레이블/선/메모가 보이면 clean 레이아웃 설정 누락을 의심하고 사용자에게 알린다
 
 ## 핵심 원칙

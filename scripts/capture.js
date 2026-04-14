@@ -187,72 +187,18 @@ async function extractPriceData(page, pair, tf) {
       }
     }
 
-    // VRVP extraction: probe DOM for POC/VAH/VAL text labels
-    // The built-in VRVP indicator renders price-axis marks as DOM elements.
-    // Strategy 1: TreeWalker scan for leaf text nodes with exact "POC"/"VAH"/"VAL" content,
-    //             then walk upward to find the nearby price number.
-    // Strategy 2: If strategy 1 misses any key, scan VRVP legend container lines
-    //             (some TV versions embed values in the indicator legend block).
-    const vrvp = {};
-    const vrvpLabelKeys = new Set(['POC', 'VAH', 'VAL']);
-
-    // Strategy 1 — price-axis label text nodes
-    const treeWalker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-    let textNode;
-    while ((textNode = treeWalker.nextNode())) {
-      const label = textNode.textContent.trim();
-      if (!vrvpLabelKeys.has(label) || vrvp[label.toLowerCase()]) continue;
-
-      // Climb up to find a container that also holds the price value
-      let el = textNode.parentElement;
-      for (let depth = 0; depth < 6 && el; depth++) {
-        const nums = (el.innerText || '').match(/[\d,]+\.?\d*/g) || [];
-        for (const raw of nums) {
-          const num = parseFloat(raw.replace(/,/g, ''));
-          if (num > 100 && num < 10_000_000) {
-            vrvp[label.toLowerCase()] = num;
-            break;
-          }
-        }
-        if (vrvp[label.toLowerCase()]) break;
-        el = el.parentElement;
-      }
-    }
-
-    // Strategy 2 — VRVP legend container multi-line parsing (fallback)
-    if (Object.keys(vrvp).length < 3) {
-      for (const container of legendContainers.slice(1)) {
-        const lines = (container.innerText || '').split('\n').map(l => l.trim()).filter(Boolean);
-        if (!lines.some(l => l === 'POC' || l.startsWith('POC'))) continue;
-        for (let j = 0; j < lines.length; j++) {
-          const key = lines[j].toUpperCase();
-          if (!vrvpLabelKeys.has(key) || vrvp[key.toLowerCase()]) continue;
-          // Value on same line after colon, or next line
-          const sameLineMatch = lines[j].match(/[:\s]([\d,]+\.?\d*)$/);
-          if (sameLineMatch) {
-            vrvp[key.toLowerCase()] = parseFloat(sameLineMatch[1].replace(/,/g, ''));
-          } else if (j + 1 < lines.length) {
-            const num = parseFloat(lines[j + 1].replace(/,/g, ''));
-            if (!isNaN(num) && num > 100) vrvp[key.toLowerCase()] = num;
-          }
-        }
-      }
-    }
-
     return {
       pair,
       tf,
       currentPrice: currentPrice || null,
       legendValues,
       legendTitles,
-      vrvp: Object.keys(vrvp).length === 3 ? vrvp : null,
       timestamp: new Date().toISOString(),
       _debug: {
         priceFound: currentPrice !== null,
         legendCount: legendValues.length,
         titlesCount: legendTitles.length,
         containerCount: legendContainers.length,
-        vrvpFound: Object.keys(vrvp).length,
       },
     };
   }, { pair, tf });
@@ -272,90 +218,6 @@ async function positionChart(page, width, height) {
   await page.waitForTimeout(100);
   await page.mouse.up();
   await page.waitForTimeout(500);
-}
-
-// ─── VRVP WebSocket 인터셉트 ─────────────────────────────
-
-/**
- * TradingView WebSocket `du` 메시지에서 VRVP horizlines 파싱.
- * graphicsCmds.create.horizlines 배열의 pocLines/vahLines/valLines에서
- * level 필드를 추출한다.
- * @returns {{ poc, vah, val, _studyKey } | null}
- */
-function parseVrvpFromWsFrame(rawData) {
-  if (!rawData.includes('pocLines') && !rawData.includes('vahLines') && !rawData.includes('valLines')) {
-    return null;
-  }
-  const segments = rawData.split('~m~').filter(s => s.startsWith('{'));
-  for (const seg of segments) {
-    try {
-      const msg = JSON.parse(seg);
-      if (msg.m !== 'du' || !Array.isArray(msg.p) || msg.p.length < 2) continue;
-      const studyData = msg.p[1];
-      if (typeof studyData !== 'object') continue;
-
-      for (const [studyKey, studyVal] of Object.entries(studyData)) {
-        const nsD = studyVal?.ns?.d;
-        if (typeof nsD !== 'string') continue;
-        let inner;
-        try { inner = JSON.parse(nsD); } catch { continue; }
-
-        const horizlines = inner?.graphicsCmds?.create?.horizlines;
-        if (!Array.isArray(horizlines)) continue;
-
-        const result = {};
-        for (const hl of horizlines) {
-          if (!hl.styleId || !Array.isArray(hl.data) || hl.data.length === 0) continue;
-          const item = hl.data[0];
-          // TradingView horizline item: { id, level, startIndex, endIndex, ... }
-          const price = typeof item === 'number' ? item : (item?.level ?? item?.price ?? item?.value ?? null);
-          if (price === null || isNaN(price)) continue;
-          if (hl.styleId === 'pocLines') result.poc = price;
-          else if (hl.styleId === 'vahLines') result.vah = price;
-          else if (hl.styleId === 'valLines') result.val = price;
-        }
-        if (result.poc !== undefined || result.vah !== undefined || result.val !== undefined) {
-          result._studyKey = studyKey;
-          return result;
-        }
-      }
-    } catch { /* ignore parse errors */ }
-  }
-  return null;
-}
-
-/**
- * page.goto() 호출 전에 등록해야 한다.
- * 해당 페이지 로드 중 도착하는 VRVP WebSocket 데이터를 캡처하고
- * Promise<{ poc, vah, val } | null>로 반환한다.
- * @param {import('playwright').Page} page
- * @param {number} timeoutMs  데이터 미도착 시 null로 resolve (기본 20초)
- */
-function setupVrvpCapture(page, timeoutMs = 20000) {
-  let resolved = false;
-  return new Promise((resolve) => {
-    const wsHandler = (ws) => {
-      ws.on('framereceived', (event) => {
-        if (resolved) return;
-        const data = typeof event.payload === 'string' ? event.payload : '';
-        const result = parseVrvpFromWsFrame(data);
-        if (!result) return;
-        resolved = true;
-        page.off('websocket', wsHandler);
-        const { poc, vah, val } = result;
-        resolve((poc !== undefined && vah !== undefined && val !== undefined)
-          ? { poc, vah, val } : null);
-      });
-    };
-    page.on('websocket', wsHandler);
-    setTimeout(() => {
-      if (!resolved) {
-        resolved = true;
-        page.off('websocket', wsHandler);
-        resolve(null);
-      }
-    }, timeoutMs);
-  });
 }
 
 // ─── TradingView 캡처 ───────────────────────────────────
@@ -390,9 +252,6 @@ async function captureTradingView(browser) {
         : `https://www.tradingview.com/chart/?symbol=BINANCE:${pair}.P&interval=${tf.value}`;
 
       try {
-        // VRVP WS 캡처는 page.goto 전에 등록해야 함
-        const vrvpCapture = setupVrvpCapture(page, 20000);
-
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
         // 차트 렌더링 대기 (WebSocket 실시간 데이터 로딩 포함)
@@ -421,15 +280,9 @@ async function captureTradingView(browser) {
         await page.screenshot({ fullPage: false, path: savePath, type: 'png' });
         log('✅', `${pair} ${tf.label} 전체 캡처 완료`);
 
-        // ② price_data.txt — DOM에서 현재가 + OHLCV legend 추출 + WS VRVP 병합
+        // ② price_data.txt — DOM에서 현재가 + OHLCV legend 추출
         try {
           const priceData = await extractPriceData(page, pair, tf.label);
-
-          // VRVP: DOM 추출은 canvas-only라 항상 실패하므로 WS 인터셉트 결과를 우선 사용
-          const vrvpResult = await vrvpCapture;
-          if (vrvpResult) {
-            priceData.vrvp = vrvpResult;
-          }
 
           const txtPath = path.join(getSaveDir('tradingview'), `${pair}_${tf.label}_data.txt`);
 
@@ -441,10 +294,7 @@ async function captureTradingView(browser) {
           if (priceData.currentPrice === null || priceData.legendValues.length === 0) {
             log('⚠️', `${pair} ${tf.label} 가격 데이터 불완전 (price: ${priceData.currentPrice}, legends: ${priceData.legendValues.length})`);
           } else {
-            const vrvpStatus = vrvpResult
-              ? `POC=${vrvpResult.poc.toFixed(0)}`
-              : 'VRVP=없음';
-            log('📝', `${pair} ${tf.label} 가격 데이터 저장 완료 (가격: ${priceData.currentPrice}, 지표: ${priceData.legendValues.length}, ${vrvpStatus})`);
+            log('📝', `${pair} ${tf.label} 가격 데이터 저장 완료 (가격: ${priceData.currentPrice}, 지표: ${priceData.legendValues.length})`);
           }
         } catch (dataErr) {
           log('⚠️', `${pair} ${tf.label} 가격 데이터 추출 실패: ${dataErr.message}`);
@@ -472,26 +322,7 @@ async function captureTradingView(browser) {
           log('⚠️', `${pair} ${tf.label} 줌 캡처 실패: ${zoomErr.message}`);
         }
 
-        // ④ vrvp — 우측 25% 영역 크롭
-        try {
-          const vrvpPath = getSavePath('tradingview', `${pair}_${tf.label}_vrvp`);
-          await page.screenshot({
-            fullPage: false,
-            path: vrvpPath,
-            type: 'png',
-            clip: {
-              x: Math.round(width * 0.75),
-              y: 0,
-              width: Math.round(width * 0.25),
-              height: Math.round(height * 0.85),
-            },
-          });
-          log('📊', `${pair} ${tf.label} VRVP 크롭 완료`);
-        } catch (vrvpErr) {
-          log('⚠️', `${pair} ${tf.label} VRVP 크롭 실패: ${vrvpErr.message}`);
-        }
-
-        // ⑤ indicators — 보조지표 패널 크롭 (DOM y좌표 탐색, 실패 시 65% 폴백)
+        // ④ indicators — 보조지표 패널 크롭 (DOM y좌표 탐색, 실패 시 65% 폴백)
         try {
           const indicatorY = await page.evaluate(() => {
             const panes = document.querySelectorAll('[class*="pane-container"]');
