@@ -1,12 +1,12 @@
 /**
  * capture.js — TradingView 멀티TF + 오더플로우 플랫폼 자동 캡처
  *
- * 사용법: node scripts/capture.js [--tv-only] [--orderflow-only]
+ * 사용법: node scripts/capture.js [--tv-only] [--orderflow-only] [--coinalyze-only]
  *
  * 캡처 대상:
  *   TradingView : BTCUSDT, ETHUSDT, SOLUSDT, HYPEUSDT × 1H, 4H, 1D
  *   Coinglass   : BTC, ETH, SOL, HYPE 청산 히트맵
- *   Coinalyze   : 전체 OI + 펀딩비 메인 페이지
+ *   Coinalyze   : 전체 OI + 펀딩비 메인 페이지 (스크린샷) + API 데이터
  *   Hyblock     : BTC, ETH 유동성 레벨
  */
 
@@ -53,6 +53,36 @@ const CHANGE24H_TARGETS = [
 
 const SESSION_DIR = path.join(__dirname, '..', 'sessions');
 const VIEWPORT = { width: 1920, height: 1080 };
+
+// ─── Coinalyze API ───────────────────────────────────────
+
+const COINALYZE_API_BASE = 'https://api.coinalyze.net/v1';
+
+function loadCoinalyzeApiKey() {
+  try {
+    const p = path.join(SESSION_DIR, 'coinalyze-api-key.txt');
+    if (!fs.existsSync(p)) return null;
+    return fs.readFileSync(p, 'utf-8').trim();
+  } catch {
+    return null;
+  }
+}
+
+const COINALYZE_API_KEY = loadCoinalyzeApiKey();
+
+// Coinalyze aggregated perpetual symbols (all exchanges)
+const CA_API_SYMBOLS = {
+  'BTCUSDT':  'BTCUSDT_PERP.A',
+  'ETHUSDT':  'ETHUSDT_PERP.A',
+  'SOLUSDT':  'SOLUSDT_PERP.A',
+  'HYPEUSDT': 'HYPEUSDT_PERP.A',
+};
+
+function formatOiUsd(value) {
+  if (value >= 1e9) return '$' + (value / 1e9).toFixed(2) + 'B';
+  if (value >= 1e6) return '$' + (value / 1e6).toFixed(0) + 'M';
+  return '$' + Math.round(value).toLocaleString();
+}
 const DEVICE_SCALE = 2; // Retina 품질
 
 const CLEAN_LAYOUT_PATH = path.join(__dirname, 'config', 'clean-layout.json');
@@ -163,12 +193,28 @@ async function extractPriceData(page, pair, tf) {
     // 각 legend 컨테이너에서 모든 값 수집 ([class*="legend-l31H9iuA"])
     const legendContainers = Array.from(document.querySelectorAll('[class*="legend-l31H9iuA"]'));
 
-    // 첫 번째는 OHLC (가격), 이후는 지표값
+    // 첫 번째는 OHLC (가격) + 오버레이 스터디(EMA 등), 이후는 서브패널 지표
     const legendValues = [];
     const legendTitles = [];
 
+    // ②-a 메인 페인 EMA 파싱
+    // DOM 구조: legendContainers[0]의 innerText 안에 EMA가 VRVP 등과 섞여 있음
+    // 패턴: "EMA\n{length}\nclose\n{value}" (개행 구분)
+    // 예: "EMA\n50\nclose\n72,291.1\nEMA\n200\nclose\n71,137.1\nEMA\n7\nclose\n74,005.7"
+    if (legendContainers.length > 0) {
+      const mainText = legendContainers[0].innerText || '';
+      const emaRegex = /EMA\s+(\d+)\s+close\s+([\d,]+\.?\d*)/g;
+      let m;
+      while ((m = emaRegex.exec(mainText)) !== null) {
+        const length = m[1];
+        const value = m[2];
+        legendTitles.push(`EMA ${length}`);
+        legendValues.push(value);
+      }
+    }
+
+    // ②-b 서브패널 지표 파싱 (RSI 등 — 기존 로직 유지)
     for (let i = 1; i < legendContainers.length; i++) {
-      // i=0은 OHLC 컨테이너, 나머지는 지표
       const container = legendContainers[i];
       const text = container.innerText?.trim() || '';
       const lines = text.split('\n').map(l => l.trim());
@@ -187,10 +233,25 @@ async function extractPriceData(page, pair, tf) {
       }
     }
 
+    // ② -c 구조화된 EMA 필드 생성
+    const ema = { '7': null, '50': null, '200': null };
+    legendTitles.forEach((title, idx) => {
+      const m = title.match(/^EMA\s*(\d+)/i);
+      if (m) {
+        const len = m[1];
+        if (len in ema) {
+          const raw = legendValues[idx];
+          const parsed = raw ? parseFloat(raw.replace(/,/g, '')) : null;
+          ema[len] = isNaN(parsed) ? null : parsed;
+        }
+      }
+    });
+
     return {
       pair,
       tf,
       currentPrice: currentPrice || null,
+      ema,
       legendValues,
       legendTitles,
       timestamp: new Date().toISOString(),
@@ -199,6 +260,7 @@ async function extractPriceData(page, pair, tf) {
         legendCount: legendValues.length,
         titlesCount: legendTitles.length,
         containerCount: legendContainers.length,
+        emaFound: { '7': ema['7'] !== null, '50': ema['50'] !== null, '200': ema['200'] !== null },
       },
     };
   }, { pair, tf });
@@ -288,13 +350,16 @@ async function captureTradingView(browser) {
 
           // 디버깅 정보 제거 (프로덕션 저장은 JSON만)
           const { _debug, ...cleanData } = priceData;
+          cleanData.levels = LEVELS_CACHE[pair]?.[tf.label] ?? null;
           fs.writeFileSync(txtPath, JSON.stringify(cleanData, null, 2));
 
           // 디버깅 로그
           if (priceData.currentPrice === null || priceData.legendValues.length === 0) {
             log('⚠️', `${pair} ${tf.label} 가격 데이터 불완전 (price: ${priceData.currentPrice}, legends: ${priceData.legendValues.length})`);
           } else {
-            log('📝', `${pair} ${tf.label} 가격 데이터 저장 완료 (가격: ${priceData.currentPrice}, 지표: ${priceData.legendValues.length})`);
+            const emaMissing = ['7', '50', '200'].filter(k => priceData.ema[k] === null);
+            const emaWarn = emaMissing.length > 0 ? ` ⚠️ EMA 누락: ${emaMissing.map(k => 'EMA' + k).join(', ')}` : '';
+            log('📝', `${pair} ${tf.label} 가격 데이터 저장 완료 (가격: ${priceData.currentPrice}, 지표: ${priceData.legendValues.length}${emaWarn})`);
           }
         } catch (dataErr) {
           log('⚠️', `${pair} ${tf.label} 가격 데이터 추출 실패: ${dataErr.message}`);
@@ -524,6 +589,289 @@ async function captureHyblock(browser) {
   log('💧', 'Hyblock 캡처 완료');
 }
 
+// ─── Price Structure Levels (OB / FVG / BSL / SSL) ───────
+
+const LEVELS_CACHE = {}; // { BTCUSDT: { '1H': {...}, '4H': {...}, '1D': {...} }, ... }
+
+const LEVEL_TF_MAP = { '1H': '1h', '4H': '4h', '1D': '1d' };
+
+function findSwings(ohlc, n = 5) {
+  const result = [];
+  for (let i = n; i < ohlc.length - n; i++) {
+    const hi = ohlc[i].h;
+    const lo = ohlc[i].l;
+    let isHigh = true, isLow = true;
+    for (let j = i - n; j <= i + n; j++) {
+      if (j === i) continue;
+      if (ohlc[j].h >= hi) isHigh = false;
+      if (ohlc[j].l <= lo) isLow  = false;
+    }
+    if (isHigh) result.push({ type: 'H', idx: i, price: hi });
+    if (isLow)  result.push({ type: 'L', idx: i, price: lo });
+  }
+  return result;
+}
+
+function findFVG(ohlc) {
+  const result = [];
+  for (let i = 2; i < ohlc.length; i++) {
+    const bull = ohlc[i].l > ohlc[i - 2].h; // bullish FVG
+    const bear = ohlc[i].h < ohlc[i - 2].l; // bearish FVG
+    if (!bull && !bear) continue;
+
+    const top    = bull ? ohlc[i].l     : ohlc[i - 2].l;
+    const bottom = bull ? ohlc[i - 2].h : ohlc[i].h;
+
+    // unfilled check: 이후 캔들이 gap에 진입했는지 확인
+    let filled = false;
+    for (let k = i + 1; k < ohlc.length; k++) {
+      if (bull && ohlc[k].l <= top)    { filled = true; break; }
+      if (!bull && ohlc[k].h >= bottom) { filled = true; break; }
+    }
+    if (!filled) result.push({ type: bull ? 'bull' : 'bear', top, bottom, idx: i });
+  }
+  return result;
+}
+
+function findOrderBlocks(ohlc, swings) {
+  const result = [];
+  for (const sw of swings) {
+    if (sw.idx < 1) continue;
+    // BOS 직전 마지막 반대색 캔들
+    for (let i = sw.idx - 1; i >= Math.max(0, sw.idx - 10); i--) {
+      const c = ohlc[i];
+      const bullCandle = c.c > c.o;
+      if (sw.type === 'H' && !bullCandle) { // 하락 swing high 직전 → 베어리시 OB (= 마지막 하락봉)
+        result.push({ type: 'bear', top: c.h, bottom: c.l, idx: i });
+        break;
+      }
+      if (sw.type === 'L' && bullCandle) {  // 상승 swing low 직전 → 불리시 OB (= 마지막 상승봉)
+        result.push({ type: 'bull', top: c.h, bottom: c.l, idx: i });
+        break;
+      }
+    }
+  }
+  return result;
+}
+
+function clusterEqualLevels(swings, tolerance = 0.003) {
+  const highs = swings.filter(s => s.type === 'H').map(s => s.price).sort((a, b) => b - a);
+  const lows  = swings.filter(s => s.type === 'L').map(s => s.price).sort((a, b) => a - b);
+
+  const cluster = (arr) => {
+    const clusters = [];
+    const used = new Set();
+    for (let i = 0; i < arr.length; i++) {
+      if (used.has(i)) continue;
+      const group = [arr[i]];
+      for (let j = i + 1; j < arr.length; j++) {
+        if (used.has(j)) continue;
+        if (Math.abs(arr[j] - arr[i]) / arr[i] <= tolerance) {
+          group.push(arr[j]);
+          used.add(j);
+        }
+      }
+      if (group.length >= 2) {
+        clusters.push(parseFloat((group.reduce((a, b) => a + b, 0) / group.length).toFixed(2)));
+      }
+    }
+    return clusters;
+  };
+
+  return { bsl: cluster(highs), ssl: cluster(lows) };
+}
+
+function trimToNearest(levels, currentPrice, count = 3) {
+  const dist = (p) => Math.abs(p - currentPrice);
+  const trim = (arr) => {
+    if (!arr || arr.length === 0) return [];
+    return [...arr].sort((a, b) => dist(a) - dist(b)).slice(0, count * 2)
+      .sort((a, b) => a - b);
+  };
+
+  const above = (arr) => arr.filter(p => p > currentPrice).sort((a, b) => a - b).slice(0, count);
+  const below = (arr) => arr.filter(p => p < currentPrice).sort((a, b) => b - a).slice(0, count);
+
+  const obLevels = [...new Set(levels.obs.map(o => parseFloat(o.bottom.toFixed(2))))];
+  const fvgLevels = [
+    ...levels.fvgs.filter(f => f.type === 'bull').map(f => parseFloat(f.bottom.toFixed(2))),
+    ...levels.fvgs.filter(f => f.type === 'bear').map(f => parseFloat(f.top.toFixed(2))),
+  ];
+  const swingHighs = levels.swings.filter(s => s.type === 'H').map(s => parseFloat(s.price.toFixed(2)));
+  const swingLows  = levels.swings.filter(s => s.type === 'L').map(s => parseFloat(s.price.toFixed(2)));
+
+  return {
+    ob:  { bull: below(obLevels), bear: above(obLevels) },
+    fvg: { bull: below(fvgLevels), bear: above(fvgLevels) },
+    bsl: above(levels.bsl),
+    ssl: below(levels.ssl),
+    swing_highs: above(swingHighs),
+    swing_lows:  below(swingLows),
+  };
+}
+
+function computeLevels(rawBars, currentPrice) {
+  if (!Array.isArray(rawBars) || rawBars.length < 20) return null;
+  const ohlc = rawBars.map(b => ({
+    t: b[0], o: +b[1], h: +b[2], l: +b[3], c: +b[4],
+  }));
+  const swings = findSwings(ohlc, 5);
+  const fvgs   = findFVG(ohlc);
+  const obs    = findOrderBlocks(ohlc, swings);
+  const { bsl, ssl } = clusterEqualLevels(swings, 0.003);
+  return trimToNearest({ swings, fvgs, obs, bsl, ssl }, currentPrice, 3);
+}
+
+async function fetchPriceLevels() {
+  log('📐', 'Price Structure Levels 수집 시작 (Binance klines)...');
+
+  // 현재가 먼저 가져오기
+  let prices = {};
+  try {
+    const priceData = await fetch('https://fapi.binance.com/fapi/v1/ticker/price').then(r => r.json());
+    if (Array.isArray(priceData)) {
+      for (const p of priceData) {
+        if (PAIRS.includes(p.symbol)) prices[p.symbol] = parseFloat(p.price);
+      }
+    }
+  } catch (e) {
+    log('⚠️', `fetchPriceLevels: 현재가 조회 실패 — ${e.message}`);
+  }
+
+  const requests = [];
+  for (const pair of PAIRS) {
+    for (const [tfLabel, interval] of Object.entries(LEVEL_TF_MAP)) {
+      requests.push(
+        fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${pair}&interval=${interval}&limit=300`)
+          .then(r => r.json())
+          .then(bars => ({ pair, tfLabel, bars }))
+          .catch(e => { log('⚠️', `fetchPriceLevels ${pair} ${tfLabel}: ${e.message}`); return null; })
+      );
+    }
+  }
+
+  const results = await Promise.all(requests);
+  for (const res of results) {
+    if (!res) continue;
+    const { pair, tfLabel, bars } = res;
+    const cp = prices[pair] || 0;
+    if (!LEVELS_CACHE[pair]) LEVELS_CACHE[pair] = {};
+    LEVELS_CACHE[pair][tfLabel] = computeLevels(bars, cp);
+  }
+
+  const filled = Object.values(LEVELS_CACHE).reduce((acc, tf) => acc + Object.keys(tf).length, 0);
+  log('📐', `Price Structure Levels 수집 완료 (${filled}/${PAIRS.length * 3} TF)`);
+}
+
+// ─── Coinalyze API 데이터 수집 ───────────────────────────
+
+async function fetchCoinalyzeData() {
+  log('📡', 'Coinalyze API 데이터 수집 시작...');
+
+  if (!COINALYZE_API_KEY) {
+    log('⚠️', 'coinalyze-api-key.txt 없음 — Coinalyze API 건너뜀');
+    return;
+  }
+
+  const symbolStr = Object.values(CA_API_SYMBOLS).join(',');
+  const now = Math.floor(Date.now() / 1000);
+  const from24h = now - 24 * 3600;
+
+  let oiData = [], frData = [], predFrData = [], oiHistData = [], priceData = [];
+  // Binance klines: [openTime, o, h, l, c, vol, closeTime, quoteVol, trades, takerBuyBaseVol, takerBuyQuoteVol, ignore]
+  const klineMap = {}; // pair -> bars[]
+
+  try {
+    const klinesRequests = Object.keys(CA_API_SYMBOLS).map(pair =>
+      fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${pair}&interval=1h&limit=24`)
+        .then(r => r.json())
+        .then(bars => { klineMap[pair] = Array.isArray(bars) ? bars : []; })
+    );
+
+    [oiData, frData, predFrData, oiHistData, priceData] = await Promise.all([
+      fetch(`${COINALYZE_API_BASE}/open-interest?symbols=${symbolStr}&api_key=${COINALYZE_API_KEY}`).then(r => r.json()),
+      fetch(`${COINALYZE_API_BASE}/funding-rate?symbols=${symbolStr}&api_key=${COINALYZE_API_KEY}`).then(r => r.json()),
+      fetch(`${COINALYZE_API_BASE}/predicted-funding-rate?symbols=${symbolStr}&api_key=${COINALYZE_API_KEY}`).then(r => r.json()),
+      fetch(`${COINALYZE_API_BASE}/open-interest-history?symbols=${symbolStr}&interval=1hour&from=${from24h}&to=${now}&api_key=${COINALYZE_API_KEY}`).then(r => r.json()),
+      fetch('https://fapi.binance.com/fapi/v1/ticker/price').then(r => r.json()),
+      ...klinesRequests,
+    ]);
+  } catch (err) {
+    log('❌', `API 호출 실패: ${err.message}`);
+    return;
+  }
+
+  // 현재가 맵 (Binance Futures)
+  const prices = {};
+  if (Array.isArray(priceData)) {
+    for (const p of priceData) {
+      if (CA_API_SYMBOLS[p.symbol]) prices[p.symbol] = parseFloat(p.price);
+    }
+  }
+
+  const result = {};
+  for (const [pair, caSymbol] of Object.entries(CA_API_SYMBOLS)) {
+    const price = prices[pair] || 0;
+
+    // ① OI
+    const oiEntry = Array.isArray(oiData) ? oiData.find(d => d.symbol === caSymbol) : null;
+    const oiBase = oiEntry?.value || 0;
+    const oiUsd  = oiBase * price;
+
+    // ② OI 24h 변화 (from history)
+    const oiHist   = Array.isArray(oiHistData) ? (oiHistData.find(d => d.symbol === caSymbol)?.history || []) : [];
+    const oiOldest = oiHist.length > 0 ? oiHist[0].o : 0;
+    const oiNewest = oiHist.length > 0 ? oiHist[oiHist.length - 1].c : oiBase;
+    const oiChg24h = oiOldest > 0 ? (oiNewest - oiOldest) / oiOldest * 100 : 0;
+
+    // ③ 펀딩비
+    const frEntry     = Array.isArray(frData)     ? frData.find(d => d.symbol === caSymbol)     : null;
+    const predFrEntry = Array.isArray(predFrData) ? predFrData.find(d => d.symbol === caSymbol) : null;
+    const fundingRate      = frEntry?.value     || 0;
+    const fundingRatePred  = predFrEntry?.value || 0;
+
+    // ④ CVD 24H (Binance klines, 1h x 24봉)
+    //    takerBuyBaseVol(idx 9), vol(idx 5)
+    //    delta = takerBuy - takerSell = 2*takerBuy - vol
+    const bars = klineMap[pair] || [];
+    let cvdTotal = 0;
+    let deltaFirst = 0, deltaSecond = 0;
+    const mid = Math.floor(bars.length / 2);
+    for (let i = 0; i < bars.length; i++) {
+      const vol    = parseFloat(bars[i][5]);
+      const buyVol = parseFloat(bars[i][9]);
+      const delta  = 2 * buyVol - vol;
+      cvdTotal += delta;
+      if (i < mid) deltaFirst  += delta;
+      else         deltaSecond += delta;
+    }
+
+    const fmtFr  = (n) => (n >= 0 ? '+' : '') + (n * 100).toFixed(4) + '%';
+    const fmtChg = (n) => (n >= 0 ? '+' : '') + n.toFixed(2) + '%';
+
+    result[pair] = {
+      price_usd:              price > 0 ? parseFloat(price.toFixed(4)) : null,
+      oi_base:                parseFloat(oiBase.toFixed(3)),
+      oi_usd:                 price > 0 ? Math.round(oiUsd) : null,
+      oi_usd_str:             price > 0 ? formatOiUsd(oiUsd) : 'N/A',
+      oi_change_24h:          fmtChg(oiChg24h),
+      oi_trend:               oiChg24h > 0 ? 'rising' : (oiChg24h < 0 ? 'falling' : 'flat'),
+      funding_rate:           fmtFr(fundingRate),
+      funding_rate_predicted: fmtFr(fundingRatePred),
+      cvd_24h:                parseFloat(cvdTotal.toFixed(4)),
+      cvd_direction:          cvdTotal >= 0 ? 'positive' : 'negative',
+      cvd_trend:              deltaSecond > deltaFirst ? 'rising' : 'falling',
+    };
+
+    log('✅', `${pair}: OI ${result[pair].oi_usd_str} (${result[pair].oi_change_24h}), FR ${result[pair].funding_rate}, CVD ${result[pair].cvd_direction}/${result[pair].cvd_trend}`);
+  }
+
+  const saveDir  = getSaveDir('coinalyze');
+  const savePath = path.join(saveDir, 'coinalyze_data.json');
+  fs.writeFileSync(savePath, JSON.stringify({ generated_at: new Date().toISOString(), pairs: result }, null, 2));
+  log('💾', `Coinalyze API 데이터 저장: ${savePath}`);
+}
+
 // ─── 24h 변화율 수집 (Coinglass + Coinalyze 교차 검증) ───
 
 // 봇 감지 우회 Chrome 공통 옵션
@@ -679,9 +1027,10 @@ async function captureChange24h(_browser) {
 
 (async () => {
   const args = process.argv.slice(2);
-  const tvOnly = args.includes('--tv-only');
-  const ofOnly = args.includes('--orderflow-only');
-  const changeOnly = args.includes('--change24h-only');
+  const tvOnly       = args.includes('--tv-only');
+  const ofOnly       = args.includes('--orderflow-only');
+  const changeOnly   = args.includes('--change24h-only');
+  const caOnly       = args.includes('--coinalyze-only');
 
   log('🚀', `=== 차트 캡처 시작 (${getDateDir()}) ===`);
   log('📋', `페어: ${PAIRS.join(', ')}`);
@@ -693,10 +1042,14 @@ async function captureChange24h(_browser) {
   });
 
   try {
-    if (changeOnly) {
+    if (caOnly) {
+      await fetchCoinalyzeData();
+    } else if (changeOnly) {
       await captureChange24h(browser);
     } else {
+      // Price Structure Levels 먼저 수집 (TV 캡처 시 _data.txt에 주입)
       if (!ofOnly) {
+        await fetchPriceLevels();
         await captureTradingView(browser);
       }
 
@@ -705,6 +1058,7 @@ async function captureChange24h(_browser) {
         await captureCoinalyze(browser);
         await captureHyblock(browser);
         await captureChange24h(browser);
+        await fetchCoinalyzeData();   // API 데이터 수집 (브라우저 불필요)
       }
     }
   } catch (err) {

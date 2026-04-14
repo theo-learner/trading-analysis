@@ -15,10 +15,11 @@ screenshots/YYYYMMDD/
 ├── tradingview/     # {PAIR}_{TF}.png           — 전체 차트
 │                   # {PAIR}_{TF}_price_zoom.png — 최근 봉 확대
 │                   # {PAIR}_{TF}_indicators.png — 보조지표 패널
-│                   # {PAIR}_{TF}_data.txt       — 현재가/OHLCV JSON
+│                   # {PAIR}_{TF}_data.txt       — 현재가/OHLCV + EMA 7/50/200 + levels JSON
 │                   # change24h_data.json        — Coinglass+Coinalyze 교차검증 24h 변화율
 ├── exocharts/       # {PAIR}_{view}.png (히트맵, CVD)
-├── coinalyze/       # {PAIR}_OI_funding.png
+├── coinalyze/       # main_overview.png (스크린샷)
+│                   # coinalyze_data.json — API 수집 실제 수치 (OI/CVD/펀딩비)
 ├── hyblock/         # {PAIR}_liquidation.png
 └── macro/
     └── events.json  — Claude가 분석 시작 전 WebFetch로 수집 (없으면 자동 생성)
@@ -47,7 +48,14 @@ screenshots/YYYYMMDD/
 분석 시작 전 — **반드시 이 순서대로, 생략 불가**:
 0. **[BLOCKING]** `references/` 폴더 내 모든 `.md` 파일을 Read 도구로 순서대로 전부 읽기. 읽지 않으면 이후 단계 진행 금지.
 1. `tradingview/change24h_data.json` — Coinglass+Coinalyze 교차검증 24h 변화율 (대시보드 change 필드에 사용)
-2. `macro/events.json` — 파일이 없거나 `generated_at`이 6시간 이상 오래되었으면 WebFetch로 수집:
+2. `coinalyze/coinalyze_data.json` — **Coinalyze API 실제 수치** (파일이 있으면 반드시 읽기):
+   - `pairs.{PAIR}.oi_usd_str` → Orderflow 탭 OI 컬럼 (e.g., `$6.99B`)
+   - `pairs.{PAIR}.oi_change_24h` → OI 24h 변화
+   - `pairs.{PAIR}.oi_trend` → rising/falling
+   - `pairs.{PAIR}.funding_rate` / `funding_rate_predicted` → 펀딩비 컬럼
+   - `pairs.{PAIR}.cvd_direction` + `cvd_trend` → CVD 컬럼 (Binance 24H 기준, e.g., `positive/rising`)
+   - 파일 없으면 "데이터 미수집" 명시 후 스크린샷(main_overview.png) 기반 추정값 사용
+3. `macro/events.json` — 파일이 없거나 `generated_at`이 6시간 이상 오래되었으면 WebFetch로 수집:
    - `https://www.investing.com/news/cryptocurrency-news` (24h)
    - `https://www.tradingview.com/news/` (crypto, 24h)
    - Velo (로그인 필요 시 스킵)
@@ -55,7 +63,7 @@ screenshots/YYYYMMDD/
 
 페어별로 아래 순서를 반복한다 (1D → 4H → 1H):
 
-1. `{PAIR}_{TF}_data.txt` — 수치 데이터를 텍스트로 먼저 확인
+1. `{PAIR}_{TF}_data.txt` — 수치 데이터를 텍스트로 먼저 확인 (`ema.7/50/200` 값으로 추세 방향·골든/데드 크로스 구조 선판단)
 2. `{PAIR}_{TF}.png` — 전체 구조 파악
 3. `{PAIR}_{TF}_price_zoom.png` — 캔들 구조 및 레벨 정밀 확인
 4. `{PAIR}_{TF}_indicators.png` — 보조지표 수치 확인
@@ -82,6 +90,8 @@ screenshots/YYYYMMDD/
 - 오더플로우 색상: 히트맵고밀도 #f59e0b, CVD양수 #22d3ee, CVD음수 #fb923c, 수렴 #a78bfa
 - 탭 구조: Overview / Macro / Elliott Wave / ICT / Orderflow / Scenarios / Risk
 - **Macro 탭**: `const MACRO_EVENTS = [...]` 상수로 events.json 데이터 임베드, 시간순(KST) 카드 리스트, importance별 좌측 보더 color-coded (high `#f87171` / medium `#fbbf24` / low `#9ca3af`), `tabContent` 변수 패턴 필수
+- **Orderflow 탭**: `const ORDERFLOW_DATA = {...}` 상수로 coinalyze_data.json의 `pairs` 객체 그대로 임베드. OI/CVD/펀딩비 컬럼은 추정치 금지 — JSON 수치 직접 사용. CVD 컬럼은 `cvd_direction + '/' + cvd_trend` 형식 (예: `positive/rising`). 펀딩비 셀은 양수 `#4ade80`, 음수 `#f87171`로 색상 구분.
+- **레벨 임베드 규칙**: PAIRS 상수의 `support`/`resistance`/`bsl`/`ssl`/`ob`/`fvg` 배열은 `{PAIR}_{TF}_data.txt` 의 `levels` 필드 원본 숫자를 그대로 사용. 소수점 보존, 라운드 넘버 반올림 금지 (예: `72000` ❌ → `72148.3` ✅). `levels`가 `null`이거나 해당 TF에 값이 없으면 "데이터 없음"으로 표시 (임의 추정값 생성 금지).
 - **반응형 필수**: `useIsMobile()` 훅(`window.matchMedia('(max-width: 767px)')` + resize 리스너)을 `Dashboard()` 위에 정의하고, `Dashboard()` 최상단에서 `const isMobile = useIsMobile();` 호출 후 모든 Tab 컴포넌트에 `isMobile` prop으로 전달
 - **모바일 분기 규칙** (768px 미만):
   - 모든 `repeat(N, 1fr)` 그리드는 `isMobile ? '1fr' : 'repeat(N, 1fr)'`로 분기 (단, 롱/숏 셋업 내부 `1fr 1fr` key-value 쌍은 유지)
