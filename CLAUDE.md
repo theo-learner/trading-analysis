@@ -28,8 +28,25 @@ screenshots/YYYYMMDD/
 ## 출력
 `reports/YYYYMMDD_dashboard.html` — standalone HTML 대시보드 파일
 
+## 레퍼런스 — 필수 선행 학습 (MANDATORY PRE-READ)
+
+> **⛔ 분석 파이프라인 시작 불가 조건**: `references/` 내 모든 `.md` 파일을 Read 도구로 전부 읽기 전까지 차트 분석을 시작해서는 안 된다. 이 단계를 건너뛰거나 요약·생략하는 것은 금지된다.
+
+현재 레퍼런스 파일 목록 (`references/*.md` 전체 읽기):
+
+| 파일 | 내용 | 용도 |
+|------|------|------|
+| `references/2026-04-13-ICT-trading-brief.md` | ICT 이론 종합 브리핑 (유동성, POI, 킬존, 진입 체인 등) | ICT 탭 분석 기준 |
+| `references/2026-04-13-Elliot-wave-basic.md` | Elliott Wave 기초 이론 (파동 구조, 규칙, 가이드라인 등) | EW 탭 분석 기준 |
+
+**읽은 후 적용 규칙:**
+- 레퍼런스의 모든 개념(BOS, MSS, FVG, OB, BSL/SSL, 킬존, 파동 규칙 등)을 차트 분석에 직접 적용한다
+- 차트에서 관찰되는 구조를 레퍼런스 용어로 명명하여 일관성을 유지한다
+- `references/` 에 새 `.md` 파일이 추가되면 목록에 자동 포함되어 반드시 읽힌다
+
 ## 분석 순서
-분석 시작 전:
+분석 시작 전 — **반드시 이 순서대로, 생략 불가**:
+0. **[BLOCKING]** `references/` 폴더 내 모든 `.md` 파일을 Read 도구로 순서대로 전부 읽기. 읽지 않으면 이후 단계 진행 금지.
 1. `tradingview/change24h_data.json` — Coinglass+Coinalyze 교차검증 24h 변화율 (대시보드 change 필드에 사용)
 2. `macro/events.json` — 파일이 없거나 `generated_at`이 6시간 이상 오래되었으면 WebFetch로 수집:
    - `https://www.investing.com/news/cryptocurrency-news` (24h)
@@ -67,6 +84,24 @@ screenshots/YYYYMMDD/
 - 오더플로우 색상: 히트맵고밀도 #f59e0b, CVD양수 #22d3ee, CVD음수 #fb923c, 수렴 #a78bfa
 - 탭 구조: Overview / Macro / Elliott Wave / ICT / Orderflow / Scenarios / Risk
 - **Macro 탭**: `const MACRO_EVENTS = [...]` 상수로 events.json 데이터 임베드, 시간순(KST) 카드 리스트, importance별 좌측 보더 color-coded (high `#f87171` / medium `#fbbf24` / low `#9ca3af`), `tabContent` 변수 패턴 필수
+- **반응형 필수**: `useIsMobile()` 훅(`window.matchMedia('(max-width: 767px)')` + resize 리스너)을 `Dashboard()` 위에 정의하고, `Dashboard()` 최상단에서 `const isMobile = useIsMobile();` 호출 후 모든 Tab 컴포넌트에 `isMobile` prop으로 전달
+- **모바일 분기 규칙** (768px 미만):
+  - 모든 `repeat(N, 1fr)` 그리드는 `isMobile ? '1fr' : 'repeat(N, 1fr)'`로 분기 (단, 롱/숏 셋업 내부 `1fr 1fr` key-value 쌍은 유지)
+  - Header: `isMobile`이면 `flex-direction: 'column'`, 배지는 두 번째 행 `flexWrap: 'wrap'`
+  - Tabs: 버튼 `padding: isMobile ? '14px 14px' : '12px 16px'` (터치 타겟 ≥40px), tab bar에 `ref` 붙여 탭 전환 시 활성 버튼 `scrollIntoView({ inline: 'center' })`
+  - Overview 페어 4카드: horizontal snap carousel (`scroll-snap-type: x mandatory`, 각 카드 `minWidth: '78%', scrollSnapAlign: 'start'`)
+  - EW/ICT/Risk: pair accordion (`useState(selectedPair)` 기본 펼침)
+  - VRVP 3분할: `useState('1D')` + 1D/4H/1H 미니 토글 버튼으로 단일 카드 표시
+  - Orderflow 4카드: `repeat(2, 1fr)`, 테이블은 `overflowX: 'auto'` wrapper + `minWidth: '480px'`
+  - Scenarios 3분할: `isMobile ? '1fr' : 'repeat(3, 1fr)'`
+  - 본문 폰트 ≥13px, 카드 padding ≥14px
+- **스니펫 참고**: `reports/_mobile_snippet.md` — 위 패턴의 복붙 가능한 코드 블록 모음
+- **검증 필수**: 작성 후 Chrome DevTools Device Toolbar에서 393px / 1400px 두 폭에서 모든 탭 동작 확인
+
+## 차트 주석 처리 규칙
+- 캡처는 `scripts/config/clean-layout.json`에 정의된 clean 레이아웃으로 수행되므로 사용자 드로잉이 포함되지 않는다
+- TradingView 내장 지표(EMA, RSI, MACD, VRVP 등)는 신뢰한다
+- 만에 하나 차트에 레이블/선/메모가 보이면 clean 레이아웃 설정 누락을 의심하고 사용자에게 알린다
 
 ## 핵심 원칙
 - 차트에서 실제로 보이는 것만 분석. 보이지 않는 것을 추측하지 않음

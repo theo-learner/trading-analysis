@@ -98,6 +98,41 @@ npm run save-session:tv
 
 ---
 
+## Clean 레이아웃 설정 (독립 분석용)
+
+캡처 시 사용자가 수동으로 그린 드로잉(지지/저항선, EW 레이블, 텍스트 메모 등)이 포함되면 Claude의 독립 분석이 오염됩니다. Clean 레이아웃을 설정하면 캡처 시 드로잉이 없는 순수 차트를 사용합니다.
+
+**1회 설정, 이후 자동 적용**
+
+### 설정 절차
+
+1. TradingView 브라우저에서 로그인 후 차트 열기
+2. 상단 레이아웃 메뉴 → **"새 레이아웃"** 생성 → 이름: `trading-analysis-clean`
+3. 드로잉이 있으면 모두 제거: 좌측 Object Tree 패널 → **"Remove All"**
+4. 분석에 필요한 **내장 지표만** 추가 (EMA, RSI, MACD, VRVP 등)
+5. 레이아웃 저장 후 브라우저 URL 확인:
+   ```
+   https://www.tradingview.com/chart/AbCdEf12/
+   ```
+   `/chart/` 다음의 영문+숫자 코드가 `layoutId`
+6. `scripts/config/clean-layout.json` 파일 생성 (예시 파일 복사):
+   ```bash
+   cp scripts/config/clean-layout.example.json scripts/config/clean-layout.json
+   ```
+7. `layoutId` 값을 실제 ID로 교체:
+   ```json
+   {
+     "layoutId": "AbCdEf12",
+     "note": "Clean analysis layout — indicators only, no drawings",
+     "savedAt": "2026-04-13"
+   }
+   ```
+
+> `clean-layout.json`은 `.gitignore`에 포함되어 있어 커밋되지 않습니다.
+> 파일이 없으면 캡처 스크립트는 기존 기본 레이아웃으로 fallback하며 경고를 출력합니다.
+
+---
+
 ## 캡처 테스트
 
 세션 저장 후 제대로 동작하는지 확인:

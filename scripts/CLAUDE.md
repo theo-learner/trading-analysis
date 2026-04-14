@@ -9,4 +9,11 @@
 |----|------|---|-------|------|
 | #13851 | 1:43 PM | 🔵 | Trading Analysis Dashboard Output Format and Analysis Framework | ~631 |
 | #13850 | " | 🔵 | Trading Analysis Automation Infrastructure Gap Identified | ~574 |
+
+### Apr 13, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #14204 | 7:23 PM | 🔄 | VRVP DOM Extraction Refactored with Dual-Strategy TreeWalker | ~558 |
+| #14199 | 7:14 PM | ⚖️ | VRVP Auto-Collection Architecture via Pine Script Legend Wrapper | ~628 |
 </claude-mem-context>
