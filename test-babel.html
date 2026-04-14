@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+
+    function Tab1() {
+      return <div style={{ background: 'red', padding: '20px' }}>TAB 1 CONTENT</div>;
+    }
+
+    function Tab2() {
+      return <div style={{ background: 'blue', padding: '20px' }}>TAB 2 CONTENT</div>;
+    }
+
+    function TestApp() {
+      const [activeTab, setActiveTab] = useState("tab1");
+
+      const tabContent = {
+        "tab1": <Tab1 />,
+        "tab2": <Tab2 />
+      };
+
+      return (
+        <div>
+          <button onClick={() => setActiveTab("tab1")}>Tab 1</button>
+          <button onClick={() => setActiveTab("tab2")}>Tab 2</button>
+          <div style={{ marginTop: '20px', border: '1px solid black', minHeight: '100px' }}>
+            {tabContent[activeTab]}
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<TestApp />);
+  </script>
+</body>
+</html>
