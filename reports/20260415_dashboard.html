@@ -3,892 +3,800 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Trading Analysis — 2026-04-15</title>
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <title>Crypto Futures Analysis — 2026-04-15</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #0b0e14; color: #e8eaed; font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+    body { background: #0b0e14; color: #e8eaed; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: #131720; }
-    ::-webkit-scrollbar-thumb { background: #2a3044; border-radius: 3px; }
-    #root { min-height: 100vh; }
+    ::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
   </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
 
-// ─── DATA ────────────────────────────────────────────────────────────────────
+// ─── 데이터 상수 ───────────────────────────────────────────────────────────────
 
 const PAIRS = [
   {
-    symbol: 'BTCUSDT', name: 'BTC', price: 74669.9, change24h: 4.18,
-    sentiment: 'neutral',
+    symbol: 'BTCUSDT', short: 'BTC', change: '+3.32%', changeColor: '#4ade80',
+    price: '74,719', sentiment: 'neutral_bull',
     ema: {
-      '1D': { e7: 87621.9,  e50: 92618.9,  e200: 101362.8 },
-      '4H': { e7: 68462.8,  e50: 69994.6,  e200: 70574.0  },
-      '1H': { e7: 71823.0,  e50: 70960.7,  e200: 69250.5  },
+      d1: { e7: 72669.2, e50: 70994.6, e200: 83202.5, rsi: 53.86 },
+      h4: { e7: 74171.9, e50: 71713.3, e200: 70174.4, rsi: 56.96 },
+      h1: { e7: 74775.8, e50: 73310.5, e200: 71595.6, rsi: 67.35 },
     },
-    rsi: { '1D': 42.18, '4H': 46.37, '1H': 55.04 },
     levels: {
-      '1D': {
-        ob:  { bull: [74555, 70375, 68884.5], bear: [83786, 84408.6, 85226] },
-        fvg: { bull: [73094.4], bear: [81000, 88786, 93550.3] },
-        bsl: [94657.65], ssl: [64999.6],
-        swing_highs: [75998, 83930], swing_lows: [74455, 65520],
-      },
-      '4H': {
-        ob:  { bull: [72926.4, 72451.9, 71186], bear: [] },
-        fvg: { bull: [73441.7, 72431, 70960.3], bear: [] },
-        bsl: [], ssl: [70380.73, 68855.8, 66009],
-        swing_highs: [75998], swing_lows: [70380],
-      },
-      '1H': {
-        ob:  { bull: [74267.2, 74112.2, 72953.3], bear: [] },
-        fvg: { bull: [], bear: [] },
-        bsl: [74885], ssl: [72509.15, 71320.55, 70488.04],
-        swing_highs: [74885], swing_lows: [72509],
-      },
+      d1: { bsl: [94657.65], ssl: [64999.6], ob: { bull: [74555, 70375, 68884.5], bear: [83786, 84408.6, 85226] }, fvg: { bull: [73094.4], bear: [81000, 88786, 93550.3] }, swing_highs: [75998.9, 90599, 94185], swing_lows: [65569.2, 65081, 64918.2] },
+      h4: { bsl: [], ssl: [70380.73, 68855.8, 66009], ob: { bull: [72926.4, 72451.9, 71186], bear: [] }, fvg: { bull: [73441.7, 72431, 70960.3], bear: [] }, swing_highs: [75998.9], swing_lows: [70458.2, 70428, 70256] },
+      h1: { bsl: [74885], ssl: [72509.15, 71320.55, 70488.04], ob: { bull: [74112.2, 72953.3, 72872.6], bear: [] }, fvg: { bull: [72424.9, 71188, 69500], bear: [] }, swing_highs: [74870, 74900], swing_lows: [72566.4, 72451.9, 71539.9] },
     },
     ew: {
-      '1D': 'macro 하락 5파 진행 중. 현재가($74,669)는 파동 4 반등 혹은 파동 5 초입 가능성. EMA 7/50/200 모두 위($87K~$101K) = 전형적 하락 충격파 구조. RSI 42 — 과매도 직전.',
-      '4H': '4H에서 EMA7(68,462)/EMA50(69,994)/EMA200(70,574) 전부 하단에서 회복 중. 현재가($74,673)가 세 EMA 모두 상회 → 단기 abc 조정파 완성 후 임펄스 반등 가능. Bull OB 클러스터 72,926~71,186이 되돌림 지지.',
-      '1H': '1H EMA 배열 7>50>200 (71,823>70,960>69,250) 강세 정렬. 가격이 모든 EMA 위 = 단기 상승 5파 구조 진행. BSL 74,885 도달 시 단기 고점 형성 가능.',
+      count: 'Wave 1 완성 추정 — Wave 2 조정 대기',
+      detail: '$65,000 저점 구간에서 Wave 1 상승 시작. 현재 $74,885 BSL 부근에서 고점 형성 중. Wave 2 되돌림 예상 구간: $71,000~$73,441(4H FVG/bull OB 클러스터). Wave 2 이후 Wave 3 목표: $83,202(1D EMA200). RSI 67로 단기 과열 접근.',
+      invalidation: '$70,256 (4H 스윙로우) 하회 시 Wave 1 카운트 무효',
+      alt: '대안: 대형 ABC 조정 B-웨이브 완성 → C-웨이브 $55,000~$60,000',
     },
     ict: {
-      '1D': '1D 가격이 Bull OB 74,555~68,884 상단(74,555) 부근에 안착. Bear OB 83,786~85,226 → 다음 저항. BSL 94,657 = 기관 목표 상단. 1D 구조상 하락 BOS → 반등은 "조정"으로 해석.',
-      '4H': '4H AMD 사이클: distribution 완료 후 markdown → accumulation 시도 중. Bull FVG 73,441~70,960 구간이 premium-to-discount 전환선. SSL 70,380 미충족 시 추가 눌림 가능.',
-      '1H': '1H BSL 74,885 = Judas Swing 상방 타깃. 현재 NWOG(주간 OG) 내 가격 → 킬존(런던/뉴욕 오픈) 모멘텀 주시. Bull OB 74,267~72,953이 지지 구간.',
+      structure: '4H BOS 상방 확인. 1H 스윙하이 $74,870~$74,900(BSL $74,885) 부근 고점 형성 시도.',
+      poi: '4H bull FVG $73,441 / bull OB $72,926 = 핵심 롱 POI. 1D bull OB $74,555 지지 여부 주목.',
+      liquidity: 'BSL $74,885 (1H) — 즉각 상방 표적. 스윕 후 거부 반응으로 방향 확정.',
+      bias: '4H 추세: 강세 | 1H: 고점 형성 경계 (RSI 67, BSL 인접)',
     },
-    note: '예측 펀딩 -0.41% ⚠ — 다음 사이클 롱 손실 주의',
+    note: '펀딩레이트 -0.52% (예측 -1.03%): 공매도 과다적재 → 가격 상승 시 숏스퀴즈 폭발 잠재력. OI +7.88% 증가(롱/숏 동시 증가 구조). CVD 양/하락은 단기 매수 모멘텀 둔화 경고신호.',
+    longTrade: { entry: '$72,431~$73,441 (4H FVG/OB)', sl: '$70,200', tp1: '$75,000', tp2: '$80,000', tp3: '$83,200', rr: '2.5:1', condition: 'Wave 2 되돌림 후 4H FVG 반응 + 1H MSS 확인' },
+    shortTrade: { entry: '$74,885~$75,000 (BSL 스윕 후 반전)', sl: '$76,500', tp1: '$72,500', tp2: '$70,400', rr: '2:1', condition: '1H BSL 스윕 + 강한 거부 캔들(확증 필수)' },
   },
   {
-    symbol: 'ETHUSDT', name: 'ETH', price: 2337.4, change24h: 5.96,
-    sentiment: 'bearish',
+    symbol: 'ETHUSDT', short: 'ETH', change: '+4.82%', changeColor: '#4ade80',
+    price: '2,338', sentiment: 'neutral',
     ema: {
-      '1D': { e7: 2953.14, e50: 3163.68, e200: 3389.78 },
-      '4H': { e7: 2055.55, e50: 2120.88, e200: 2126.48 },
-      '1H': { e7: 2192.74, e50: 2189.03, e200: 2134.58 },
+      d1: { e7: 2265.79, e50: 2175.77, e200: 2664.13, rsi: 55.51 },
+      h4: { e7: 2334.19, e50: 2223.84, e200: 2146.95, rsi: 58.02 },
+      h1: { e7: 2350.46, e50: 2299.63, e200: 2219.96, rsi: 67.42 },
     },
-    rsi: { '1D': 44.21, '4H': 44.65, '1H': 51.95 },
     levels: {
-      '1D': {
-        ob:  { bull: [2156, 2024.11, 2008], bear: [2383.33, 2406.45, 2784.15] },
-        fvg: { bull: [2288.12], bear: [] },
-        bsl: [4761], ssl: [],
-        swing_highs: [2400, 2784], swing_lows: [2008, 1780],
-      },
-      '4H': {
-        ob:  { bull: [2233.88, 2227.03, 2207], bear: [] },
-        fvg: { bull: [2235.41, 2194.62, 2092.61], bear: [] },
-        bsl: [], ssl: [2173.74, 2100.01, 2059.05],
-        swing_highs: [2395], swing_lows: [2173],
-      },
-      '1H': {
-        ob:  { bull: [2276.06, 2246.39, 2241.28], bear: [2353.87] },
-        fvg: { bull: [], bear: [2371.34] },
-        bsl: [2395.57], ssl: [],
-        swing_highs: [2395.57], swing_lows: [2241],
-      },
+      d1: { bsl: [4761], ssl: [], ob: { bull: [2156, 2024.11, 2008], bear: [2383.33, 2406.45, 2784.15] }, fvg: { bull: [2288.12], bear: [2634.63, 2752.5, 2981.7] }, swing_highs: [2385.78, 2635, 3045], swing_lows: [1936.54, 1906.63, 1893.77] },
+      h4: { bsl: [], ssl: [2173.74, 2100.01, 2059.05], ob: { bull: [2233.88, 2227.03, 2207], bear: [] }, fvg: { bull: [2235.41, 2194.62, 2092.61], bear: [] }, swing_highs: [2385.78], swing_lows: [2174.48, 2173, 2156] },
+      h1: { bsl: [2395.57], ssl: [2184.34, 2174.13, 2158], ob: { bull: [2276.06, 2246.39, 2241.28], bear: [2353.87] }, fvg: { bull: [2233, 2124.8, 2100.49], bear: [2371.34] }, swing_highs: [2395.3, 2395.85], swing_lows: [2227.03, 2205.52, 2186.03] },
     },
     ew: {
-      '1D': '1D Bear OB 2,383~2,406에 현재가가 충돌 중. 하락 5파 진행 시 여기서 파동 4 고점 형성 → 파동 5 목표 $1,800~$2,000 가능. RSI 44 = 중립지대.',
-      '4H': '4H 반등: Bull OB 2,233~2,207 지지 → 임펄스 반등 진행. EMA7(2,055) 대비 현재가(2,335)가 크게 위 = 단기 확장 국면. 단, EMA50/200(2,120~2,126) 모두 하단 → 아직 macro downtrend.',
-      '1H': '1H abc 조정 후 소형 5파 상승. Bear OB 2,353.87 + Bear FVG 2,371 = 단기 저항 집중. BSL 2,395.57 = 최종 단기 목표. EMA7>50>200 강세 배열 유지 중.',
+      count: 'Wave 1 진행 중 — BSL $2,395 상방 돌파 시도',
+      detail: '$1,890 저점에서 Wave 1 상승 구조. 목표: $2,385~$2,395(1H BSL = Wave 1 상단). Wave 2 되돌림 시 4H bull OB $2,233~$2,235 / FVG $2,235 지지 확인. 1D EMA200 $2,664까지 대형 저항 갭 존재.',
+      invalidation: '$2,156 (1D bull OB 하단) 하회 시 무효 — 추가 하락 전환',
+      alt: '대안: ABC 조정 B-웨이브. C-웨이브 시 $1,900 재테스트 가능',
     },
     ict: {
-      '1D': '1D Bear OB 2,383~2,406 = 기관 숏 진입 POI. 이 구간 돌파 실패 시 MSS 하락 연속. Bull FVG 2,288 = 단기 되돌림 지지. CVD positive/rising = 유일하게 건전한 오더플로우.',
-      '4H': '4H SSL 2,173~2,059 = 기관 롱 타깃(유동성 사냥 후 역매수). FVG 2,235~2,092 = 지지 스택. AMD: 현재 markup 단계 → 분배 구간 확인 필요.',
-      '1H': '1H BSL 2,395.57 = Judas Swing 타깃. Bear OB 2,353.87 + Bear FVG 2,371.34 = 킬존에서 반전 POI. Silver Bullet(10:00-11:00) 구간에서 숏 진입 시나리오 유효.',
+      structure: '4H BOS 상방. 1H 즉각 저항: bear OB $2,353 / bear FVG $2,371 / BSL $2,395 = 트리플 컨플루언스 저항대.',
+      poi: '4H bull OB $2,227~$2,233 / FVG $2,235 = 되돌림 시 이상적 롱 POI. CE $2,236 주목.',
+      liquidity: '1H BSL $2,395 (스윕 후 1D bear OB $2,383~$2,406과 충돌) — 이 구간 반응이 중기 방향 결정.',
+      bias: '4H 추세: 강세 | 1H: bear OB+FVG 이중 저항 진입 (신규 롱 비권장)',
     },
-    note: '펀딩 +1.00% (최대) ⚠ — 롱 스퀴즈 위험. CVD rising = 유일 강세 신호',
+    note: '1D EMA200 $2,664 = 강력한 중기 저항. ETH/BTC 비율 약세(상대적 언더퍼폼). CVD 양/상승 + OI +5.36% = 오더플로우 관점 가장 깔끔한 강세. 하지만 $2,395 BSL 돌파 실패 시 $2,200 구간 이탈 가능.',
+    longTrade: { entry: '$2,227~$2,235 (4H bull OB+FVG)', sl: '$2,150', tp1: '$2,340', tp2: '$2,385', tp3: '$2,635', rr: '2.5:1', condition: '4H bull OB 반응 + 1H MSS 확인 후 진입' },
+    shortTrade: { entry: '$2,383~$2,406 (1D bear OB / BSL 스윕)', sl: '$2,450', tp1: '$2,280', tp2: '$2,173', rr: '2:1', condition: '1H BSL $2,395 스윕 + 1D bear OB 구간 거부 캔들' },
   },
   {
-    symbol: 'SOLUSDT', name: 'SOL', price: 85.2, change24h: 3.16,
-    sentiment: 'bearish',
+    symbol: 'SOLUSDT', short: 'SOL', change: '+2.39%', changeColor: '#4ade80',
+    price: '85.3', sentiment: 'bearish',
     ema: {
-      '1D': { e7: 123.61, e50: 140.5,  e200: 166.24 },
-      '4H': { e7: 86.15,  e50: 88.98,  e200: 89.51  },
-      '1H': { e7: 83.26,  e50: 82.91,  e200: 82.18  },
+      d1: { e7: 84.26, e50: 87.46, e200: 119.15, rsi: 45.61 },
+      h4: { e7: 85.2, e50: 83.42, e200: 84.87, rsi: 52.79 },
+      h1: { e7: 85.57, e50: 84.57, e200: 83.38, rsi: 60.04 },
     },
-    rsi: { '1D': 39.44, '4H': 45.83, '1H': 56.02 },
     levels: {
-      '1D': {
-        ob:  { bull: [84.75, 84.15, 83.91], bear: [86.41, 88.35, 95.83] },
-        fvg: { bull: [], bear: [] },
-        bsl: [144.74], ssl: [76.59],
-        swing_highs: [88.35, 95.83], swing_lows: [76.59],
-      },
-      '4H': {
-        ob:  { bull: [], bear: [85.12, 85.37, 87.75] },
-        fvg: { bull: [82.25], bear: [88.72, 90.53] },
-        bsl: [88.83, 92.16, 93.42], ssl: [81.7, 81.3, 78.38],
-        swing_highs: [88.83], swing_lows: [81.7],
-      },
-      '1H': {
-        ob:  { bull: [84.64, 84.11, 84.1], bear: [85.07, 85.37, 85.84] },
-        fvg: { bull: [], bear: [85.17] },
-        bsl: [], ssl: [],
-        swing_highs: [85.84], swing_lows: [84.1],
-      },
+      d1: { bsl: [144.74], ssl: [76.59], ob: { bull: [83.91, 84.15, 84.75], bear: [86.41, 88.35, 95.83] }, fvg: { bull: [], bear: [111.75, 124.69, 137.65] }, swing_highs: [87.19, 91.19, 92.09], swing_lows: [80.18, 76.63, 76.54] },
+      h4: { bsl: [88.83, 92.16, 93.42], ssl: [81.7, 81.3, 78.38], ob: { bull: [84.78, 85, 85.12], bear: [85.37, 87.75, 88.1] }, fvg: { bull: [82.25], bear: [88.72, 90.53] }, swing_highs: [85.93, 86.23, 86.59], swing_lows: [82.4, 81.76, 85] },
+      h1: { bsl: [], ssl: [83.8, 82.55, 81.74], ob: { bull: [84.11, 84.64, 85.07], bear: [85.37, 85.84] }, fvg: { bull: [83.25, 82.01, 79.16], bear: [] }, swing_highs: [85.66, 85.93, 86.23], swing_lows: [83.85, 83.75, 82.63] },
     },
     ew: {
-      '1D': '1D 극단적 하락 추세 — EMA7(123)/50(140)/200(166) 전부 현재가($85) 훨씬 위. 하락 3파(Zig-zag) 또는 5파 임펄스 하락 중. RSI 39.44 = 과매도 근접. 단기 반등 후 재하락 패턴 유력.',
-      '4H': '4H EMA7(86.15)/50(88.98)/200(89.51) 전부 가격 위 = 가장 약한 구조. Bear OB 85.12~87.75 = 현재가 바로 위. 단기 반등이 OB 돌파 실패 시 강한 하락 신호.',
-      '1H': '1H EMA 강세 배열(83.26>82.91>82.18) 이지만 Bear OB 85.07~85.84가 즉각 저항. 1H 소형 5파 반등 완성 임박 가능성.',
+      count: '대형 하락 조정 구조 — C-웨이브 또는 연장 3-웨이브',
+      detail: '$192 고점에서 대형 하락. RSI 45.6 서브미드라인 = 약세 모멘텀 확인. 현재 $83.91~$87.46 구간이 되돌림 지지대. 1D EMA50($87.46) + bear OB($86.41) 이중 저항 돌파 없이는 추세 전환 불가.',
+      invalidation: '$80.18 (1D 스윙로우) 하회 시 $76.5 SSL 테스트 가속',
+      alt: '대안: $76.5 SSL 스윕 완료 후 반등이 새로운 Wave 1의 시작 → 중기 목표 $95~$100',
     },
     ict: {
-      '1D': '1D Bear OB 86.41 = 기관 숏 POI. SSL 76.59 = 하방 유동성 타깃. 현재 가격이 1D Bull OB(84.75~83.91) 위에 겨우 안착 → 지지 여부가 핵심.',
-      '4H': '4H Bear OB 삼중 클러스터(85.12/85.37/87.75) = 가장 강력한 저항대. BSL 88.83~93.42 = 기관 숏 목표 유동성. SSL 81.7~78.38 = 하방 사냥 타깃.',
-      '1H': '1H + 4H + 1D Bear OB 삼중 합류(85.07~86.41) = 최고 확률 반전 구간. FVG 85.17 = 즉각 레지스턴스. 이 구간에서 MSS(하락 BOS) 발생 시 강한 숏 시그널.',
+      structure: '1D 하락 추세 지속(price < EMA50 < EMA200). 4H 중립(EMA7≈EMA200≈price). 1H 단기 강세.',
+      poi: '4H bull OB $84.78~$85.12 = 현재 가격대 즉각 지지. 1D bull OB $83.91~$84.75 = 핵심 방어선.',
+      liquidity: '4H BSL $88.83 (상방 표적). SSL $81.3~$81.7 (하방 표적). 1D bear OB $86.41이 직상방 저항.',
+      bias: '1D 추세: 약세 | 4H: 중립 | 1H: 소폭 강세 — 1D bear OB $86.41 돌파 전까지 숏 유리',
     },
-    note: '펀딩 +1.00% + 예측 +1.00% (최대) ⚠ — 4 페어 중 가장 위험한 롱 스퀴즈',
+    note: '펀딩레이트 +1.0% (매우 높음) = 롱 포지션 보유 비용 과다. CVD 양/하락 = 매수세 약화. 넷 오더플로우 관점에서 가장 약한 구조. 단기 펀딩 플러시 발생 시 $81~$82 구간 급락 가능.',
+    longTrade: { entry: '$83.25~$84.15 (4H bull OB + 1H bull FVG)', sl: '$80.10', tp1: '$86.41', tp2: '$88.35', rr: '1.5:1', condition: '1D bull OB 반응 확인 필수. 리스크 높음 — 최소 비중 권장' },
+    shortTrade: { entry: '$86.41~$88.10 (1D/4H bear OB + 1D EMA50)', sl: '$89.00', tp1: '$83.25', tp2: '$81.30', rr: '2.5:1', condition: '1D bear OB 구간에서 1H MSS(하방) 확인 후 진입' },
   },
   {
-    symbol: 'HYPEUSDT', name: 'HYPE', price: 43.2, change24h: 2.75,
-    sentiment: 'bullish',
+    symbol: 'HYPEUSDT', short: 'HYPE', change: '+0.28%', changeColor: '#4ade80',
+    price: '43.5', sentiment: 'neutral_bull',
     ema: {
-      '1D': { e7: 24.79, e50: 31.47, e200: 39.777 },
-      '4H': { e7: 38.924, e50: 39.044, e200: 35.717 },
-      '1H': { e7: 40.058, e50: 39.017, e200: 37.674 },
+      d1: { e7: 41.667, e50: 36.851, e200: 35.404, rsi: 56.24 },
+      h4: { e7: 43.665, e50: 40.899, e200: 37.988, rsi: 62.21 },
+      h1: { e7: 43.736, e50: 43.251, e200: 40.882, rsi: 58.98 },
     },
-    rsi: { '1D': 35.06, '4H': 52.19, '1H': 61.06 },
     levels: {
-      '1D': {
-        ob:  { bull: [42.63, 42.54, 40.6], bear: [43.27, 43.63, 44.03] },
-        fvg: { bull: [42.81, 31.28, 23.42], bear: [55.24, 57.31] },
-        bsl: [], ssl: [35.45, 29.39],
-        swing_highs: [43.75, 49.56, 49.92], swing_lows: [42.5, 40.41, 39.72],
-      },
-      '4H': {
-        ob:  { bull: [41.84, 41.73, 41.45], bear: [] },
-        fvg: { bull: [41.85, 36.49, 31.46], bear: [44.35] },
-        bsl: [], ssl: [36.76, 35.7],
-        swing_highs: [43.18, 43.75], swing_lows: [40.17, 38.59, 38.34],
-      },
-      '1H': {
-        ob:  { bull: [42.08, 41.9, 41.76], bear: [44.42] },
-        fvg: { bull: [42.69, 41.85, 41.38], bear: [44.34, 44.68] },
-        bsl: [], ssl: [35.44],
-        swing_highs: [43.18, 45.27], swing_lows: [41.73, 41.25, 40.43],
-      },
+      d1: { bsl: [], ssl: [35.45, 29.39], ob: { bull: [42.54, 42.63, 43.27], bear: [43.63, 44.03, 44.84] }, fvg: { bull: [42.81, 31.28, 23.42], bear: [55.24, 57.31] }, swing_highs: [43.75, 49.56, 49.92], swing_lows: [42.5, 40.41, 39.72] },
+      h4: { bsl: [], ssl: [36.76, 35.7], ob: { bull: [41.45, 41.73, 41.84], bear: [] }, fvg: { bull: [41.85, 36.49, 31.46], bear: [44.35] }, swing_highs: [43.75], swing_lows: [40.17, 38.59, 38.34] },
+      h1: { bsl: [], ssl: [35.44], ob: { bull: [41.76, 41.9, 42.08], bear: [44.42] }, fvg: { bull: [42.69, 41.85, 41.38], bear: [44.34, 44.68] }, swing_highs: [45.27], swing_lows: [41.73, 41.25, 40.43] },
     },
     ew: {
-      '1D': '4 페어 중 유일하게 1D EMA200(39.777) 상향 돌파 = 구조적 강세 신호. EMA7(24.79)/50(31.47) 모두 하단이지만 이미 EMA200 위 가격 = 상승 impulse 파동 3 초입 가능성. RSI 35.06 = 과매도 구간에서 상승 → 파동 2 저점 완성 후 반등 패턴과 일치.',
-      '4H': '4H EMA 배열: EMA200(35.717) < EMA50(39.044) ≈ EMA7(38.924) 수렴 → 현재가(43.2)가 모두 위. 단기 상승 파동 진행 중. Bull OB 41.84~41.45 = 지지 플로어.',
-      '1H': '1H RSI 61 = 단기 과매수 근접. Bear OB 44.42 + Bear FVG 44.34~44.68 = 즉각 저항. 되돌림 후 Bull FVG 42.69~41.38 지지 확인 시 추가 상승 유효.',
+      count: 'Wave 5 종단 가능성 또는 조정 시작',
+      detail: '$9.8→$49.9 대형 임펄스 완성 후 조정 구간. 현재 $43.5는 Wave 4 조정 후 Wave 5 연장 시도 또는 전체 5파 완성 후 ABC 조정 시작. 1D bear OB $43.63~$44.84 구간이 핵심 분수령. 5파 절단(Truncation) 시 즉각 하락 전환.',
+      invalidation: '$39.72 (1D 스윙로우) 하회 시 대형 조정 확인 → ABC 하락 구조 전환',
+      alt: '대안: $44.84 bear OB 돌파 후 Wave 5 연장 → $49~$50 재테스트',
     },
     ict: {
-      '1D': '1D Bear OB 43.27~44.03 = 현재 진입한 저항 구간. 이 구간 소화(OB 위로 마감) 시 Bear FVG 55.24~57.31이 다음 타깃. SSL 35.45/29.39 = 하방 유동성.',
-      '4H': '4H Bear FVG 44.35 = 즉각 저항. Bull OB 41.84~41.45 = 되돌림 지지 POI. AMD 사이클 상 현재 markup → 4H FVG 소화 여부가 방향성 결정.',
-      '1H': '1H Bear OB 44.42 + Bear FVG 44.34~44.68 = 클러스터 저항. Bull FVG 42.69~41.38 = 지지 스택. Silver Bullet 구간에서 되돌림 후 롱 진입 시나리오 유효.',
+      structure: '1D 풀 강세 정렬(price > EMA7 > EMA50 > EMA200). 그러나 현재가 $43.5 ≈ 1D bear OB 시작점($43.63).',
+      poi: '4H bull FVG $41.85 / bull OB $41.73~$41.84 = 조정 시 이상적 롱 POI. 1H bull OB $42.08~$42.69 FVG.',
+      liquidity: '1H bear OB $44.42 / bear FVG $44.34~$44.68 / 1D bear OB $43.63~$44.84 = 복층 저항. 하방 SSL $35.44.',
+      bias: '1D 구조 강세이나 오더플로우 약세(OI↓ CVD↓ 펀딩-) → 확신도 낮음. 관망 우선.',
     },
-    note: 'OI +0.77% (가장 낮음) vs 가격 +2.75% = 유기적 상승. 예측 펀딩 -0.35% ⚠ 다음 사이클 주의',
+    note: '기술적 강세(1D 풀 EMA 정렬)와 오더플로우 약세(OI -3.03%, CVD 음/하락, 펀딩 -0.26%)의 뚜렷한 다이버전스. 시장 참여자들이 현재 가격에서 롱 추가 거부 중. $44.84 bear OB 돌파 전까지 신규 롱 진입 비권장.',
+    longTrade: { entry: '$41.73~$42.08 (4H bull OB + 1H bull FVG)', sl: '$39.60', tp1: '$43.75', tp2: '$45.27', rr: '2:1', condition: '4H bull FVG 반응 + OI 반등 확인(오더플로우 회복 필수 조건)' },
+    shortTrade: { entry: '$44.42~$44.84 (1H bear OB + 1D bear OB)', sl: '$46.00', tp1: '$42.63', tp2: '$41.45', rr: '2:1', condition: '1D bear OB 구간에서 1H 반전 캔들 + CVD 음 지속 확인' },
   },
 ];
 
 const ORDERFLOW_DATA = {
+  generated_at: '2026-04-14T17:54:58.433Z',
   pairs: {
-    BTCUSDT: {
-      oi_usd_str: '$7.53B',
-      oi_change_24h: '+7.49%',
-      oi_trend: 'rising',
-      funding_rate: 0.2732,
-      funding_rate_predicted: -0.4148,
-      cvd_direction: 'positive',
-      cvd_trend: 'falling',
-    },
-    ETHUSDT: {
-      oi_usd_str: '$5.43B',
-      oi_change_24h: '+6.38%',
-      oi_trend: 'rising',
-      funding_rate: 1.0000,
-      funding_rate_predicted: 0.4831,
-      cvd_direction: 'positive',
-      cvd_trend: 'rising',
-    },
-    SOLUSDT: {
-      oi_usd_str: '$822M',
-      oi_change_24h: '+8.24%',
-      oi_trend: 'rising',
-      funding_rate: 1.0000,
-      funding_rate_predicted: 1.0000,
-      cvd_direction: 'positive',
-      cvd_trend: 'falling',
-    },
-    HYPEUSDT: {
-      oi_usd_str: '$245M',
-      oi_change_24h: '+0.77%',
-      oi_trend: 'stable',
-      funding_rate: 0.0518,
-      funding_rate_predicted: -0.3473,
-      cvd_direction: 'positive',
-      cvd_trend: 'falling',
-    },
-  },
+    BTCUSDT: { price_usd: 74624.6, oi_usd_str: '$7.53B', oi_change_24h: '+7.88%', oi_trend: 'rising', funding_rate: '-0.5234%', funding_rate_predicted: '-1.0306%', cvd_direction: 'positive', cvd_trend: 'falling' },
+    ETHUSDT: { price_usd: 2333.89, oi_usd_str: '$5.37B', oi_change_24h: '+5.36%', oi_trend: 'rising', funding_rate: '+0.3490%', funding_rate_predicted: '+0.1872%', cvd_direction: 'positive', cvd_trend: 'rising' },
+    SOLUSDT: { price_usd: 85.15, oi_usd_str: '$810M', oi_change_24h: '+7.50%', oi_trend: 'rising', funding_rate: '+1.0000%', funding_rate_predicted: '+0.7988%', cvd_direction: 'positive', cvd_trend: 'falling' },
+    HYPEUSDT: { price_usd: 43.35, oi_usd_str: '$246M', oi_change_24h: '-3.03%', oi_trend: 'falling', funding_rate: '-0.2601%', funding_rate_predicted: '-0.7521%', cvd_direction: 'negative', cvd_trend: 'falling' },
+  }
 };
 
 const MACRO_EVENTS = [
-  {
-    id: 'evt_001',
-    date: '2026-04-03',
-    title: 'NFP 178K (예상 하회)',
-    summary: '미국 비농업고용지수 178K 발표. 시장 예상치 하회 → 연준 금리 동결 기대 강화. 위험자산 강세 트리거.',
-    importance: 'high',
-    direction: 'bullish',
-    impact_assets: ['BTC', 'ETH', 'SOL', 'HYPE'],
-  },
-  {
-    id: 'evt_002',
-    date: '2026-04-08',
-    title: '금(Gold) $4,850 ATH 돌파',
-    summary: '금 가격 사상 최고치 경신. 인플레이션 헤지 수요 + 지정학적 리스크 반영. 위험자산과 분리된 안전자산 선호 신호.',
-    importance: 'medium',
-    direction: 'bullish',
-    impact_assets: ['BTC'],
-  },
-  {
-    id: 'evt_003',
-    date: '2026-04-09',
-    title: '미-이란 2주 휴전 합의',
-    summary: '미국-이란 간 2주 휴전 협정 체결. 지정학적 긴장 완화 → 위험자산 선호 회복.',
-    importance: 'high',
-    direction: 'bullish',
-    impact_assets: ['BTC', 'ETH', 'SOL', 'HYPE'],
-  },
-  {
-    id: 'evt_004',
-    date: '2026-04-14',
-    title: '호르무즈 해협 봉쇄 2일차 ⚠ 진행 중',
-    summary: '호르무즈 해협 봉쇄 2일차 지속. 원유 공급 차질 우려 → 에너지 가격 상승, 위험자산 불확실성 증가. 진행 중인 리스크.',
-    importance: 'high',
-    direction: 'bearish',
-    impact_assets: ['BTC', 'ETH', 'SOL', 'HYPE'],
-  },
-  {
-    id: 'evt_005',
-    date: '2026-04-14',
-    title: 'BTC $75K 돌파 + ETF $420M 유입',
-    summary: 'BTC 현물 ETF 단일일 $420M 순유입. $75K 심리적 저항 돌파 → 강세 모멘텀 확인.',
-    importance: 'high',
-    direction: 'bullish',
-    impact_assets: ['BTC', 'ETH'],
-  },
-  {
-    id: 'evt_006',
-    date: '2026-04-14',
-    title: 'Citi, 미국 주식 업그레이드',
-    summary: 'Citi 리서치, 미국 주식 비중확대 의견 상향. 기관 위험자산 선호 회복 신호.',
-    importance: 'medium',
-    direction: 'bullish',
-    impact_assets: ['BTC', 'ETH'],
-  },
+  { id: 'evt_001', date: '2026-04-03', time_kst: '21:30', title: '미국 3월 NFP 발표', detail: 'NFP 178k (예상 190k 하회). 노동시장 냉각 신호, 연준 금리인하 기대 소폭 상승.', importance: 'high', impact_direction: 'bullish', impact_assets: ['BTC','ETH','SOL','HYPE'] },
+  { id: 'evt_002', date: '2026-04-08', time_kst: '23:00', title: '금(Gold) $4,850 사상 최고치', detail: '안전자산 수요 급증 + 달러 약세 복합. BTC 디지털골드 상관관계 주시.', importance: 'medium', impact_direction: 'bullish', impact_assets: ['BTC'] },
+  { id: 'evt_003', date: '2026-04-09', time_kst: '17:00', title: '미-이란 2주 휴전 합의', detail: '지정학 리스크 완화. BTC +8%, 알트코인 두 자릿수 반등 촉발.', importance: 'high', impact_direction: 'bullish', impact_assets: ['BTC','ETH','SOL','HYPE'] },
+  { id: 'evt_004', date: '2026-04-14', time_kst: '15:00', title: '호르무즈 해협 봉쇄 2일째', detail: '이란 혁명수비대 통제 강화. 원유 공급 차질 → 에너지 가격 급등. 위험자산 변동성 확대.', importance: 'high', impact_direction: 'bearish', impact_assets: ['BTC','ETH','SOL','HYPE'] },
+  { id: 'evt_005', date: '2026-04-14', time_kst: '23:30', title: 'BTC $75,000 돌파 + ETF 순유입 $420M', detail: '심리적 저항 극복, 기관 매수세 재유입 확인. 알트코인 동반 상승.', importance: 'high', impact_direction: 'bullish', impact_assets: ['BTC','ETH','SOL','HYPE'] },
+  { id: 'evt_006', date: '2026-04-15', time_kst: '01:00', title: 'Citi 미국 주식 등급 상향 Overweight', detail: '거시 여건 개선 근거. 위험선호 심리 강화.', importance: 'medium', impact_direction: 'bullish', impact_assets: ['BTC','ETH'] },
 ];
 
 const SCENARIOS = [
   {
-    type: 'bullish',
     label: '강세',
-    prob: 45,
     color: '#4ade80',
-    title: 'BTC $76K+ 재탈환 / 알트 연동 반등',
-    trigger: 'BTC 1H BSL 74,885 돌파 + 일봉 마감. ETH 1D Bear OB(2,383~2,406) 소화(위 마감). SOL Bear OB(85.07~86.41) 돌파.',
-    invalidate: 'BTC 72,509 이탈. ETH 2,288 Bull FVG 하향. 호르무즈 봉쇄 확대 뉴스.',
-    targets: 'BTC $76K~$78K. ETH $2,500~$2,600. SOL $90~$93. HYPE $47~$50.',
-    events: '⚠ evt_004(호르무즈 봉쇄) 진행 중 — 뉴욕 오픈(23:30 KST) ±2h 신규 롱 진입 금지',
-  },
-  {
-    type: 'bearish',
-    label: '약세',
     prob: 40,
+    title: '숏스퀴즈 + ETF 수급 강세',
+    trigger: 'BTC $74,885 BSL 돌파 후 안착 / 호르무즈 긴장 완화 / ETF 연속 순유입',
+    target: 'BTC $78,000~$80,000 → 1D EMA200 $83,200 / ETH $2,395 돌파 → $2,635 / SOL $88 / HYPE $45~$47',
+    invalidate: 'BTC $74,885 BSL 스윕 후 즉각 반전 / 호르무즈 긴장 추가 고조',
+    detail: 'BTC 펀딩레이트 -0.52%로 공매도 과적재. OI +7.88% 증가로 숏 포지션이 이미 고도로 축적. 가격 상승 시 강제 청산 연쇄 → 숏스퀴즈 폭발 가능. BTC ETF 순유입 $420M이 기관 수요 확인. Citi 주식 등급 상향은 위험자산 전반 수혜 예상.',
+  },
+  {
+    label: '약세',
     color: '#f87171',
-    title: 'Bear OB 집단 반전 / 재하락',
-    trigger: 'BTC 1D Bear OB(83,786) 돌파 실패 + 72,509 이탈. ETH 2,406 돌파 실패 + 2,173 하향. SOL 삼중 Bear OB 거부 + 81.7 이탈.',
-    invalidate: 'BTC 76,000 일봉 마감. ETH/SOL 펀딩 스퀴즈 없이 자연 하락 멈춤.',
-    targets: 'BTC $68K~$70K. ETH $2,000~$2,008. SOL $76.59(SSL). HYPE $39~$40.',
-    events: 'evt_001(NFP 미스) + evt_003(휴전) 강세 팩터 있으나 evt_004 리스크 우선.',
+    prob: 35,
+    title: '지정학 리스크 재확대 + 기술적 고점 형성',
+    trigger: '호르무즈 봉쇄 확대 / BTC $74,885 BSL 스윕 후 거부 / SOL 펀딩 플러시',
+    target: 'BTC $70,400~$71,000 (4H FVG) / ETH $2,173~$2,235 / SOL $81~$82 / HYPE $41~$42',
+    invalidate: 'BTC $76,500 이상 안착 / 호르무즈 긴장 해소 뉴스',
+    detail: '호르무즈 해협 봉쇄 2일째 지속 = 위험자산에 지속적 하방 압력. ETH 1H에서 bear OB($2,353) + bear FVG($2,371) + BSL($2,395) 트리플 컨플루언스 저항 — 이 구간에서 반전 시 강한 하락 가능. SOL 펀딩 +1%(과부하), CVD 하락 중 — 롱 강제청산 시 $81~82 급락 가능.',
   },
   {
-    type: 'neutral',
     label: '중립',
-    prob: 15,
     color: '#fbbf24',
-    title: '레인지 횡보 / 유동성 사냥',
-    trigger: 'BTC 72,509~74,885 박스권 유지. 펀딩비 중립화 (ETH/SOL 1.00% → 0.3% 이하 하락).',
-    invalidate: '어느 방향이든 명확한 BOS 발생.',
-    targets: 'BTC 레인지 중심 $73,500. ETH $2,280~$2,360. SOL $82~$86. HYPE $41~$44.',
-    events: 'evt_006(Citi 업그레이드) → 기관 리포지셔닝 기간 중 박스권 형성 가능',
+    prob: 25,
+    title: '범위 횡보 — 매크로 불확실성 소화',
+    trigger: '호르무즈 현상 유지 / BTC $72,000~$76,000 박스권 / 거시 이벤트 부재',
+    target: 'BTC $72,000~$76,000 / ETH $2,230~$2,395 / SOL $83~$87 / HYPE $41~$45',
+    invalidate: '양방향 모두 2% 이상 이탈',
+    detail: 'HYPE의 기술적/오더플로우 다이버전스(EMA 강세 vs OI·CVD 약세)가 가장 중립적 시나리오를 지지. BTC CVD 하락 + 가격 횡보 조합 = 방향성 결정 보류. ETH $2,395 BSL 돌파 실패 시 $2,230~$2,385 박스권 유지 가능성.',
   },
 ];
 
-const RISK_DATA = [
-  {
-    name: 'BTC',
-    longTrade:  { entry: '$72,500~73,000', sl: '$71,200', tp1: '$74,885', tp2: '$76,500', rr: '1:2.8', note: '4H Bull OB + FVG 지지 확인 후 진입. 예측 펀딩 -0.41% → 포지션 축소 권고' },
-    shortTrade: { entry: '$75,000~75,500', sl: '$76,200', tp1: '$72,500', tp2: '$70,380', rr: '1:2.5', note: '1H BSL(74,885) Judas 후 숏. 1D Bear OB(83,786) 아직 멀어 단기 숏만 유효' },
-  },
-  {
-    name: 'ETH',
-    longTrade:  { entry: '$2,233~2,250', sl: '$2,173', tp1: '$2,337', tp2: '$2,395', rr: '1:1.8', note: '4H Bull OB 지지. 단, 펀딩 +1.00% = 스퀴즈 위험 → 사이즈 50% 이하' },
-    shortTrade: { entry: '$2,383~2,406', sl: '$2,430', tp1: '$2,288', tp2: '$2,173', rr: '1:3.0', note: '1D Bear OB = 최우선 숏 POI. CVD rising 주의 — 돌파 시 손절 빠르게' },
-  },
-  {
-    name: 'SOL',
-    longTrade:  { entry: '$82.25~83.00', sl: '$81.30', tp1: '$85.07', tp2: '$88.83', rr: '1:3.5', note: 'Bull FVG 82.25 + SSL 81.7 사냥 후 역매수. 4H EMA 아직 위 → 리스크 큼' },
-    shortTrade: { entry: '$85.07~86.41', sl: '$87.00', tp1: '$81.70', tp2: '$78.38', rr: '1:4.0', note: '삼중 Bear OB(1D+4H+1H) = 4 페어 최강 숏 POI. 펀딩 +1.00% 스퀴즈 후 → 이상적' },
-  },
-  {
-    name: 'HYPE',
-    longTrade:  { entry: '$41.85~42.08', sl: '$41.25', tp1: '$43.75', tp2: '$47.00', rr: '1:3.2', note: '1H Bull FVG + 4H Bull OB 확인 후 진입. 유일한 EMA200 상향 = 구조 강함' },
-    shortTrade: { entry: '$44.34~44.68', sl: '$45.00', tp1: '$42.08', tp2: '$40.60', rr: '1:2.8', note: '1H Bear FVG + Bear OB 클러스터. 예측 펀딩 -0.35% → 오버나이트 숏 주의' },
-  },
-];
+// ─── 유틸 컴포넌트 ──────────────────────────────────────────────────────────────
 
-// ─── HOOKS ───────────────────────────────────────────────────────────────────
-
-function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState(
-    () => window.matchMedia('(max-width: 767px)').matches
-  );
-  React.useEffect(() => {
-    const mq = window.matchMedia('(max-width: 767px)');
-    const handler = (e) => setIsMobile(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, []);
-  return isMobile;
+function Card({ children, style = {} }) {
+  return <div style={{ background: '#1a1f2e', borderRadius: '10px', padding: '16px', ...style }}>{children}</div>;
 }
 
-// ─── SMALL COMPONENTS ────────────────────────────────────────────────────────
+function Badge({ children, color = '#374151' }) {
+  return <span style={{ background: color + '22', color: color, border: `1px solid ${color}44`, borderRadius: '6px', padding: '2px 8px', fontSize: '11px', fontWeight: 600 }}>{children}</span>;
+}
 
-const Badge = ({ children, color }) => (
-  <span style={{
-    background: color + '22', color, border: `1px solid ${color}44`,
-    borderRadius: 4, padding: '2px 8px', fontSize: 11, fontWeight: 700,
-  }}>{children}</span>
-);
+function SectionTitle({ children }) {
+  return <div style={{ fontSize: '11px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px' }}>{children}</div>;
+}
 
-const Card = ({ children, style }) => (
-  <div style={{
-    background: '#1a1f2e', borderRadius: 8, padding: 16,
-    border: '1px solid #2a3044', ...style,
-  }}>{children}</div>
-);
-
-const SectionTitle = ({ children }) => (
-  <div style={{ fontSize: 11, color: '#9ca3af', textTransform: 'uppercase',
-    letterSpacing: 1, marginBottom: 8, fontWeight: 700 }}>{children}</div>
-);
-
-const LevelRow = ({ label, values, color }) => (
-  <div style={{ display: 'flex', gap: 6, alignItems: 'flex-start', marginBottom: 4 }}>
-    <span style={{ color: '#9ca3af', fontSize: 11, minWidth: 72 }}>{label}</span>
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-      {(values || []).map((v, i) => (
-        <span key={i} style={{ color, fontSize: 12, fontWeight: 600, fontFamily: 'monospace' }}>
-          {typeof v === 'number' ? v.toLocaleString() : v}
-        </span>
-      ))}
-      {(!values || values.length === 0) && <span style={{ color: '#4b5563', fontSize: 11 }}>-</span>}
+function LevelRow({ label, values, color }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+      <span style={{ fontSize: '10px', color: '#6b7280', minWidth: '36px' }}>{label}</span>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+        {(Array.isArray(values) ? values : [values]).filter(v => v !== null && v !== undefined).map((v, i) => (
+          <span key={i} style={{ fontSize: '11px', color: color, background: color + '15', borderRadius: '4px', padding: '1px 6px' }}>{typeof v === 'number' ? v.toLocaleString() : v}</span>
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
+}
 
-// ─── OVERVIEW TAB ────────────────────────────────────────────────────────────
+function EmaRow({ tf, data }) {
+  const { e7, e50, e200, rsi } = data;
+  const bullish = e7 > e50 && e50 > e200;
+  const bearish = e7 < e50 && e50 < e200;
+  const trendColor = bullish ? '#4ade80' : bearish ? '#f87171' : '#fbbf24';
+  const trendLabel = bullish ? '강세정렬' : bearish ? '약세정렬' : '혼재';
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr 1fr 44px 52px', gap: '4px', alignItems: 'center', marginBottom: '6px', fontSize: '11px' }}>
+      <span style={{ color: '#6b7280', fontWeight: 700 }}>{tf}</span>
+      <span style={{ color: '#22d3ee' }}>E7: {e7?.toLocaleString()}</span>
+      <span style={{ color: '#fbbf24' }}>E50: {e50?.toLocaleString()}</span>
+      <span style={{ color: '#f87171' }}>E200: {e200?.toLocaleString()}</span>
+      <span style={{ color: '#9ca3af' }}>RSI {rsi}</span>
+      <Badge color={trendColor}>{trendLabel}</Badge>
+    </div>
+  );
+}
 
-function OverviewTab({ isMobile }) {
-  const sentimentColor = (s) => s === 'bullish' ? '#4ade80' : s === 'bearish' ? '#f87171' : '#fbbf24';
-  const sentimentLabel = (s) => s === 'bullish' ? '강세' : s === 'bearish' ? '약세' : '중립';
+function SentimentBadge({ sentiment }) {
+  const map = { bullish: ['강세', '#4ade80'], bearish: ['약세', '#f87171'], neutral_bull: ['중립강세', '#a3e635'], neutral: ['중립', '#fbbf24'] };
+  const [label, color] = map[sentiment] || ['중립', '#fbbf24'];
+  return <Badge color={color}>{label}</Badge>;
+}
 
-  const cards = PAIRS.map(pair => (
-    <Card key={pair.symbol} style={isMobile ? { minWidth: '78%', scrollSnapAlign: 'start', flexShrink: 0 } : {}}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <span style={{ fontWeight: 800, fontSize: 16 }}>{pair.name}</span>
-        <Badge color={sentimentColor(pair.sentiment)}>{sentimentLabel(pair.sentiment)}</Badge>
-      </div>
-      <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>
-        {'$' + pair.price.toLocaleString()}
-      </div>
-      <div style={{ color: pair.change24h >= 0 ? '#4ade80' : '#f87171', fontSize: 13, marginBottom: 12 }}>
-        {pair.change24h >= 0 ? '+' : ''}{pair.change24h}% (24h)
-      </div>
-      <div style={{ borderTop: '1px solid #2a3044', paddingTop: 10 }}>
-        {[['1D', pair.ema['1D'], pair.rsi['1D']],
-          ['4H', pair.ema['4H'], pair.rsi['4H']],
-          ['1H', pair.ema['1H'], pair.rsi['1H']]].map(([tf, ema, rsi]) => {
-          const aboveEma200 = pair.price > ema.e200;
-          return (
-            <div key={tf} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5, fontSize: 12 }}>
-              <span style={{ color: '#9ca3af', minWidth: 28 }}>{tf}</span>
-              <span style={{ color: '#e8eaed', fontFamily: 'monospace' }}>
-                E200: {ema.e200 >= 1000 ? ema.e200.toLocaleString() : ema.e200}
-              </span>
-              <Badge color={aboveEma200 ? '#4ade80' : '#f87171'}>{aboveEma200 ? '위' : '아래'}</Badge>
-              <span style={{ color: rsi > 70 ? '#f87171' : rsi < 30 ? '#4ade80' : '#9ca3af' }}>
-                RSI {rsi}
-              </span>
+// ─── 탭 컴포넌트 ────────────────────────────────────────────────────────────────
+
+function OverviewTab({ pairs, isMobile }) {
+  const carouselCards = (
+    <div style={{ display: 'flex', overflowX: 'auto', scrollSnapType: 'x mandatory', gap: '10px', margin: '0 -12px', padding: '0 12px 8px', WebkitOverflowScrolling: 'touch' }}>
+      {pairs.map(p => (
+        <div key={p.symbol} style={{ minWidth: '78%', scrollSnapAlign: 'start', flexShrink: 0 }}>
+          <Card>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <span style={{ fontSize: '18px', fontWeight: 800, color: '#e8eaed' }}>{p.short}</span>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: p.changeColor }}>{p.change}</span>
+                <SentimentBadge sentiment={p.sentiment} />
+              </div>
             </div>
-          );
-        })}
-      </div>
-      {pair.note && (
-        <div style={{ marginTop: 10, padding: '6px 10px', background: '#0b0e14', borderRadius: 4,
-          fontSize: 11, color: '#fbbf24', borderLeft: '2px solid #fbbf24' }}>
-          {pair.note}
+            <div style={{ fontSize: '22px', fontWeight: 800, color: '#e8eaed', marginBottom: '12px' }}>${p.price}</div>
+            <EmaRow tf="1D" data={p.ema.d1} />
+            <EmaRow tf="4H" data={p.ema.h4} />
+            <EmaRow tf="1H" data={p.ema.h1} />
+          </Card>
         </div>
-      )}
-    </Card>
-  ));
+      ))}
+    </div>
+  );
+
+  const gridCards = (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+      {pairs.map(p => (
+        <Card key={p.symbol}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <span style={{ fontSize: '16px', fontWeight: 800, color: '#e8eaed' }}>{p.short}</span>
+            <SentimentBadge sentiment={p.sentiment} />
+          </div>
+          <div style={{ fontSize: '20px', fontWeight: 800, color: '#e8eaed', marginBottom: '4px' }}>${p.price}</div>
+          <div style={{ fontSize: '13px', fontWeight: 700, color: p.changeColor, marginBottom: '12px' }}>{p.change} 24h</div>
+          <EmaRow tf="1D" data={p.ema.d1} />
+          <EmaRow tf="4H" data={p.ema.h4} />
+          <EmaRow tf="1H" data={p.ema.h1} />
+          <div style={{ marginTop: '12px', padding: '10px', background: '#0f1520', borderRadius: '6px', fontSize: '11px', color: '#9ca3af', lineHeight: '1.5' }}>{p.note}</div>
+        </Card>
+      ))}
+    </div>
+  );
 
   return (
     <div>
-      <div style={isMobile ? {
-        display: 'flex', gap: 12, overflowX: 'auto', scrollSnapType: 'x mandatory',
-        paddingBottom: 8, WebkitOverflowScrolling: 'touch',
-      } : {
-        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12,
-      }}>
-        {cards}
-      </div>
-      <Card style={{ marginTop: 16 }}>
-        <SectionTitle>시장 요약</SectionTitle>
-        <div style={{ fontSize: 13, color: '#e8eaed', lineHeight: 1.8 }}>
-          <p style={{ marginBottom: 6 }}>• <strong style={{ color: '#4ade80' }}>HYPE</strong>: 4 페어 중 유일하게 1D EMA200(39.777) 상향 돌파 — 구조적 강세 이탈. 나머지 3 페어는 1D 하락 추세.</p>
-          <p style={{ marginBottom: 6 }}>• <strong style={{ color: '#f87171' }}>SOL</strong>: 1D+4H+1H 삼중 Bear OB 클러스터(85.07~86.41) 충돌 중 — 4 페어 중 최강 저항대. 4H EMA 전부 가격 위.</p>
-          <p style={{ marginBottom: 6 }}>• <strong style={{ color: '#22d3ee' }}>ETH</strong>: CVD positive/rising (유일) = 오더플로우 가장 건전. 그러나 펀딩 +1.00%(최대) = 롱 스퀴즈 위험.</p>
-          <p style={{ marginBottom: 6 }}>• <strong style={{ color: '#9ca3af' }}>BTC</strong>: 4H 반등 강함(EMA 모두 하단), 1D는 여전히 하락추세. 예측 펀딩 -0.41% = 다음 사이클 롱 비용 발생.</p>
-          <p>• <strong style={{ color: '#f87171' }}>⚠ 호르무즈 봉쇄(evt_004)</strong> 진행 중 — 고중요도 약세 이벤트. 뉴욕 오픈 전후 ±2h 신규 진입 금지.</p>
-        </div>
-      </Card>
+      {isMobile ? carouselCards : gridCards}
     </div>
   );
 }
-
-// ─── MACRO TAB ───────────────────────────────────────────────────────────────
 
 function MacroTab({ isMobile }) {
-  const importanceColor = (imp) =>
-    imp === 'high' ? '#f87171' : imp === 'medium' ? '#fbbf24' : '#9ca3af';
-
+  const impColor = { high: '#f87171', medium: '#fbbf24', low: '#9ca3af' };
+  const dirColor = { bullish: '#4ade80', bearish: '#f87171', neutral: '#fbbf24' };
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {MACRO_EVENTS.map(ev => (
-        <div key={ev.id} style={{
-          background: '#1a1f2e', borderRadius: 8, padding: '14px 16px',
-          borderLeft: `4px solid ${importanceColor(ev.importance)}`,
-          border: '1px solid #2a3044',
-          borderLeft: `4px solid ${importanceColor(ev.importance)}`,
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, flexWrap: 'wrap', gap: 6 }}>
-            <span style={{ fontWeight: 700, fontSize: 14 }}>{ev.title}</span>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <Badge color={importanceColor(ev.importance)}>{ev.importance.toUpperCase()}</Badge>
-              <Badge color={ev.direction === 'bullish' ? '#4ade80' : '#f87171'}>
-                {ev.direction === 'bullish' ? '강세' : '약세'}
-              </Badge>
+    <div>
+      <div style={{ marginBottom: '16px', padding: '12px', background: '#1a1f2e', borderRadius: '8px', fontSize: '12px', color: '#9ca3af' }}>
+        <span style={{ color: '#f87171', fontWeight: 700 }}>호르무즈 해협 봉쇄 진행 중</span> — 위험자산 변동성 확대 우려. 호르무즈 관련 이벤트 전후 ±2시간 신규 진입 금지 구간.
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {MACRO_EVENTS.map(e => (
+          <div key={e.id} style={{ background: '#1a1f2e', borderRadius: '8px', padding: '14px 16px', borderLeft: `3px solid ${impColor[e.importance]}` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#e8eaed' }}>{e.title}</div>
+                <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>{e.date} {e.time_kst} KST</div>
+              </div>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <Badge color={impColor[e.importance]}>{e.importance.toUpperCase()}</Badge>
+                <Badge color={dirColor[e.impact_direction]}>{e.impact_direction === 'bullish' ? '강세' : '약세'}</Badge>
+              </div>
+            </div>
+            <div style={{ fontSize: '12px', color: '#9ca3af', lineHeight: '1.6', marginBottom: '8px' }}>{e.detail}</div>
+            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+              {e.impact_assets.map(a => <Badge key={a} color="#6b7280">{a}</Badge>)}
             </div>
           </div>
-          <div style={{ color: '#9ca3af', fontSize: 12, marginBottom: 6 }}>{ev.date}</div>
-          <div style={{ color: '#e8eaed', fontSize: 13, lineHeight: 1.6 }}>{ev.summary}</div>
-          {ev.impact_assets && ev.impact_assets.length > 0 && (
-            <div style={{ marginTop: 8, display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
-              <span style={{ color: '#9ca3af', fontSize: 11 }}>영향 자산:</span>
-              {ev.impact_assets.map(a => (
-                <Badge key={a} color="#a78bfa">{a}</Badge>
-              ))}
-            </div>
-          )}
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
 
-// ─── PAIR SELECTOR ───────────────────────────────────────────────────────────
+function EWTab({ pairs, isMobile }) {
+  const [expanded, setExpanded] = React.useState(pairs[0].symbol);
+  const toggle = sym => setExpanded(prev => prev === sym ? null : sym);
 
-function PairAccordion({ isMobile, renderContent }) {
-  const [selected, setSelected] = React.useState('BTC');
+  const renderContent = (p) => (
+    <div>
+      <div style={{ marginBottom: '12px' }}>
+        <SectionTitle>파동 카운트</SectionTitle>
+        <div style={{ fontSize: '13px', fontWeight: 700, color: '#4ade80', marginBottom: '6px' }}>{p.ew.count}</div>
+        <div style={{ fontSize: '12px', color: '#9ca3af', lineHeight: '1.6' }}>{p.ew.detail}</div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+        <div style={{ padding: '10px', background: '#0f1520', borderRadius: '6px' }}>
+          <div style={{ fontSize: '10px', color: '#f87171', marginBottom: '4px', fontWeight: 700 }}>무효화 레벨</div>
+          <div style={{ fontSize: '12px', color: '#e8eaed' }}>{p.ew.invalidation}</div>
+        </div>
+        <div style={{ padding: '10px', background: '#0f1520', borderRadius: '6px' }}>
+          <div style={{ fontSize: '10px', color: '#fbbf24', marginBottom: '4px', fontWeight: 700 }}>대안 카운트</div>
+          <div style={{ fontSize: '12px', color: '#e8eaed' }}>{p.ew.alt}</div>
+        </div>
+      </div>
+      <SectionTitle>핵심 레벨 (1D)</SectionTitle>
+      <LevelRow label="BSL" values={p.levels.d1.bsl} color="#4ade80" />
+      <LevelRow label="SSL" values={p.levels.d1.ssl} color="#f87171" />
+      <LevelRow label="Bear OB" values={p.levels.d1.ob.bear} color="#f87171" />
+      <LevelRow label="Bull OB" values={p.levels.d1.ob.bull} color="#4ade80" />
+      <LevelRow label="Bull FVG" values={p.levels.d1.fvg.bull} color="#22d3ee" />
+      <LevelRow label="Bear FVG" values={p.levels.d1.fvg.bear} color="#fb923c" />
+    </div>
+  );
 
   if (isMobile) {
     return (
-      <div>
-        {PAIRS.map(pair => (
-          <div key={pair.symbol} style={{ marginBottom: 10 }}>
-            <button
-              onClick={() => setSelected(selected === pair.name ? null : pair.name)}
-              style={{
-                width: '100%', background: selected === pair.name ? '#1e2940' : '#131720',
-                border: `1px solid ${selected === pair.name ? '#3b82f6' : '#2a3044'}`,
-                borderRadius: selected === pair.name ? '8px 8px 0 0' : 8,
-                padding: '14px 16px', color: '#e8eaed',
-                display: 'flex', justifyContent: 'space-between',
-                cursor: 'pointer', fontSize: 14, fontWeight: 700,
-              }}
-            >
-              <span>{pair.name}</span>
-              <span style={{ color: '#9ca3af' }}>{selected === pair.name ? '▲' : '▼'}</span>
-            </button>
-            {selected === pair.name && (
-              <Card style={{ borderRadius: '0 0 8px 8px', marginTop: 0, borderTop: 'none' }}>
-                {renderContent(pair)}
-              </Card>
-            )}
-          </div>
-        ))}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {pairs.map(p => {
+          const isOpen = expanded === p.symbol;
+          return (
+            <div key={p.symbol} style={{ background: '#1a1f2e', borderRadius: '8px', overflow: 'hidden' }}>
+              <div onClick={() => toggle(p.symbol)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', cursor: 'pointer' }}>
+                <div>
+                  <span style={{ fontSize: '15px', fontWeight: 700, color: '#e8eaed', marginRight: '8px' }}>{p.short}</span>
+                  <Badge color="#6b7280">{p.price}</Badge>
+                </div>
+                <span style={{ color: '#6b7280', fontSize: '14px' }}>{isOpen ? '▲' : '▼'}</span>
+              </div>
+              {isOpen && <div style={{ padding: '0 16px 16px' }}>{renderContent(p)}</div>}
+            </div>
+          );
+        })}
       </div>
     );
   }
 
-  const activePair = PAIRS.find(p => p.name === selected);
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: 12 }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {PAIRS.map(pair => (
-          <button
-            key={pair.symbol}
-            onClick={() => setSelected(pair.name)}
-            style={{
-              background: selected === pair.name ? '#1e2940' : '#131720',
-              border: `1px solid ${selected === pair.name ? '#3b82f6' : '#2a3044'}`,
-              borderRadius: 6, padding: '10px 14px', color: '#e8eaed',
-              cursor: 'pointer', fontSize: 14, fontWeight: 700, textAlign: 'left',
-            }}
-          >{pair.name}</button>
-        ))}
-      </div>
-      {activePair && <Card>{renderContent(activePair)}</Card>}
-    </div>
-  );
-}
-
-// ─── ELLIOTT WAVE TAB ────────────────────────────────────────────────────────
-
-function EWTab({ isMobile }) {
-  return (
-    <PairAccordion isMobile={isMobile} renderContent={pair => (
-      <div>
-        {[['1D', pair.ew['1D']], ['4H', pair.ew['4H']], ['1H', pair.ew['1H']]].map(([tf, text]) => (
-          <div key={tf} style={{ marginBottom: 14 }}>
-            <div style={{ color: '#3b82f6', fontWeight: 700, fontSize: 12, marginBottom: 4 }}>[{tf}]</div>
-            <div style={{ color: '#e8eaed', fontSize: 13, lineHeight: 1.7 }}>{text}</div>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+      {pairs.map(p => (
+        <Card key={p.symbol}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+            <span style={{ fontSize: '16px', fontWeight: 800, color: '#e8eaed' }}>{p.short}</span>
+            <SentimentBadge sentiment={p.sentiment} />
           </div>
-        ))}
-      </div>
-    )} />
-  );
-}
-
-// ─── ICT TAB ─────────────────────────────────────────────────────────────────
-
-function ICTTab({ isMobile }) {
-  return (
-    <PairAccordion isMobile={isMobile} renderContent={pair => {
-      const lvl = pair.levels;
-      return (
-        <div>
-          {[['1D', lvl['1D']], ['4H', lvl['4H']], ['1H', lvl['1H']]].map(([tf, data]) => (
-            <div key={tf} style={{ marginBottom: 18 }}>
-              <div style={{ color: '#3b82f6', fontWeight: 700, fontSize: 12, marginBottom: 6,
-                borderBottom: '1px solid #2a3044', paddingBottom: 4 }}>[{tf}]</div>
-              <div style={{ color: '#e8eaed', fontSize: 13, lineHeight: 1.7, marginBottom: 10 }}>
-                {pair.ict[tf]}
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 12px' }}>
-                <LevelRow label="Bull OB" values={data.ob.bull} color="#4ade80" />
-                <LevelRow label="Bear OB" values={data.ob.bear} color="#f87171" />
-                <LevelRow label="Bull FVG" values={data.fvg.bull} color="#86efac" />
-                <LevelRow label="Bear FVG" values={data.fvg.bear} color="#fca5a5" />
-                <LevelRow label="BSL" values={data.bsl} color="#22d3ee" />
-                <LevelRow label="SSL" values={data.ssl} color="#fb923c" />
-              </div>
-            </div>
-          ))}
-        </div>
-      );
-    }} />
-  );
-}
-
-// ─── ORDERFLOW TAB ───────────────────────────────────────────────────────────
-
-function OrderflowTab({ isMobile }) {
-  const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'HYPEUSDT'];
-  const labels  = ['BTC', 'ETH', 'SOL', 'HYPE'];
-  const frColor = (v) => v > 0 ? '#4ade80' : '#f87171';
-
-  return (
-    <div>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
-        gap: 12,
-        marginBottom: 16,
-      }}>
-        {symbols.map((sym, i) => {
-          const of = ORDERFLOW_DATA.pairs[sym];
-          return (
-            <Card key={sym}>
-              <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 12 }}>{labels[i]}</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', rowGap: 6 }}>
-                <span style={{ color: '#9ca3af', fontSize: 12 }}>OI</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#f59e0b' }}>{of.oi_usd_str}</span>
-                <span style={{ color: '#9ca3af', fontSize: 12 }}>OI 24h</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#4ade80' }}>{of.oi_change_24h}</span>
-                <span style={{ color: '#9ca3af', fontSize: 12 }}>OI 추세</span>
-                <span style={{ fontSize: 12, color: of.oi_trend === 'rising' ? '#4ade80' : of.oi_trend === 'falling' ? '#f87171' : '#fbbf24' }}>
-                  {of.oi_trend}
-                </span>
-                <span style={{ color: '#9ca3af', fontSize: 12 }}>펀딩비</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: frColor(of.funding_rate) }}>
-                  {of.funding_rate.toFixed(4)}%
-                </span>
-                <span style={{ color: '#9ca3af', fontSize: 12 }}>예측 펀딩</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: frColor(of.funding_rate_predicted) }}>
-                  {of.funding_rate_predicted.toFixed(4)}%
-                </span>
-                <span style={{ color: '#9ca3af', fontSize: 12 }}>CVD</span>
-                <span style={{ fontSize: 11, color: of.cvd_direction === 'positive' ? '#22d3ee' : '#fb923c' }}>
-                  {of.cvd_direction}/{of.cvd_trend}
-                </span>
-              </div>
-            </Card>
-          );
-        })}
-      </div>
-
-      <Card>
-        <SectionTitle>오더플로우 종합 해석</SectionTitle>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', minWidth: 480, borderCollapse: 'collapse', fontSize: 12 }}>
-            <thead>
-              <tr>
-                {['페어', 'OI 증감', '펀딩 현재', '예측 펀딩', 'CVD', '해석'].map(h => (
-                  <th key={h} style={{
-                    color: '#9ca3af', fontWeight: 600, padding: '6px 10px',
-                    textAlign: 'left', borderBottom: '1px solid #2a3044',
-                    fontSize: 11, textTransform: 'uppercase',
-                  }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                ['BTC',  '+7.49%',  '+0.2732%', '-0.4148%', 'positive/falling', 'OI 급증 + CVD 하락 → 약세 헤지 포지션 증가. 예측 펀딩 음수 = 숏 우세'],
-                ['ETH',  '+6.38%',  '+1.0000%', '+0.4831%', 'positive/rising',  '⚠ 펀딩 최대 + CVD rising = 과도한 롱 포지션. 스퀴즈 가장 위험'],
-                ['SOL',  '+8.24%',  '+1.0000%', '+1.0000%', 'positive/falling', '⚠⚠ 가장 위험. OI 최대 증가 + 최대 펀딩 + 예측도 최대 = 극단적 롱 스퀴즈'],
-                ['HYPE', '+0.77%',  '+0.0518%', '-0.3473%', 'positive/falling', 'OI 증가 미미 = 유기적 상승. 예측 펀딩 음수 전환 = 다음 사이클 주의'],
-              ].map(([sym, oi, fund, pred, cvd, interp]) => (
-                <tr key={sym} style={{ borderBottom: '1px solid #1a1f2e' }}>
-                  <td style={{ padding: '8px 10px', fontWeight: 700 }}>{sym}</td>
-                  <td style={{ padding: '8px 10px', color: '#4ade80' }}>{oi}</td>
-                  <td style={{ padding: '8px 10px', color: parseFloat(fund) > 0.5 ? '#f87171' : '#4ade80' }}>{fund}</td>
-                  <td style={{ padding: '8px 10px', color: parseFloat(pred) < 0 ? '#f87171' : '#4ade80' }}>{pred}</td>
-                  <td style={{ padding: '8px 10px', color: '#22d3ee', fontFamily: 'monospace', fontSize: 11 }}>{cvd}</td>
-                  <td style={{ padding: '8px 10px', color: '#9ca3af', fontSize: 12 }}>{interp}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-    </div>
-  );
-}
-
-// ─── SCENARIOS TAB ───────────────────────────────────────────────────────────
-
-function ScenariosTab({ isMobile }) {
-  return (
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
-      gap: 12,
-    }}>
-      {SCENARIOS.map(sc => (
-        <Card key={sc.type}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <Badge color={sc.color}>{sc.label}</Badge>
-            <span style={{ fontSize: 32, fontWeight: 900, color: sc.color }}>{sc.prob}%</span>
-          </div>
-          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, lineHeight: 1.4 }}>{sc.title}</div>
-
-          <SectionTitle>트리거 조건</SectionTitle>
-          <p style={{ color: '#e8eaed', fontSize: 12, lineHeight: 1.7, marginBottom: 10 }}>{sc.trigger}</p>
-
-          <SectionTitle>무효화 조건</SectionTitle>
-          <p style={{ color: '#9ca3af', fontSize: 12, lineHeight: 1.7, marginBottom: 10 }}>{sc.invalidate}</p>
-
-          <SectionTitle>목표가</SectionTitle>
-          <p style={{ color: sc.color, fontSize: 12, fontWeight: 700, lineHeight: 1.7, marginBottom: 10 }}>{sc.targets}</p>
-
-          {sc.events && (
-            <div style={{
-              padding: '8px 10px', background: '#0b0e14', borderRadius: 4,
-              fontSize: 11, color: '#fbbf24', borderLeft: '2px solid #fbbf24', lineHeight: 1.6,
-            }}>
-              {sc.events}
-            </div>
-          )}
+          {renderContent(p)}
         </Card>
       ))}
     </div>
   );
 }
 
-// ─── RISK TAB ────────────────────────────────────────────────────────────────
+function ICTTab({ pairs, isMobile }) {
+  const [expanded, setExpanded] = React.useState(pairs[0].symbol);
+  const toggle = sym => setExpanded(prev => prev === sym ? null : sym);
 
-function TradeSetup({ title, color, trade }) {
-  return (
-    <div style={{ marginBottom: 16 }}>
-      <div style={{
-        color, fontWeight: 800, fontSize: 13, marginBottom: 8,
-        borderBottom: `1px solid ${color}33`, paddingBottom: 4,
-      }}>{title}</div>
-      {[
-        ['진입', trade.entry, '#e8eaed'],
-        ['손절(SL)', trade.sl, '#f87171'],
-        ['TP1', trade.tp1, '#4ade80'],
-        ['TP2', trade.tp2, '#4ade80'],
-        ['R:R', trade.rr, '#fbbf24'],
-      ].map(([label, val, valColor]) => (
-        <div key={label} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', marginBottom: 4, fontSize: 13 }}>
-          <span style={{ color: '#9ca3af' }}>{label}</span>
-          <span style={{ color: valColor, fontWeight: 700, fontFamily: 'monospace' }}>{val}</span>
+  const renderContent = (p) => (
+    <div>
+      <div style={{ marginBottom: '12px' }}>
+        <SectionTitle>시장 구조</SectionTitle>
+        <div style={{ fontSize: '12px', color: '#9ca3af', lineHeight: '1.6' }}>{p.ict.structure}</div>
+      </div>
+      <div style={{ marginBottom: '12px' }}>
+        <SectionTitle>핵심 POI</SectionTitle>
+        <div style={{ fontSize: '12px', color: '#9ca3af', lineHeight: '1.6' }}>{p.ict.poi}</div>
+      </div>
+      <div style={{ marginBottom: '12px' }}>
+        <SectionTitle>유동성 지도</SectionTitle>
+        <div style={{ fontSize: '12px', color: '#9ca3af', lineHeight: '1.6' }}>{p.ict.liquidity}</div>
+      </div>
+      <div style={{ padding: '10px', background: '#0f1520', borderRadius: '6px', marginBottom: '12px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 700, color: '#a78bfa', marginBottom: '4px' }}>편향(Bias)</div>
+        <div style={{ fontSize: '12px', color: '#e8eaed' }}>{p.ict.bias}</div>
+      </div>
+      <SectionTitle>멀티 TF 레벨 지도</SectionTitle>
+      {['h4', 'h1'].map(tf => (
+        <div key={tf} style={{ marginBottom: '8px' }}>
+          <div style={{ fontSize: '10px', color: '#6b7280', marginBottom: '4px', fontWeight: 700 }}>{tf === 'h4' ? '4H' : '1H'}</div>
+          <LevelRow label="Bull OB" values={p.levels[tf].ob.bull} color="#4ade80" />
+          <LevelRow label="Bull FVG" values={p.levels[tf].fvg.bull} color="#22d3ee" />
+          <LevelRow label="BSL" values={p.levels[tf].bsl} color="#4ade80" />
+          <LevelRow label="SSL" values={p.levels[tf].ssl} color="#f87171" />
+          {p.levels[tf].ob.bear?.length > 0 && <LevelRow label="Bear OB" values={p.levels[tf].ob.bear} color="#f87171" />}
+          {p.levels[tf].fvg.bear?.length > 0 && <LevelRow label="Bear FVG" values={p.levels[tf].fvg.bear} color="#fb923c" />}
         </div>
       ))}
-      <div style={{
-        marginTop: 6, padding: '6px 10px', background: '#0b0e14', borderRadius: 4,
-        fontSize: 11, color: '#9ca3af', lineHeight: 1.5,
-      }}>{trade.note}</div>
+    </div>
+  );
+
+  if (isMobile) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {pairs.map(p => {
+          const isOpen = expanded === p.symbol;
+          return (
+            <div key={p.symbol} style={{ background: '#1a1f2e', borderRadius: '8px', overflow: 'hidden' }}>
+              <div onClick={() => toggle(p.symbol)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', cursor: 'pointer' }}>
+                <div>
+                  <span style={{ fontSize: '15px', fontWeight: 700, color: '#e8eaed', marginRight: '8px' }}>{p.short}</span>
+                  <span style={{ fontSize: '11px', color: '#a78bfa' }}>{p.ict.bias.split('|')[0]}</span>
+                </div>
+                <span style={{ color: '#6b7280', fontSize: '14px' }}>{isOpen ? '▲' : '▼'}</span>
+              </div>
+              {isOpen && <div style={{ padding: '0 16px 16px' }}>{renderContent(p)}</div>}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+      {pairs.map(p => (
+        <Card key={p.symbol}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+            <span style={{ fontSize: '16px', fontWeight: 800, color: '#e8eaed' }}>{p.short}</span>
+            <SentimentBadge sentiment={p.sentiment} />
+          </div>
+          {renderContent(p)}
+        </Card>
+      ))}
     </div>
   );
 }
 
-function RiskTab({ isMobile }) {
+function OrderflowTab({ isMobile }) {
+  const pairs = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'HYPEUSDT'];
+  const shorts = { BTCUSDT: 'BTC', ETHUSDT: 'ETH', SOLUSDT: 'SOL', HYPEUSDT: 'HYPE' };
+  const d = ORDERFLOW_DATA.pairs;
+
+  const fundingColor = (f) => f?.startsWith('-') ? '#f87171' : '#4ade80';
+  const cvdColor = (dir, trend) => {
+    if (dir === 'positive' && trend === 'rising') return '#22d3ee';
+    if (dir === 'positive' && trend === 'falling') return '#fbbf24';
+    if (dir === 'negative') return '#fb923c';
+    return '#9ca3af';
+  };
+  const oiColor = (t) => t === 'rising' ? '#4ade80' : '#f87171';
+
   return (
     <div>
-      <PairAccordion isMobile={isMobile} renderContent={rd_pair => {
-        const rd = RISK_DATA.find(r => r.name === rd_pair.name);
-        if (!rd) return null;
-        return (
-          <div>
-            <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 14 }}>{rd.name} 리스크 관리</div>
-            <TradeSetup title="롱 셋업" color="#4ade80" trade={rd.longTrade} />
-            <TradeSetup title="숏 셋업" color="#f87171" trade={rd.shortTrade} />
-            <div style={{
-              padding: '10px 12px', background: '#1e1a0e',
-              border: '1px solid #fbbf2444', borderRadius: 6,
-              fontSize: 12, color: '#fbbf24', lineHeight: 1.6,
-            }}>
-              ⚠ 호르무즈 봉쇄(evt_004) 진행 중 — 뉴욕 오픈(23:30 KST) ±2h 신규 진입 금지 / 포지션 사이즈 30% 축소 권고
-            </div>
-          </div>
-        );
-      }} />
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', minWidth: isMobile ? '480px' : 'auto', borderCollapse: 'collapse', fontSize: '12px' }}>
+          <thead>
+            <tr style={{ color: '#6b7280', fontSize: '11px', textAlign: 'left' }}>
+              {['페어', '현재가', 'OI', 'OI 24h', '펀딩', '예측 펀딩', 'CVD'].map(h => (
+                <th key={h} style={{ padding: '8px 12px', borderBottom: '1px solid #1f2937' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {pairs.map(sym => {
+              const p = d[sym];
+              return (
+                <tr key={sym} style={{ borderBottom: '1px solid #1a1f2e' }}>
+                  <td style={{ padding: '10px 12px', fontWeight: 700, color: '#e8eaed' }}>{shorts[sym]}</td>
+                  <td style={{ padding: '10px 12px', color: '#9ca3af' }}>${p.price_usd.toLocaleString()}</td>
+                  <td style={{ padding: '10px 12px', color: '#f59e0b', fontWeight: 700 }}>{p.oi_usd_str}</td>
+                  <td style={{ padding: '10px 12px', color: oiColor(p.oi_trend), fontWeight: 700 }}>{p.oi_change_24h}</td>
+                  <td style={{ padding: '10px 12px', color: fundingColor(p.funding_rate), fontWeight: 700 }}>{p.funding_rate}</td>
+                  <td style={{ padding: '10px 12px', color: fundingColor(p.funding_rate_predicted) }}>{p.funding_rate_predicted}</td>
+                  <td style={{ padding: '10px 12px' }}>
+                    <span style={{ color: cvdColor(p.cvd_direction, p.cvd_trend), fontWeight: 700 }}>{p.cvd_direction}/{p.cvd_trend}</span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: '10px', marginTop: '16px' }}>
+        {pairs.map(sym => {
+          const p = d[sym];
+          const fundingNum = parseFloat(p.funding_rate);
+          const isNegFunding = fundingNum < 0;
+          const oiUp = p.oi_trend === 'rising';
+          const cvdPos = p.cvd_direction === 'positive';
+          const cvdUp = p.cvd_trend === 'rising';
+          let signal = '중립';
+          let sigColor = '#fbbf24';
+          if (oiUp && cvdPos && cvdUp && fundingNum > 0) { signal = '강세'; sigColor = '#4ade80'; }
+          else if (oiUp && isNegFunding) { signal = '숏스퀴즈 잠재'; sigColor = '#a78bfa'; }
+          else if (!oiUp && !cvdPos) { signal = '약세'; sigColor = '#f87171'; }
+          else if (oiUp && cvdPos && !cvdUp) { signal = '상승 둔화'; sigColor = '#fbbf24'; }
+          return (
+            <Card key={sym}>
+              <div style={{ fontSize: '14px', fontWeight: 800, color: '#e8eaed', marginBottom: '8px' }}>{shorts[sym]}</div>
+              <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>OI {p.oi_usd_str} <span style={{ color: oiColor(p.oi_trend) }}>{p.oi_change_24h}</span></div>
+              <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>펀딩 <span style={{ color: fundingColor(p.funding_rate), fontWeight: 700 }}>{p.funding_rate}</span></div>
+              <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '10px' }}>CVD <span style={{ color: cvdColor(p.cvd_direction, p.cvd_trend), fontWeight: 700 }}>{p.cvd_direction}/{p.cvd_trend}</span></div>
+              <Badge color={sigColor}>{signal}</Badge>
+            </Card>
+          );
+        })}
+      </div>
+
+      <Card style={{ marginTop: '16px' }}>
+        <SectionTitle>오더플로우 해석 요약</SectionTitle>
+        <div style={{ fontSize: '12px', color: '#9ca3af', lineHeight: '1.8' }}>
+          <div style={{ marginBottom: '6px' }}>🟣 <strong style={{ color: '#a78bfa' }}>BTC 숏스퀴즈 주목</strong>: 펀딩 -0.52% / 예측 -1.03%. OI +7.88% 동반 상승 = 숏이 대량 누적된 상태에서 가격 상승 중. 강제청산 연쇄 시 급상승 가능.</div>
+          <div style={{ marginBottom: '6px' }}>🟢 <strong style={{ color: '#22d3ee' }}>ETH CVD 양/상승</strong>: 4개 페어 중 유일하게 CVD가 상승 중. 실수요 매수 확인. 상대적으로 깔끔한 강세 오더플로우.</div>
+          <div style={{ marginBottom: '6px' }}>🔴 <strong style={{ color: '#f87171' }}>SOL 펀딩 과부하</strong>: +1.0% 극단적 펀딩. CVD 하락 중. 롱 포지션 비용이 과도하게 높아 조정 시 강제청산 리스크 증가.</div>
+          <div>⚠️ <strong style={{ color: '#fbbf24' }}>HYPE 기술/오더플로우 다이버전스</strong>: 1D EMA 풀 강세 정렬이나 OI -3%, CVD 음/하락, 펀딩 음. 시장 참여자가 현재 가격에서 롱 추가 거부.</div>
+        </div>
+      </Card>
     </div>
   );
 }
 
-// ─── MAIN DASHBOARD ──────────────────────────────────────────────────────────
+function ScenariosTab({ isMobile }) {
+  return (
+    <div>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '12px', marginBottom: '16px' }}>
+        {SCENARIOS.map(s => (
+          <Card key={s.label}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <span style={{ fontSize: '16px', fontWeight: 800, color: s.color }}>{s.label}</span>
+              <span style={{ fontSize: '22px', fontWeight: 900, color: s.color }}>{s.prob}%</span>
+            </div>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: '#e8eaed', marginBottom: '10px' }}>{s.title}</div>
+            <div style={{ marginBottom: '8px' }}>
+              <div style={{ fontSize: '10px', color: '#4ade80', fontWeight: 700, marginBottom: '3px' }}>TRIGGER</div>
+              <div style={{ fontSize: '11px', color: '#9ca3af' }}>{s.trigger}</div>
+            </div>
+            <div style={{ marginBottom: '8px' }}>
+              <div style={{ fontSize: '10px', color: '#fbbf24', fontWeight: 700, marginBottom: '3px' }}>TARGET</div>
+              <div style={{ fontSize: '11px', color: '#9ca3af' }}>{s.target}</div>
+            </div>
+            <div style={{ marginBottom: '12px' }}>
+              <div style={{ fontSize: '10px', color: '#f87171', fontWeight: 700, marginBottom: '3px' }}>INVALIDATE</div>
+              <div style={{ fontSize: '11px', color: '#9ca3af' }}>{s.invalidate}</div>
+            </div>
+            <div style={{ padding: '10px', background: '#0f1520', borderRadius: '6px', fontSize: '11px', color: '#6b7280', lineHeight: '1.6' }}>{s.detail}</div>
+          </Card>
+        ))}
+      </div>
 
-const TABS = ['Overview', 'Macro', 'Elliott Wave', 'ICT', 'Orderflow', 'Scenarios', 'Risk'];
+      <Card>
+        <SectionTitle>시나리오 확률 바</SectionTitle>
+        <div style={{ display: 'flex', borderRadius: '6px', overflow: 'hidden', height: '20px', marginBottom: '8px' }}>
+          {SCENARIOS.map(s => (
+            <div key={s.label} style={{ width: `${s.prob}%`, background: s.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, color: '#0b0e14' }}>{s.prob}%</div>
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: '16px', fontSize: '11px' }}>
+          {SCENARIOS.map(s => (
+            <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: s.color }} />
+              <span style={{ color: '#9ca3af' }}>{s.label} {s.prob}%</span>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card style={{ marginTop: '12px' }}>
+        <SectionTitle>매크로 오버라이드 조건</SectionTitle>
+        <div style={{ fontSize: '12px', color: '#9ca3af', lineHeight: '1.8' }}>
+          <div>• <strong style={{ color: '#f87171' }}>호르무즈 해협 봉쇄 확대</strong>: 약세 시나리오 확률 +15%p. 에너지 가격 급등 → 인플레 재점화 → 연준 긴축 우려 재부상.</div>
+          <div>• <strong style={{ color: '#4ade80' }}>BTC ETF 순유입 $500M+ 연속</strong>: 강세 시나리오 확률 +15%p. 기관 수급 확인 = 추세 강도 증폭.</div>
+          <div>• <strong style={{ color: '#a78bfa' }}>BTC 펀딩 -0.52% 지속 + 가격 $75K+ 안착</strong>: 숏스퀴즈 시나리오 트리거. 단기 +10~15% 급등 가능.</div>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function RiskTab({ pairs, isMobile }) {
+  const [expanded, setExpanded] = React.useState(pairs[0].symbol);
+  const toggle = sym => setExpanded(prev => prev === sym ? null : sym);
+
+  const renderTrade = (trade, isLong) => (
+    <div style={{ padding: '12px', background: isLong ? '#4ade8010' : '#f8717110', borderRadius: '8px', border: `1px solid ${isLong ? '#4ade8030' : '#f8717130'}` }}>
+      <div style={{ fontSize: '12px', fontWeight: 700, color: isLong ? '#4ade80' : '#f87171', marginBottom: '8px' }}>{isLong ? '롱 셋업' : '숏 셋업'}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '8px' }}>
+        {[['진입', trade.entry], ['SL', trade.sl], ['TP1', trade.tp1], ['TP2', trade.tp2], ...(trade.tp3 ? [['TP3', trade.tp3]] : []), ['R:R', trade.rr]].map(([k, v]) => (
+          <div key={k}>
+            <div style={{ fontSize: '10px', color: '#6b7280', marginBottom: '2px' }}>{k}</div>
+            <div style={{ fontSize: '12px', color: '#e8eaed', fontWeight: k === 'R:R' ? 700 : 400 }}>{v}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ fontSize: '11px', color: '#6b7280', lineHeight: '1.5' }}>조건: {trade.condition}</div>
+    </div>
+  );
+
+  const renderContent = (p) => (
+    <div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+        {renderTrade(p.longTrade, true)}
+        {renderTrade(p.shortTrade, false)}
+      </div>
+      <div style={{ padding: '10px', background: '#0f1520', borderRadius: '6px', fontSize: '11px', color: '#9ca3af', lineHeight: '1.6' }}>
+        <strong style={{ color: '#fbbf24' }}>⚠️ 리스크 노트:</strong> {p.note}
+      </div>
+    </div>
+  );
+
+  if (isMobile) {
+    return (
+      <div>
+        <div style={{ padding: '12px', background: '#f8717115', borderRadius: '8px', marginBottom: '12px', fontSize: '12px', color: '#f87171', borderLeft: '3px solid #f87171' }}>
+          호르무즈 봉쇄 관련 이벤트 전후 ±2시간은 진입 금지 구간. 포지션 사이즈 통상 대비 50% 이하 유지 권장.
+        </div>
+        {pairs.map(p => {
+          const isOpen = expanded === p.symbol;
+          return (
+            <div key={p.symbol} style={{ background: '#1a1f2e', borderRadius: '8px', overflow: 'hidden', marginBottom: '8px' }}>
+              <div onClick={() => toggle(p.symbol)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', cursor: 'pointer' }}>
+                <span style={{ fontSize: '15px', fontWeight: 700, color: '#e8eaed' }}>{p.short}</span>
+                <span style={{ color: '#6b7280', fontSize: '14px' }}>{isOpen ? '▲' : '▼'}</span>
+              </div>
+              {isOpen && <div style={{ padding: '0 16px 16px' }}>{renderContent(p)}</div>}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{ padding: '12px', background: '#f8717115', borderRadius: '8px', marginBottom: '16px', fontSize: '12px', color: '#f87171', borderLeft: '3px solid #f87171' }}>
+        ⚠️ <strong>지정학 리스크 경보</strong>: 호르무즈 해협 봉쇄 진행 중. 관련 이벤트 전후 ±2시간 진입 금지. 포지션 사이즈 50% 이하 유지 권장. 모든 진입에 확증(Confirmation) 필수.
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+        {pairs.map(p => (
+          <Card key={p.symbol}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <span style={{ fontSize: '16px', fontWeight: 800, color: '#e8eaed' }}>{p.short}</span>
+              <SentimentBadge sentiment={p.sentiment} />
+            </div>
+            {renderContent(p)}
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── 메인 useIsMobile 훅 ───────────────────────────────────────────────────────
+
+function useIsMobile() {
+  const [m, setM] = React.useState(() => window.matchMedia('(max-width: 767px)').matches);
+  React.useEffect(() => {
+    const mql = window.matchMedia('(max-width: 767px)');
+    const h = e => setM(e.matches);
+    mql.addEventListener('change', h);
+    return () => mql.removeEventListener('change', h);
+  }, []);
+  return m;
+}
+
+// ─── Dashboard ────────────────────────────────────────────────────────────────
 
 function Dashboard() {
   const isMobile = useIsMobile();
-  const [activeTab, setActiveTab] = React.useState('Overview');
+  const [activeTab, setActiveTab] = React.useState('overview');
   const tabBarRef = React.useRef(null);
 
-  const handleTabClick = (tab) => {
-    setActiveTab(tab);
-    if (tabBarRef.current) {
-      const btn = tabBarRef.current.querySelector(`[data-tab="${tab}"]`);
-      if (btn) btn.scrollIntoView({ inline: 'center', behavior: 'smooth' });
-    }
-  };
+  React.useEffect(() => {
+    if (!isMobile || !tabBarRef.current) return;
+    const activeBtn = tabBarRef.current.querySelector('[data-active="true"]');
+    if (activeBtn) activeBtn.scrollIntoView({ inline: 'center', behavior: 'smooth' });
+  }, [activeTab, isMobile]);
 
-  const tabContent = (() => {
-    switch (activeTab) {
-      case 'Overview':     return <OverviewTab isMobile={isMobile} />;
-      case 'Macro':        return <MacroTab isMobile={isMobile} />;
-      case 'Elliott Wave': return <EWTab isMobile={isMobile} />;
-      case 'ICT':          return <ICTTab isMobile={isMobile} />;
-      case 'Orderflow':    return <OrderflowTab isMobile={isMobile} />;
-      case 'Scenarios':    return <ScenariosTab isMobile={isMobile} />;
-      case 'Risk':         return <RiskTab isMobile={isMobile} />;
-      default:             return null;
-    }
-  })();
+  const TABS = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'macro', label: 'Macro' },
+    { id: 'ew', label: 'Elliott Wave' },
+    { id: 'ict', label: 'ICT / SMC' },
+    { id: 'orderflow', label: 'Orderflow' },
+    { id: 'scenarios', label: 'Scenarios' },
+    { id: 'risk', label: 'Risk' },
+  ];
+
+  let tabContent;
+  if (activeTab === 'overview') tabContent = <OverviewTab pairs={PAIRS} isMobile={isMobile} />;
+  else if (activeTab === 'macro') tabContent = <MacroTab isMobile={isMobile} />;
+  else if (activeTab === 'ew') tabContent = <EWTab pairs={PAIRS} isMobile={isMobile} />;
+  else if (activeTab === 'ict') tabContent = <ICTTab pairs={PAIRS} isMobile={isMobile} />;
+  else if (activeTab === 'orderflow') tabContent = <OrderflowTab isMobile={isMobile} />;
+  else if (activeTab === 'scenarios') tabContent = <ScenariosTab isMobile={isMobile} />;
+  else if (activeTab === 'risk') tabContent = <RiskTab pairs={PAIRS} isMobile={isMobile} />;
+
+  const contentPadding = isMobile ? '14px 12px' : '20px 24px';
+  const headerPadding = isMobile ? '12px' : '14px 24px';
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0b0e14', color: '#e8eaed' }}>
-
+    <div style={{ minHeight: '100vh', background: '#0b0e14' }}>
       {/* Header */}
-      <div style={{
-        background: '#131720', borderBottom: '1px solid #2a3044',
-        padding: isMobile ? '12px 14px' : '14px 24px',
-      }}>
-        <div style={{
-          display: 'flex',
-          flexDirection: isMobile ? 'column' : 'row',
-          justifyContent: 'space-between',
-          alignItems: isMobile ? 'flex-start' : 'center',
-          gap: 8,
-        }}>
-          <div>
-            <span style={{ fontWeight: 900, fontSize: isMobile ? 16 : 20, letterSpacing: 0.5 }}>
-              Crypto Analysis Dashboard
-            </span>
-            <span style={{ color: '#9ca3af', fontSize: 12, marginLeft: 10 }}>2026-04-15</span>
+      <div style={{ background: '#131720', borderBottom: '1px solid #1f2937', padding: headerPadding }}>
+        {isMobile ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div>
+              <div style={{ fontSize: '16px', fontWeight: 700, color: '#e8eaed', marginBottom: '2px' }}>Crypto Futures Analysis</div>
+              <div style={{ fontSize: '11px', color: '#6b7280' }}>2026-04-15 · EW + ICT/SMC + Orderflow</div>
+            </div>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              <Badge color="#f87171">호르무즈 봉쇄 ⚠️</Badge>
+              <Badge color="#a78bfa">BTC 숏스퀴즈 대기</Badge>
+              <Badge color="#4ade80">ETF 순유입 $420M</Badge>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            <Badge color="#4ade80">강세 45%</Badge>
-            <Badge color="#f87171">약세 40%</Badge>
-            <Badge color="#fbbf24">중립 15%</Badge>
-            <Badge color="#f87171">⚠ 호르무즈 봉쇄 중</Badge>
+        ) : (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: '20px', fontWeight: 800, color: '#e8eaed' }}>Crypto Futures Analysis</div>
+              <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>2026-04-15 · EW + ICT/SMC + Orderflow Framework</div>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <Badge color="#f87171">호르무즈 봉쇄 ⚠️</Badge>
+              <Badge color="#a78bfa">BTC 숏스퀴즈 대기 (펀딩 -0.52%)</Badge>
+              <Badge color="#4ade80">ETF 순유입 $420M</Badge>
+              <Badge color="#fbbf24">데이터 기준: 2026-04-15 03:00 KST</Badge>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Tab Bar */}
-      <div
-        ref={tabBarRef}
-        style={{
-          background: '#131720', borderBottom: '1px solid #2a3044',
-          display: 'flex', overflowX: 'auto',
-          WebkitOverflowScrolling: 'touch',
-        }}
-      >
-        {TABS.map(tab => (
+      {/* Tab bar */}
+      <div ref={tabBarRef} style={{ background: '#131720', borderBottom: '1px solid #1f2937', display: 'flex', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        {TABS.map(t => (
           <button
-            key={tab}
-            data-tab={tab}
-            onClick={() => handleTabClick(tab)}
+            key={t.id}
+            data-active={activeTab === t.id ? 'true' : 'false'}
+            onClick={() => setActiveTab(t.id)}
             style={{
-              background: 'none', border: 'none',
-              borderBottom: activeTab === tab ? '2px solid #3b82f6' : '2px solid transparent',
-              color: activeTab === tab ? '#e8eaed' : '#9ca3af',
               padding: isMobile ? '14px 14px' : '12px 16px',
-              cursor: 'pointer', fontWeight: activeTab === tab ? 700 : 400,
-              fontSize: 13, whiteSpace: 'nowrap', flexShrink: 0,
-              transition: 'color 0.15s',
+              border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: '13px', fontWeight: 600, flexShrink: 0,
+              background: activeTab === t.id ? '#1a1f2e' : 'transparent',
+              color: activeTab === t.id ? '#e8eaed' : '#6b7280',
+              borderBottom: activeTab === t.id ? '2px solid #4ade80' : '2px solid transparent',
+              transition: 'all 0.15s',
             }}
-          >{tab}</button>
+          >{t.label}</button>
         ))}
       </div>
 
       {/* Content */}
-      <div style={{ padding: isMobile ? '14px' : '20px 24px', maxWidth: 1400, margin: '0 auto' }}>
+      <div style={{ padding: contentPadding, maxWidth: '1600px', margin: '0 auto' }}>
         {tabContent}
       </div>
 
       {/* Footer */}
       <div style={{
-        borderTop: '1px solid #2a3044', padding: '12px 24px',
-        color: '#4b5563', fontSize: 11, textAlign: 'center', marginTop: 20,
+        display: 'flex', flexDirection: isMobile ? 'column' : 'row',
+        justifyContent: 'space-between', gap: isMobile ? '6px' : '0',
+        alignItems: isMobile ? 'flex-start' : 'center',
+        padding: isMobile ? '12px' : '12px 24px',
+        borderTop: '1px solid #1f2937', fontSize: '11px', color: '#374151',
       }}>
-        Generated 2026-04-15 · EW + ICT/SMC + Orderflow · Coinalyze / TradingView / Coinglass · Not financial advice
+        <span>데이터 기준: TradingView (EMA/캔들), Coinalyze (OI/펀딩/CVD), 2026-04-15 캡처</span>
+        <span>투자 참고용. 모든 분석은 교육 목적이며 투자 권유가 아닙니다.</span>
       </div>
     </div>
   );

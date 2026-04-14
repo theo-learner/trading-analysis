@@ -337,6 +337,13 @@ async function captureTradingView(browser) {
         // fullscreen 모드 안정화 대기 — legend 렌더링 완료까지
         await page.waitForTimeout(1500);
 
+        // 현재 캔들 위로 마우스 이동 — positionChart 후 현재 캔들은 x≈70% 위치
+        // 드래그 후 마우스가 과거 캔들 위(x≈30%)에 있으면 legend가 과거 EMA 값을 표시함
+        const currentCandleX = Math.round(width * 0.70);
+        const currentCandleY = Math.round(height * 0.45);
+        await page.mouse.move(currentCandleX, currentCandleY);
+        await page.waitForTimeout(600); // legend 업데이트 대기
+
         // ① 전체 차트 (full)
         const savePath = getSavePath('tradingview', `${pair}_${tf.label}`);
         await page.screenshot({ fullPage: false, path: savePath, type: 'png' });
