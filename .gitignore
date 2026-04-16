@@ -5,3 +5,5 @@ screenshots/
 .DS_Store
 .vercel
 scripts/config/clean-layout.json
+.superpowers/
+.worktrees/
