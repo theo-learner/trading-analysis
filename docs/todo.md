@@ -14,3 +14,16 @@
 - Implemented a single analysis surface with pair selection, shared TF selector, TF alignment bar, EW wave stepper, ICT summary grid, confluence tags, and expandable source text.
 - Updated root guidance with the analysis-tab schema contract so future dashboard generations keep the new data shape and null-handling rules.
 - Verified the HTML in Chromium runtime at desktop and mobile widths with no console errors during tab, pair, TF, and text-toggle interactions.
+
+# 2026-04-16 Overview Strategy Recommendation
+
+## Plan
+
+- [ ] Add reusable helpers that rank scenarios and derive entry/TP/SL levels from existing pair data.
+- [ ] Render a strategy recommendation grid in `Overview` with Primary and Alternate blocks for all pairs.
+- [ ] Verify desktop/mobile rendering and confirm Wait fallback paths do not throw runtime errors.
+- [ ] Capture review notes and lessons learned.
+
+## Review
+
+- Pending.
