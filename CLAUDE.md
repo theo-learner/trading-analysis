@@ -88,8 +88,9 @@ screenshots/YYYYMMDD/
 - 텍스트: 주요 #e8eaed, 보조 #9ca3af
 - 강세 #4ade80, 약세 #f87171, 중립 #fbbf24
 - 오더플로우 색상: 히트맵고밀도 #f59e0b, CVD양수 #22d3ee, CVD음수 #fb923c, 수렴 #a78bfa
-- 탭 구조: Overview / Macro / Elliott Wave / ICT / Orderflow / Scenarios / Risk
+- 탭 구조: Overview / Macro / 분석 / Orderflow / Scenarios / Risk
 - **Macro 탭**: `const MACRO_EVENTS = [...]` 상수로 events.json 데이터 임베드, 시간순(KST) 카드 리스트, importance별 좌측 보더 color-coded (high `#f87171` / medium `#fbbf24` / low `#9ca3af`), `tabContent` 변수 패턴 필수
+- **분석 탭**: EW + ICT 통합. `bias`(루트), `confluence[]`(루트), `ew[TF].direction/current_wave/completed_waves/target`, `ict[TF].structure_tag/structure_direction/poi_level/bsl/ssl` 필드 필수. 신규 필드가 없거나 `null`이면 해당 카드는 `"—"` 표시. 추정값 생성 금지. `confluence` 배열은 분석 시 수동 작성하고 자동 계산하지 않는다.
 - **Orderflow 탭**: `const ORDERFLOW_DATA = {...}` 상수로 coinalyze_data.json의 `pairs` 객체 그대로 임베드. OI/CVD/펀딩비 컬럼은 추정치 금지 — JSON 수치 직접 사용. CVD 컬럼은 `cvd_direction + '/' + cvd_trend` 형식 (예: `positive/rising`). 펀딩비 셀은 양수 `#4ade80`, 음수 `#f87171`로 색상 구분.
 - **레벨 임베드 규칙**: PAIRS 상수의 `support`/`resistance`/`bsl`/`ssl`/`ob`/`fvg` 배열은 `{PAIR}_{TF}_data.txt` 의 `levels` 필드 원본 숫자를 그대로 사용. 소수점 보존, 라운드 넘버 반올림 금지 (예: `72000` ❌ → `72148.3` ✅). `levels`가 `null`이거나 해당 TF에 값이 없으면 "데이터 없음"으로 표시 (임의 추정값 생성 금지).
 - **반응형 필수**: `useIsMobile()` 훅(`window.matchMedia('(max-width: 767px)')` + resize 리스너)을 `Dashboard()` 위에 정의하고, `Dashboard()` 최상단에서 `const isMobile = useIsMobile();` 호출 후 모든 Tab 컴포넌트에 `isMobile` prop으로 전달
@@ -98,7 +99,7 @@ screenshots/YYYYMMDD/
   - Header: `isMobile`이면 `flex-direction: 'column'`, 배지는 두 번째 행 `flexWrap: 'wrap'`
   - Tabs: 버튼 `padding: isMobile ? '14px 14px' : '12px 16px'` (터치 타겟 ≥40px), tab bar에 `ref` 붙여 탭 전환 시 활성 버튼 `scrollIntoView({ inline: 'center' })`
   - Overview 페어 4카드: horizontal snap carousel (`scroll-snap-type: x mandatory`, 각 카드 `minWidth: '78%', scrollSnapAlign: 'start'`)
-  - EW/ICT/Risk: pair accordion (`useState(selectedPair)` 기본 펼침)
+  - 분석/Risk: 페어 선택 기반 상세 뷰 유지. 분석 탭은 상단 pair selector + 내부 TF selector 조합 사용
   - Orderflow 4카드: `repeat(2, 1fr)`, 테이블은 `overflowX: 'auto'` wrapper + `minWidth: '480px'`
   - Scenarios 3분할: `isMobile ? '1fr' : 'repeat(3, 1fr)'`
   - 본문 폰트 ≥13px, 카드 padding ≥14px
