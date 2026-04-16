@@ -439,6 +439,193 @@ function LevelPill({ value, color, label }) {
   );
 }
 
+function asNumber(value) {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function dedupeLevels(levels) {
+  return [...new Set((levels || []).map(asNumber).filter(value => value != null))].sort((a, b) => a - b);
+}
+
+function pickNearest(levels, predicate, sortFn) {
+  const filtered = dedupeLevels(levels).filter(predicate || (() => true));
+  if (filtered.length === 0) return null;
+  return [...filtered].sort(sortFn || ((a, b) => a - b))[0];
+}
+
+function formatStrategyPrice(value) {
+  const n = asNumber(value);
+  return n != null ? `$${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : '—';
+}
+
+function sortScenariosByProbability(pair) {
+  const order = ['bull', 'bear', 'neutral'];
+  return order
+    .map(key => ({ key, ...(pair.scenarios?.[key] || {}) }))
+    .sort((left, right) => {
+      const leftProb = asNumber(left.prob) ?? -Infinity;
+      const rightProb = asNumber(right.prob) ?? -Infinity;
+      if (rightProb !== leftProb) return rightProb - leftProb;
+      return order.indexOf(left.key) - order.indexOf(right.key);
+    });
+}
+
+function collectStrategyLevels(pair) {
+  const price = asNumber(pair.price);
+  const levels4H = pair.levels?.['4H'] || {};
+  const ict4H = pair.ict?.['4H'] || {};
+  const ew4H = pair.ew?.['4H'] || {};
+  const support = dedupeLevels(levels4H.ssl || []);
+  const resistance = dedupeLevels(levels4H.bsl || []);
+  const poi = asNumber(ict4H.poi_level);
+  const poiAsBullCandidate = poi != null && price != null ? poi <= price * 1.01 : poi != null;
+  const poiAsBearCandidate = poi != null && price != null ? poi > price : poi != null;
+
+  const longEntries = dedupeLevels([
+    ...support,
+    ...(poiAsBullCandidate ? [poi] : [])
+  ]);
+  const shortEntries = dedupeLevels([
+    ...resistance,
+    ...(poiAsBearCandidate ? [poi] : [])
+  ]);
+  const longTargets = dedupeLevels([
+    ...resistance.filter(value => price == null || value > price),
+    ew4H.target
+  ]);
+  const shortTargets = dedupeLevels([
+    ...support.filter(value => price == null || value < price)
+  ]);
+  const longStops = dedupeLevels([
+    ...support,
+    ...(poi != null ? [poi] : [])
+  ]);
+  const shortStops = dedupeLevels([
+    ...resistance,
+    ...(poi != null ? [poi] : [])
+  ]);
+
+  return {
+    price,
+    support,
+    resistance,
+    longEntries,
+    shortEntries,
+    longTargets,
+    shortTargets,
+    longStops,
+    shortStops
+  };
+}
+
+function buildStrategyRecommendation(pair, rankedScenario, variant) {
+  const { price, support, resistance, longEntries, shortEntries, longTargets, shortTargets, longStops, shortStops } = collectStrategyLevels(pair);
+  const scenarioKey = rankedScenario?.key || 'neutral';
+  const prob = asNumber(rankedScenario?.prob) ?? 0;
+  const confluence = Array.isArray(pair.confluence) ? pair.confluence.slice(0, 2).join(' + ') : '';
+  const label = variant || 'Primary';
+  const nearestSupport = pickNearest(support, value => price == null || value < price, (a, b) => Math.abs(a - price) - Math.abs(b - price));
+  const nearestResistance = pickNearest(resistance, value => price == null || value > price, (a, b) => Math.abs(a - price) - Math.abs(b - price));
+  const nearResistance = price != null && nearestResistance != null ? Math.abs(nearestResistance - price) / price <= 0.01 : false;
+  const nearSupportBreakdown = price != null && nearestSupport != null ? Math.abs(price - nearestSupport) / price <= 0.01 : false;
+
+  if (scenarioKey === 'neutral') {
+    return {
+      label,
+      scenarioKey,
+      prob,
+      action: 'Wait',
+      entry: null,
+      tp: null,
+      sl: null,
+      rationale: `${rankedScenario?.title || 'Neutral bias'} keeps the setup in wait mode.`
+    };
+  }
+
+  if (scenarioKey === 'bull') {
+    const entry = pickNearest(
+      longEntries,
+      value => price == null || value <= price * 1.02,
+      (a, b) => price == null ? a - b : Math.abs(a - price) - Math.abs(b - price)
+    );
+    const tp = pickNearest(
+      longTargets,
+      value => price == null || value > price,
+      (a, b) => a - b
+    );
+    const sl = entry != null
+      ? pickNearest(longStops, value => value < entry, (a, b) => b - a)
+      : null;
+
+    if (entry == null || tp == null || sl == null) {
+      return {
+        label,
+        scenarioKey,
+        prob,
+        action: 'Wait',
+        entry: null,
+        tp: null,
+        sl: null,
+        rationale: 'Bullish direction exists, but structured levels are incomplete.'
+      };
+    }
+
+    return {
+      label,
+      scenarioKey,
+      prob,
+      action: nearResistance ? 'Breakout Long' : 'Pullback Long',
+      entry,
+      tp,
+      sl,
+      rationale: `Bull ${prob}% + ${pair.biasLabel || pair.bias || 'neutral'} bias${confluence ? ` + ${confluence}` : ''}.`
+    };
+  }
+
+  const entry = pickNearest(
+    shortEntries,
+    value => price == null || value >= price * 0.98,
+    (a, b) => price == null ? a - b : Math.abs(a - price) - Math.abs(b - price)
+  );
+  const tp = pickNearest(
+    shortTargets,
+    value => price == null || value < price,
+    (a, b) => b - a
+  );
+  const sl = entry != null
+    ? pickNearest(shortStops, value => value > entry, (a, b) => a - b)
+    : null;
+
+  if (entry == null || tp == null || sl == null) {
+    return {
+      label,
+      scenarioKey: 'bear',
+      prob,
+      action: 'Wait',
+      entry: null,
+      tp: null,
+      sl: null,
+      rationale: 'Bearish direction exists, but structured levels are incomplete.'
+    };
+  }
+
+  return {
+    label,
+    scenarioKey: 'bear',
+    prob,
+    action: nearSupportBreakdown ? 'Breakdown Short' : 'Rejection Short',
+    entry,
+    tp,
+    sl,
+    rationale: `Bear ${prob}% + ${pair.biasLabel || pair.bias || 'neutral'} bias${confluence ? ` + ${confluence}` : ''}.`
+  };
+}
+
 // ─── TAB COMPONENTS ──────────────────────────────────────────────────────────
 
 function OverviewTab({ pairs, selectedPair, onSelectPair, isMobile }) {
