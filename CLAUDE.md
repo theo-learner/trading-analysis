@@ -104,6 +104,7 @@ screenshots/YYYYMMDD/
   - Scenarios 3분할: `isMobile ? '1fr' : 'repeat(3, 1fr)'`
   - 본문 폰트 ≥13px, 카드 padding ≥14px
 - **스니펫 참고**: `reports/_mobile_snippet.md` — 위 패턴의 복붙 가능한 코드 블록 모음
+- **Overview 전략 추천 (필수)**: 신규 대시보드 생성 시 `reports/_mobile_snippet.md` **섹션 6** 전체를 반드시 포함한다. `asNumber`, `dedupeLevels`, `pickNearest`, `formatStrategyPrice`, `sortScenariosByProbability`, `collectStrategyLevels`, `buildStrategyRecommendation`, `StrategyKVRow`, `strategyTone`, `StrategyBlock`, `OverviewStrategyCard`, `OverviewStrategyGrid` — 12개 함수/컴포넌트 모두 필수. `OverviewTab` 내 페어 카드 다음에 `<OverviewStrategyGrid pairs={pairs} isMobile={isMobile} />` 렌더링 필수.
 - **검증 필수**: 작성 후 Chrome DevTools Device Toolbar에서 393px / 1400px 두 폭에서 모든 탭 동작 확인
 
 ## 차트 주석 처리 규칙
