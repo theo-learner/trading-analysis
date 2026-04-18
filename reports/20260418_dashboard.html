@@ -389,15 +389,15 @@
           display: 'inline-flex',
           alignItems: 'center',
           gap: '4px',
-          padding: small ? '3px 8px' : '5px 10px',
+          padding: small ? '2px 8px' : '4px 10px',
           borderRadius: '999px',
           fontSize: small ? '10px' : '11px',
-          fontWeight: 700,
+          fontWeight: 600,
           background: color + '18',
           color,
           border: '1px solid ' + color + '35',
           whiteSpace: 'nowrap',
-          fontFamily: "'IBM Plex Sans', sans-serif",
+          fontFamily: "'Inconsolata', monospace",
         }}>{children}</span>
       );
     }
@@ -405,11 +405,10 @@
     function Card({ children, style }) {
       return (
         <div style={{
-          background: `linear-gradient(180deg, ${C.card} 0%, ${C.cardAlt} 100%)`,
-          borderRadius: '12px',
+          background: C.card,
+          borderRadius: '10px',
           padding: '16px',
           border: '1px solid ' + C.border,
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)',
           ...style,
         }}>
           {children}
@@ -421,10 +420,11 @@
       return (
         <div style={{
           fontSize: '10px',
-          color: C.sub,
+          fontFamily: "'Roboto', sans-serif",
+          fontWeight: 500,
+          color: C.dim,
           textTransform: 'uppercase',
-          letterSpacing: '1px',
-          fontWeight: 700,
+          letterSpacing: '0.08em',
           marginBottom: '10px',
         }}>
           {children}
@@ -444,16 +444,16 @@
     function TFPill({ active, onClick, children }) {
       return (
         <button onClick={onClick} style={{
-          padding: '6px 12px',
+          padding: '5px 12px',
           borderRadius: '999px',
           fontSize: '11px',
-          fontWeight: 700,
+          fontWeight: 600,
+          fontFamily: "'Inconsolata', monospace",
           cursor: 'pointer',
           border: '1px solid ' + (active ? C.primary : C.border),
-          background: active ? C.primary : C.panel,
+          background: active ? C.primary : C.surface,
           color: active ? '#ffffff' : C.sub,
           transition: 'background 0.15s, border-color 0.15s, color 0.15s',
-          boxShadow: active ? '0 0 0 1px rgba(12,92,171,0.25)' : 'none',
         }}>{children}</button>
       );
     }
@@ -465,15 +465,16 @@
             const active = selected === p.symbol;
             return (
               <button key={p.symbol} onClick={() => onSelect(p.symbol)} style={{
-                padding: '8px 14px',
-                borderRadius: '10px',
+                padding: '7px 14px',
+                borderRadius: '8px',
                 border: '1px solid ' + (active ? biasColor(p.bias) : C.border),
-                background: active ? biasColor(p.bias) + '18' : C.panel,
+                background: active ? biasColor(p.bias) + '18' : C.surface,
                 color: active ? C.text : C.sub,
                 fontSize: '12px',
                 fontWeight: 700,
+                fontFamily: "'Poppins', sans-serif",
                 cursor: 'pointer',
-                transition: 'background 0.15s, border-color 0.15s, color 0.15s',
+                transition: 'background 0.15s, border-color 0.15s',
               }}>{p.short}</button>
             );
           })}
