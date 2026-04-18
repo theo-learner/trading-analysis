@@ -733,7 +733,7 @@
             const kst = new Date(ev.time_kst);
             const kstLabel = (kst.getMonth()+1) + '/' + kst.getDate() + ' ' + String(kst.getHours()).padStart(2,'0') + ':' + String(kst.getMinutes()).padStart(2,'0') + ' KST';
             return (
-              <div key={ev.id} style={{ background: `linear-gradient(180deg, ${C.card} 0%, ${C.cardAlt} 100%)`, borderRadius: '12px', padding: '14px 16px', border: '1px solid ' + C.border, borderLeft: '4px solid ' + borderColor(ev.importance), boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)' }}>
+              <div key={ev.id} style={{ background: C.card, borderRadius: '10px', padding: '14px 16px', border: '1px solid ' + C.border, borderLeft: '3px solid ' + borderColor(ev.importance) }}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center', marginBottom: '6px' }}>
                   <span style={{ fontSize: '12px', fontWeight: 700, color: C.text }}>{kstLabel}</span>
                   <Badge color={ev.region === 'US' ? '#60a5fa' : ev.region === 'GEO' ? C.bear : C.neutral} small>{ev.region}</Badge>
@@ -972,7 +972,7 @@
       const ict = pair.ict?.[selectedTF] || {};
 
       return (
-        <div style={{ background: `linear-gradient(180deg, ${C.panel} 0%, ${C.card} 100%)`, borderRadius: '14px', padding: isMobile ? '14px' : '18px', border: '1px solid ' + C.borderStrong, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)' }}>
+        <div style={{ background: C.surface, borderRadius: '10px', padding: isMobile ? '14px' : '18px', border: '1px solid ' + C.border }}>
           <div style={{ display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', gap: '10px', marginBottom: '16px', paddingBottom: '14px', borderBottom: `1px solid ${C.card}` }}>
             <div>
               <span style={{ color: C.text, fontWeight: 700, fontSize: '15px' }}>{pair.symbol}</span>
@@ -1148,7 +1148,7 @@
                   if (!s) return null;
                   const c = key === 'bull' ? C.bull : key === 'bear' ? C.bear : C.neutral;
                   return (
-                    <div key={key} style={{ background: `linear-gradient(180deg, ${C.card} 0%, ${C.cardAlt} 100%)`, borderRadius: '12px', padding: '14px', border: '1px solid ' + c + '40', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)' }}>
+                    <div key={key} style={{ background: C.card, borderRadius: '10px', padding: '14px', border: '1px solid ' + C.border, borderTop: '3px solid ' + c }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                         <span style={{ fontSize: '12px', fontWeight: 700, color: c }}>{key.toUpperCase()}</span>
                         <span style={{ fontSize: '18px', fontWeight: 800, color: c }}>{s.prob}%</span>
