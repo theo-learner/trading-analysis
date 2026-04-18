@@ -63,3 +63,53 @@
 - Replaced the stale mobile snippet guidance with the selected-pair unified analysis pattern and clarified that section 5 and section 6 must be applied together.
 - Reworked `reports/20260418_dashboard.html` to use a single `분석` tab with `TFAlignmentBar`, `EWWaveStep`, `ICTGrid`, and `AnalysisTab` routing while preserving the existing 4/18 macro/orderflow/scenario/risk content.
 - Verified the repaired dashboard with the regression script and browser rendering; Playwright showed `분석` tab rendering with 0 runtime errors and only the expected Babel warning.
+
+# 2026-04-18 Global Stop Hook Zed Activation
+
+## Plan
+
+- [x] Inspect the global stop-hook implementation and confirm how notification clicks can trigger actions on macOS.
+- [x] Write and review a short design for activating Zed when the stop-hook notification is clicked.
+- [x] Update the global hook script under `~/.codex/hooks/` with a clickable-notification path and a safe fallback.
+- [x] Verify the hook manually and record the result plus any reusable lesson.
+
+## Review
+
+- Updated the global `Stop` hook implementation in `/Users/theo/.codex/hooks/zed-task-complete.sh` to prefer `terminal-notifier` with `-activate dev.zed.Zed`, while preserving `osascript` as a fallback when clickable notifications are unavailable.
+- Kept the existing payload-to-summary behavior and sound playback, but rewrote the Python summary extraction from a fragile heredoc form to a `python3 -c` form so `bash -n` passes reliably.
+- Verified the hook exits successfully with and without payload input, confirmed `open -b dev.zed.Zed` resolves the installed Zed bundle, and intercepted the notifier invocation to prove it sends the expected `-message` summary plus `-activate dev.zed.Zed`.
+
+# 2026-04-18 Dashboard Design Direction Review
+
+## Plan
+
+- [x] Inspect the current dashboard UI structure, tokens, and responsive patterns in `reports/20260418_dashboard.html`.
+- [x] Review TypeUI design skill candidates and compare them against this repo's data-dense trading dashboard use case.
+- [x] Choose a recommended design direction plus fallback options with explicit fit / risk reasoning.
+- [x] Write a phased application plan that can be executed without breaking the existing tab and data contracts.
+
+## Review
+
+- Recommended `Dashboard` as the base visual system because its cloud-platform dark theme, modular grids, semantic tokens, and data hierarchy align with this project's tabbed analytics dashboard structure.
+- Rejected `Perspective` as the primary system even though its layered hierarchy is strong, because the single green accent model conflicts with the existing bull / bear / neutral trading semantics. Kept it as a secondary influence for depth and section emphasis only.
+- Rejected `Paper` as the primary system because its white-surface, whitespace-heavy language would require a larger visual reset and works against the current long-session dark dashboard usage.
+- Planned a three-phase rollout:
+  1. Foundation pass: extract the current inline hex values into a richer token object, swap the system font for an engineering-grade family, and unify spacing / radius / stroke rules.
+  2. Structural pass: redesign header, tab bar, card shells, and section headers around stronger hierarchy while preserving the existing `Overview / Macro / 분석 / Orderflow / Scenarios / Risk` contract.
+  3. Accent pass: add restrained gradients, panel depth, and purposeful emphasis states to analysis, scenario, and risk surfaces without harming readability or mobile density.
+- Defined success criteria for the future implementation: faster tab scanning, clearer pair selection state, stronger separation between summary and detail zones, preserved mobile usability, and zero regression in existing dashboard data rendering.
+
+# 2026-04-18 Dashboard Redesign
+
+## Plan
+
+- [x] Align the dashboard token system and typography with the approved redesign direction.
+- [x] Rework shared controls and shell-level layout without changing the tab contract.
+- [x] Refresh tab-specific cards and emphasis states while preserving data rendering behavior.
+- [x] Verify desktop/mobile rendering and capture review notes plus lessons learned.
+
+## Review
+
+- Applied TypeUI Clean light theme: white surfaces, Poppins/Roboto/Inconsolata, #3B82F6 primary, underline tab active state.
+- Token swap + primitive updates handled 80% of the change; dark-only inset shadows and gradients required manual neutralization.
+- All tab contracts, data rendering, and mobile layout preserved.
