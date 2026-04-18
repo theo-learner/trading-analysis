@@ -114,8 +114,8 @@
       const levels4H = pair.levels?.['4H'] || {};
       const ict4H = pair.ict?.['4H'] || {};
       const ew4H = pair.ew?.['4H'] || {};
-      const support = dedupeLevels(levels4H.ssl || []);
-      const resistance = dedupeLevels(levels4H.bsl || []);
+      const support = dedupeLevels([...(levels4H.ssl || []), ...(levels4H.swing_lows || [])]);
+      const resistance = dedupeLevels([...(levels4H.bsl || []), ...(levels4H.swing_highs || [])]);
       const poi = asNumber(ict4H.poi_level);
       const poiAsBullCandidate = poi != null && price != null ? poi <= price * 1.01 : poi != null;
       const poiAsBearCandidate = poi != null && price != null ? poi > price : poi != null;

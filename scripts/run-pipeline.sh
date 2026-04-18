@@ -247,6 +247,8 @@ run_analyze() {
   log "📅 분석 대상: screenshots/${latest_date}/"
 
   # shell alias는 cron 환경에서 동작하지 않으므로 --dangerously-skip-permissions 명시
+  # 대시보드 HTML 생성량이 많아 기본 32000 토큰 한도 초과 방지
+  export CLAUDE_CODE_MAX_OUTPUT_TOKENS=60000
   if "$CLAUDE_BIN" --dangerously-skip-permissions --print \
     "오늘 날짜는 ${latest_date}입니다.
 screenshots/${latest_date}/ 폴더의 캡처 데이터를 사용하여
