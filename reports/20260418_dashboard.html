@@ -7,13 +7,21 @@
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Roboto:wght@400;500&family=Inconsolata:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #0b0e14; color: #e8eaed; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #131720; }
-    ::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
-    ::-webkit-scrollbar-corner { background: #131720; }
+    body {
+      background: #f5f7fa;
+      color: #111827;
+      font-family: 'Roboto', sans-serif;
+    }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: #f0f0f0; }
+    ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 999px; }
+    ::-webkit-scrollbar-corner { background: #f0f0f0; }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
   </style>
 </head>
 <body>
@@ -338,11 +346,28 @@
 
     // ─── CONSTANTS ────────────────────────────────────────────────────────────────
     const C = {
-      bg: '#0b0e14', panel: '#131720', card: '#1a1f2e',
-      text: '#e8eaed', sub: '#9ca3af', dim: '#6b7280',
-      border: '#2d3348',
-      bull: '#4ade80', bear: '#f87171', neutral: '#fbbf24',
-      heatHigh: '#f59e0b', cvdPos: '#22d3ee', cvdNeg: '#fb923c', convergence: '#a78bfa',
+      bg:           '#f5f7fa',
+      surface:      '#ffffff',
+      panel:        '#f9fafb',
+      card:         '#ffffff',
+      cardAlt:      '#f3f4f6',
+      elevated:     '#f3f4f6',
+      border:       '#e5e7eb',
+      borderStrong: '#d1d5db',
+      text:         '#111827',
+      sub:          '#6b7280',
+      dim:          '#9ca3af',
+      primary:      '#3B82F6',
+      primaryAlt:   '#2563eb',
+      primaryBg:    '#eff6ff',
+      primaryBorder:'#bfdbfe',
+      bull:         '#16a34a',
+      bear:         '#dc2626',
+      neutral:      '#d97706',
+      heatHigh:     '#b45309',
+      cvdPos:       '#0891b2',
+      cvdNeg:       '#ea580c',
+      convergence:  '#7c3aed',
     };
 
     // ─── UTILS ────────────────────────────────────────────────────────────────────
@@ -361,22 +386,32 @@
     function Badge({ color, children, small }) {
       return (
         <span style={{
-          display: 'inline-block',
-          padding: small ? '2px 6px' : '3px 8px',
-          borderRadius: '4px',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '4px',
+          padding: small ? '3px 8px' : '5px 10px',
+          borderRadius: '999px',
           fontSize: small ? '10px' : '11px',
           fontWeight: 700,
-          background: color + '20',
+          background: color + '18',
           color,
-          border: '1px solid ' + color + '40',
+          border: '1px solid ' + color + '35',
           whiteSpace: 'nowrap',
+          fontFamily: "'IBM Plex Sans', sans-serif",
         }}>{children}</span>
       );
     }
 
     function Card({ children, style }) {
       return (
-        <div style={{ background: C.card, borderRadius: '10px', padding: '16px', border: '1px solid ' + C.border, ...style }}>
+        <div style={{
+          background: `linear-gradient(180deg, ${C.card} 0%, ${C.cardAlt} 100%)`,
+          borderRadius: '12px',
+          padding: '16px',
+          border: '1px solid ' + C.border,
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)',
+          ...style,
+        }}>
           {children}
         </div>
       );
@@ -384,7 +419,14 @@
 
     function SectionTitle({ children }) {
       return (
-        <div style={{ fontSize: '11px', color: C.sub, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>
+        <div style={{
+          fontSize: '10px',
+          color: C.sub,
+          textTransform: 'uppercase',
+          letterSpacing: '1px',
+          fontWeight: 700,
+          marginBottom: '10px',
+        }}>
           {children}
         </div>
       );
@@ -402,25 +444,39 @@
     function TFPill({ active, onClick, children }) {
       return (
         <button onClick={onClick} style={{
-          padding: '4px 10px', borderRadius: '4px', fontSize: '11px', fontWeight: 700,
-          cursor: 'pointer', border: 'none',
-          background: active ? '#3b82f6' : C.border,
-          color: active ? '#fff' : C.sub,
+          padding: '6px 12px',
+          borderRadius: '999px',
+          fontSize: '11px',
+          fontWeight: 700,
+          cursor: 'pointer',
+          border: '1px solid ' + (active ? C.primary : C.border),
+          background: active ? C.primary : C.panel,
+          color: active ? '#ffffff' : C.sub,
+          transition: 'background 0.15s, border-color 0.15s, color 0.15s',
+          boxShadow: active ? '0 0 0 1px rgba(12,92,171,0.25)' : 'none',
         }}>{children}</button>
       );
     }
 
     function PairSelector({ pairs, selected, onSelect }) {
       return (
-        <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
-          {pairs.map(p => (
-            <button key={p.symbol} onClick={() => onSelect(p.symbol)} style={{
-              padding: '6px 12px', borderRadius: '6px', border: 'none', cursor: 'pointer',
-              fontSize: '12px', fontWeight: 700,
-              background: selected === p.symbol ? biasColor(p.bias) : C.card,
-              color: selected === p.symbol ? '#000' : C.text,
-            }}>{p.short}</button>
-          ))}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
+          {pairs.map(p => {
+            const active = selected === p.symbol;
+            return (
+              <button key={p.symbol} onClick={() => onSelect(p.symbol)} style={{
+                padding: '8px 14px',
+                borderRadius: '10px',
+                border: '1px solid ' + (active ? biasColor(p.bias) : C.border),
+                background: active ? biasColor(p.bias) + '18' : C.panel,
+                color: active ? C.text : C.sub,
+                fontSize: '12px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'background 0.15s, border-color 0.15s, color 0.15s',
+              }}>{p.short}</button>
+            );
+          })}
         </div>
       );
     }
@@ -676,7 +732,7 @@
             const kst = new Date(ev.time_kst);
             const kstLabel = (kst.getMonth()+1) + '/' + kst.getDate() + ' ' + String(kst.getHours()).padStart(2,'0') + ':' + String(kst.getMinutes()).padStart(2,'0') + ' KST';
             return (
-              <div key={ev.id} style={{ background: C.card, borderRadius: '8px', padding: '14px 16px', borderLeft: '4px solid ' + borderColor(ev.importance) }}>
+              <div key={ev.id} style={{ background: `linear-gradient(180deg, ${C.card} 0%, ${C.cardAlt} 100%)`, borderRadius: '12px', padding: '14px 16px', border: '1px solid ' + C.border, borderLeft: '4px solid ' + borderColor(ev.importance), boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)' }}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center', marginBottom: '6px' }}>
                   <span style={{ fontSize: '12px', fontWeight: 700, color: C.text }}>{kstLabel}</span>
                   <Badge color={ev.region === 'US' ? '#60a5fa' : ev.region === 'GEO' ? C.bear : C.neutral} small>{ev.region}</Badge>
@@ -818,8 +874,8 @@
       const current = normalizeWave(ew?.current_wave);
 
       return (
-        <div style={{ background: C.bg, borderRadius: '8px', padding: '12px' }}>
-          <div style={{ color: C.heatHigh, fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', marginBottom: '8px' }}>EW 파동 위치</div>
+        <div style={{ background: C.elevated, borderRadius: '10px', padding: '12px', border: '1px solid ' + C.border }}>
+          <div style={{ color: C.heatHigh, fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '8px' }}>EW 파동 위치</div>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', overflowX: 'auto', paddingBottom: '2px' }}>
             {ALL_WAVES.map((wave, index) => {
               const isDone = completed.includes(wave);
@@ -842,19 +898,19 @@
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: ew?.target != null ? '1fr 1fr' : '1fr', gap: '5px' }}>
             {ew?.target != null && (
-              <div style={{ background: C.panel, borderRadius: '5px', padding: '6px' }}>
+              <div style={{ background: C.panel, borderRadius: '6px', padding: '7px', border: '1px solid ' + C.border }}>
                 <div style={{ color: C.sub, fontSize: '9px' }}>타겟</div>
                 <div style={{ color: C.cvdPos, fontWeight: 700, fontSize: '11px' }}>{fmtAnalysisPrice(ew.target)}</div>
               </div>
             )}
             {ew?.confirmation && (
-              <div style={{ background: C.panel, borderRadius: '5px', padding: '6px' }}>
+              <div style={{ background: C.panel, borderRadius: '6px', padding: '7px', border: '1px solid ' + C.border }}>
                 <div style={{ color: C.sub, fontSize: '9px' }}>확인 ✓</div>
                 <div style={{ color: C.bull, fontWeight: 700, fontSize: '10px', lineHeight: '1.3' }}>{ew.confirmation}</div>
               </div>
             )}
             {ew?.invalidation && (
-              <div style={{ background: C.panel, borderRadius: '5px', padding: '6px', gridColumn: ew?.target != null ? '1 / -1' : 'auto' }}>
+              <div style={{ background: C.panel, borderRadius: '6px', padding: '7px', border: '1px solid ' + C.border, gridColumn: ew?.target != null ? '1 / -1' : 'auto' }}>
                 <div style={{ color: C.sub, fontSize: '9px' }}>무효화 ✗</div>
                 <div style={{ color: C.bear, fontWeight: 700, fontSize: '10px', lineHeight: '1.3' }}>{ew.invalidation}</div>
               </div>
@@ -870,8 +926,8 @@
       const structureArrow = normalizedDirection === 'bullish' ? '▲' : normalizedDirection === 'bearish' ? '▼' : '↔';
 
       return (
-        <div style={{ background: C.bg, borderRadius: '8px', padding: '12px' }}>
-          <div style={{ color: C.cvdPos, fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', marginBottom: '8px' }}>ICT</div>
+        <div style={{ background: C.elevated, borderRadius: '10px', padding: '12px', border: '1px solid ' + C.border }}>
+          <div style={{ color: C.cvdPos, fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '8px' }}>ICT</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px', marginBottom: ict?.smt ? '6px' : 0 }}>
             <div style={{ background: '#4ade8010', border: '1px solid #4ade8025', borderRadius: '5px', padding: '7px' }}>
               <div style={{ color: C.bull, fontSize: '9px', fontWeight: 700, marginBottom: '2px' }}>구조</div>
@@ -915,7 +971,7 @@
       const ict = pair.ict?.[selectedTF] || {};
 
       return (
-        <div style={{ background: C.panel, borderRadius: '10px', padding: isMobile ? '14px' : '18px' }}>
+        <div style={{ background: `linear-gradient(180deg, ${C.panel} 0%, ${C.card} 100%)`, borderRadius: '14px', padding: isMobile ? '14px' : '18px', border: '1px solid ' + C.borderStrong, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)' }}>
           <div style={{ display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', gap: '10px', marginBottom: '16px', paddingBottom: '14px', borderBottom: `1px solid ${C.card}` }}>
             <div>
               <span style={{ color: C.text, fontWeight: 700, fontSize: '15px' }}>{pair.symbol}</span>
@@ -942,7 +998,7 @@
           </div>
 
           {pair.confluence && pair.confluence.length > 0 && (
-            <div style={{ background: C.bg, borderRadius: '8px', padding: '12px', marginBottom: '12px' }}>
+            <div style={{ background: C.elevated, borderRadius: '10px', padding: '12px', border: '1px solid ' + C.border, marginBottom: '12px' }}>
               <div style={{ color: C.sub, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>컨플루언스 요약</div>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 {pair.confluence.map((item, index) => (
@@ -1091,7 +1147,7 @@
                   if (!s) return null;
                   const c = key === 'bull' ? C.bull : key === 'bear' ? C.bear : C.neutral;
                   return (
-                    <div key={key} style={{ background: C.card, borderRadius: '8px', padding: '14px', border: '1px solid ' + c + '40' }}>
+                    <div key={key} style={{ background: `linear-gradient(180deg, ${C.card} 0%, ${C.cardAlt} 100%)`, borderRadius: '12px', padding: '14px', border: '1px solid ' + c + '40', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                         <span style={{ fontSize: '12px', fontWeight: 700, color: c }}>{key.toUpperCase()}</span>
                         <span style={{ fontSize: '18px', fontWeight: 800, color: c }}>{s.prob}%</span>
@@ -1120,7 +1176,7 @@
           </Card>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '12px' }}>
             {pairs.map(p => (
-              <Card key={p.symbol}>
+              <Card key={p.symbol} style={{ border: '1px solid ' + (p.bias === 'bull' ? C.bull + '40' : p.bias === 'bear' ? C.bear + '40' : C.borderStrong) }}>
                 <div style={{ fontSize: '14px', fontWeight: 800, color: C.text, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   {p.short} <Badge color={biasColor(p.bias)}>{p.biasLabel}</Badge>
                 </div>
@@ -1175,8 +1231,8 @@
         if (activeBtn) activeBtn.scrollIntoView({ inline: 'center', behavior: 'smooth' });
       }, [activeTab, isMobile]);
 
-      const contentPadding = isMobile ? '14px 12px' : '20px 24px';
-      const headerPadding = isMobile ? '12px' : '14px 24px';
+      const contentPadding = isMobile ? '14px 12px 18px' : '22px 24px 24px';
+      const headerPadding = isMobile ? '14px 12px' : '18px 24px';
 
       let tabContent;
       if (activeTab === 'Overview')     tabContent = <OverviewTab pairs={PAIRS} isMobile={isMobile} />;
@@ -1188,22 +1244,26 @@
 
       return (
         <div style={{ minHeight: '100vh', background: C.bg }}>
-          <div style={{ background: C.panel, borderBottom: '1px solid ' + C.border, padding: headerPadding }}>
+          <div style={{
+            background: 'linear-gradient(180deg, rgba(16,21,34,0.98) 0%, rgba(16,21,34,0.92) 100%)',
+            borderBottom: '1px solid ' + C.borderStrong,
+            padding: headerPadding,
+          }}>
             {isMobile ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div>
-                  <div style={{ fontSize: '16px', fontWeight: 700, color: C.text, marginBottom: '2px' }}>Crypto Futures Analysis</div>
-                  <div style={{ fontSize: '11px', color: C.dim }}>2026-04-18 · EW + ICT/SMC + Orderflow</div>
+                  <div style={{ fontSize: '18px', fontWeight: 700, color: C.text, letterSpacing: '-0.3px', fontFamily: "'IBM Plex Sans', sans-serif" }}>Crypto Futures Analysis</div>
+                  <div style={{ fontSize: '11px', color: C.dim, marginTop: '2px' }}>2026-04-18 · EW + ICT/SMC + Orderflow</div>
                 </div>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                  {PAIRS.map(p => <Badge key={p.symbol} color={biasColor(p.bias)}>{p.short}: {p.biasLabel}</Badge>)}
+                  {PAIRS.map(p => <Badge key={p.symbol} color={biasColor(p.bias)} small>{p.short}: {p.biasLabel}</Badge>)}
                 </div>
               </div>
             ) : (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontSize: '18px', fontWeight: 700, color: C.text }}>Crypto Futures Analysis</div>
-                  <div style={{ fontSize: '12px', color: C.dim }}>2026-04-18 · EW + ICT/SMC + Orderflow · BTC $77,054 / ETH $2,421 / SOL $88.9 / HYPE $44.5</div>
+                  <div style={{ fontSize: '22px', fontWeight: 700, color: C.text, letterSpacing: '-0.5px', fontFamily: "'IBM Plex Sans', sans-serif" }}>Crypto Futures Analysis</div>
+                  <div style={{ fontSize: '12px', color: C.dim, marginTop: '3px', fontFamily: "'IBM Plex Mono', monospace" }}>2026-04-18 · EW + ICT/SMC + Orderflow · BTC $77,054 / ETH $2,421 / SOL $88.9 / HYPE $44.5</div>
                 </div>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   {PAIRS.map(p => <Badge key={p.symbol} color={biasColor(p.bias)}>{p.short}: {p.biasLabel}</Badge>)}
@@ -1212,19 +1272,33 @@
             )}
           </div>
 
-          <div ref={tabBarRef} style={{ background: C.panel, borderBottom: '1px solid ' + C.border, display: 'flex', overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          <div ref={tabBarRef} style={{
+            background: C.panel,
+            borderBottom: '1px solid ' + C.border,
+            display: 'flex',
+            gap: '4px',
+            overflowX: 'auto',
+            padding: isMobile ? '8px 12px' : '8px 24px',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+          }}>
             {TABS.map(tab => (
               <button
                 key={tab}
                 data-active={activeTab === tab ? 'true' : 'false'}
                 onClick={() => setActiveTab(tab)}
                 style={{
-                  padding: isMobile ? '14px 14px' : '12px 16px',
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  fontSize: '13px', fontWeight: activeTab === tab ? 700 : 400,
+                  padding: isMobile ? '10px 14px' : '9px 16px',
+                  background: activeTab === tab ? C.cardAlt : 'transparent',
+                  border: '1px solid ' + (activeTab === tab ? C.borderStrong : 'transparent'),
+                  borderRadius: '999px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: activeTab === tab ? 700 : 500,
                   color: activeTab === tab ? C.text : C.sub,
-                  borderBottom: activeTab === tab ? '2px solid #3b82f6' : '2px solid transparent',
-                  whiteSpace: 'nowrap', flexShrink: 0,
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                  transition: 'background 0.15s, border-color 0.15s, color 0.15s',
                 }}
               >{tab}</button>
             ))}
@@ -1239,7 +1313,7 @@
             display: 'flex', flexDirection: isMobile ? 'column' : 'row',
             justifyContent: 'space-between', gap: isMobile ? '4px' : '0',
             alignItems: isMobile ? 'flex-start' : 'center',
-            fontSize: '11px', color: '#374151',
+            fontSize: '11px', color: C.dim,
           }}>
             <span>데이터 기준: 2026-04-18 00:00 UTC · TradingView + Coinalyze API + Coinglass</span>
             <span>본 분석은 투자 참고용이며 투자 손익에 대한 책임은 본인에게 있습니다</span>
