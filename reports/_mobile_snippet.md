@@ -115,13 +115,43 @@ function OverviewTab({ pairs, selectedPair, onSelectPair, isMobile }) {
 
 ---
 
-## 5. EW / ICT / Risk — Accordion (모바일)
+## 5. 분석 / Risk — 모바일 패턴
 
 ```jsx
-function EWTab({ pairs, selectedPair, isMobile }) {
-  const [expanded, setExpanded] = React.useState(selectedPair);
-  const toggle = sym => setExpanded(prev => prev === sym ? null : sym);
+function AnalysisTab({ pairs, selectedPair, onSelectPair, isMobile }) {
+  const pair = pairs.find(item => item.symbol === selectedPair) || pairs[0];
 
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+        {pairs.map(item => (
+          <button
+            key={item.symbol}
+            onClick={() => onSelectPair(item.symbol)}
+            style={{
+              background: selectedPair === item.symbol ? '#f59e0b22' : '#1a1f2e',
+              color: selectedPair === item.symbol ? '#f59e0b' : '#9ca3af',
+              border: 'none',
+              borderRadius: '6px',
+              padding: isMobile ? '8px 14px' : '6px 16px',
+              fontSize: '12px',
+              fontWeight: selectedPair === item.symbol ? 700 : 400,
+              cursor: 'pointer',
+            }}
+          >
+            {item.short}
+          </button>
+        ))}
+      </div>
+      <AnalysisCard p={pair} isMobile={isMobile} />
+    </div>
+  );
+}
+
+// AnalysisCard 내부는 shared TF selector + TFAlignmentBar + EWWaveStep + ICTGrid 조합을 사용한다.
+// 모바일에서도 separate EW/ICT accordion을 만들지 않는다.
+
+function RiskTab({ pairs, selectedPair, onSelectPair, isMobile }) {
   if (!isMobile) {
     return (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
@@ -130,27 +160,15 @@ function EWTab({ pairs, selectedPair, isMobile }) {
     );
   }
 
+  const pair = pairs.find(item => item.symbol === selectedPair) || pairs[0];
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      {pairs.map(p => {
-        const isOpen = expanded === p.symbol;
-        return (
-          <div key={p.symbol} style={{ background: '#1a1f2e', borderRadius: '8px', overflow: 'hidden' }}>
-            <div onClick={() => toggle(p.symbol)} style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              padding: '14px 16px', cursor: 'pointer'
-            }}>
-              <span style={{ fontSize: '15px', fontWeight: 700, color: '#e8eaed' }}>{p.short}</span>
-              <span style={{ color: '#6b7280', fontSize: '16px' }}>{isOpen ? '▲' : '▼'}</span>
-            </div>
-            {isOpen && (
-              <div style={{ padding: '0 16px 16px' }}>
-                {/* 카드 본문 */}
-              </div>
-            )}
-          </div>
-        );
-      })}
+    <div>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+        {pairs.map(item => (
+          <button key={item.symbol} onClick={() => onSelectPair(item.symbol)}>{item.short}</button>
+        ))}
+      </div>
+      <Card>{/* selected pair risk body */}</Card>
     </div>
   );
 }
@@ -346,8 +364,8 @@ gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)'
 // Liquidation heatmap
 gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)'
 
-// EW/ICT pair cards (desktop)
-gridTemplateColumns: 'repeat(2, 1fr)'  // accordion으로 대체, 이건 desktop-only
+// 분석/Risk selected-pair detail view
+gridTemplateColumns: 'repeat(2, 1fr)'  // 분석 카드 내부 2열(EW + ICT) 전용, separate EW/ICT tabs 금지
 
 // 롱/숏 셋업 내부 (항상 유지)
 gridTemplateColumns: '1fr 1fr'

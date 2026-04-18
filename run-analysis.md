@@ -106,7 +106,7 @@ standalone HTML 형식:
 - 텍스트: 주요 `#e8eaed`, 보조 `#9ca3af`
 - 강세 `#4ade80`, 약세 `#f87171`, 중립 `#fbbf24`
 - 오더플로우 색상: 히트맵고밀도 `#f59e0b`, CVD양수 `#22d3ee`, CVD음수 `#fb923c`, 수렴 `#a78bfa`
-- 탭 구조: Overview / Macro / Elliott Wave / ICT / Orderflow / Scenarios / Risk
+- 탭 구조: Overview / Macro / 분석 / Orderflow / Scenarios / Risk
 - **Macro 탭 규격**:
   - 데이터: `events.json`을 JSX 내 `const MACRO_EVENTS = [...]` 상수로 임베드 (`PAIRS` const와 동일한 패턴)
   - 레이아웃: 시간순(KST) 타임라인 카드 리스트
@@ -117,6 +117,26 @@ standalone HTML 형식:
   - 하단: `impact_assets` 뱃지(`#4ade80` 아웃라인) + source 링크
   - 빈 상태: "No macro events in 36h window" (`#9ca3af`)
   - 탭 패턴 준수: `tabContent` 변수 패턴 필수, `renderTab()` 함수 금지
+- **분석 탭 규격**:
+  - `Elliott Wave` 탭과 `ICT` 탭을 따로 만들지 말고 하나의 `분석` 탭으로 통합한다
+  - 필수 컴포넌트: `AnalysisTab`, `AnalysisCard`, `TFAlignmentBar`, `EWWaveStep`, `ICTGrid`
+  - 금지 패턴: `EWTab`, `ICTTab`, 탭 배열 내 `Elliott Wave`, `ICT`
+  - 탭 내부 흐름: 상단 `selectedPair` 버튼 그룹 → 내부 TF selector(`1D / 4H / 1H`) → 좌측 `EWWaveStep`, 우측 `ICTGrid`
+  - 상단 요약 바는 3개 TF를 동시에 보여야 하며, 각 칸에 `EW current_wave`와 `ICT structure_tag`를 함께 표시한다
+  - 텍스트 토글 영역에서만 기존 서술형 EW/ICT 텍스트(`count`, `detail`, `structure`, `poi`, `liquidity`, `killzone`, `smt`)를 보존한다
+  - `PAIRS` 루트에 `confluence` 배열을 포함하고, 카드 본문에 배지 형태로 렌더링한다
+  - 데이터 계약:
+    - `ew[TF].direction`: `long | short | neutral`
+    - `ew[TF].current_wave`: 파동 식별자 문자열
+    - `ew[TF].completed_waves`: 배열
+    - `ew[TF].target`: number 또는 `null`
+    - `ict[TF].structure_tag`: `BOS | MSS | CHoCH` 또는 `null`
+    - `ict[TF].structure_direction`: `bullish | bearish | neutral`
+    - `ict[TF].poi_level`, `ict[TF].bsl`, `ict[TF].ssl`: number 또는 `null`
+  - 위 신규 필드가 비어 있으면 해당 셀은 `"—"`를 표시하고, 임의 추정값을 생성하지 않는다
+- **스니펫 사용 규칙**:
+  - `reports/_mobile_snippet.md` 섹션 5와 섹션 6을 모두 반영한다
+  - 섹션 5는 통합 `분석` 탭 + `Risk` 탭의 모바일 패턴이고, 섹션 6은 Overview 전략 추천 필수 코드다
 
 ## 데이터 우선순위 규칙
 - `_data.txt` 수치와 차트 픽셀 읽기가 충돌하면 txt 우선

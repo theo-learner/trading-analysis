@@ -722,132 +722,274 @@
       );
     }
 
-    function EWTab({ pairs, isMobile }) {
-      const [selPair, setSelPair] = React.useState('BTCUSDT');
-      const [selTF, setSelTF] = React.useState('4H');
-      const TFS = ['1D', '4H', '1H'];
+    function normalizeAnalysisDirection(direction) {
+      const value = String(direction || '').toLowerCase();
+      if (value === 'long' || value.includes('bull') || value.includes('recover')) return 'long';
+      if (value === 'short' || value.includes('bear')) return 'short';
+      return 'neutral';
+    }
 
-      const renderCard = p => {
-        const ew = p.ew[selTF];
-        const ema = p.ema[selTF];
-        const rsi = p.rsi[selTF];
-        const lvl = p.levels[selTF];
-        const trend = emaTrend(ema);
-        return (
-          <Card key={p.symbol}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <span style={{ fontSize: '14px', fontWeight: 800, color: C.text }}>{p.short}</span>
-              <Badge color={trend.color}>{trend.label}</Badge>
-            </div>
-            <KVRow label="현재 파동" value={ew?.current_wave || '—'} />
-            <KVRow label="완성 파동" value={ew?.completed_waves || '—'} />
-            <KVRow label="목표가" value={ew?.target ? '$' + Number(ew.target).toLocaleString() : '—'} />
-            <KVRow label="방향" value={ew?.direction || '—'} />
-            <div style={{ borderTop: '1px solid ' + C.border, paddingTop: '8px', marginTop: '8px' }}>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
-                <span style={{ fontSize: '11px', color: C.sub }}>EMA7 <span style={{ color: C.text }}>{ema.e7.toLocaleString()}</span></span>
-                <span style={{ fontSize: '11px', color: C.sub }}>EMA50 <span style={{ color: C.text }}>{ema.e50.toLocaleString()}</span></span>
-                <span style={{ fontSize: '11px', color: C.sub }}>EMA200 <span style={{ color: C.text }}>{ema.e200.toLocaleString()}</span></span>
-                <span style={{ fontSize: '11px', color: C.sub }}>RSI <span style={{ color: rsi < 30 ? C.bull : rsi > 70 ? C.bear : C.text }}>{rsi}</span></span>
-              </div>
-            </div>
-            {lvl && (
-              <div style={{ borderTop: '1px solid ' + C.border, paddingTop: '8px', marginTop: '8px', display: 'grid', gap: '6px' }}>
-                <div><div style={{ fontSize: '10px', color: C.dim, marginBottom: '3px' }}>Bull OB</div><LevelPills values={lvl.ob?.bull} color={C.bull} /></div>
-                <div><div style={{ fontSize: '10px', color: C.dim, marginBottom: '3px' }}>Bear OB</div><LevelPills values={lvl.ob?.bear} color={C.bear} /></div>
-                <div><div style={{ fontSize: '10px', color: C.dim, marginBottom: '3px' }}>Swing Highs</div><LevelPills values={lvl.swing_highs} color={C.heatHigh} /></div>
-                <div><div style={{ fontSize: '10px', color: C.dim, marginBottom: '3px' }}>Swing Lows</div><LevelPills values={lvl.swing_lows} color={C.convergence} /></div>
-              </div>
-            )}
-          </Card>
-        );
-      };
+    function normalizeWave(value) {
+      if (value == null) return null;
+      const raw = String(value).trim();
+      if (/^W[1-5]$/i.test(raw)) return raw.toUpperCase();
+      if (/^[1-5]$/.test(raw)) return `W${raw}`;
+      if (raw === 'B_or_1') return 'W1';
+      if (raw === 'C_or_3') return 'W3';
+      return raw;
+    }
 
-      if (isMobile) {
-        const p = pairs.find(x => x.symbol === selPair) || pairs[0];
-        return (
-          <div>
-            <PairSelector pairs={pairs} selected={selPair} onSelect={setSelPair} />
-            <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
-              {TFS.map(tf => <TFPill key={tf} active={selTF === tf} onClick={() => setSelTF(tf)}>{tf}</TFPill>)}
-            </div>
-            {renderCard(p)}
-          </div>
-        );
+    function normalizeCompletedWaves(value) {
+      if (Array.isArray(value)) {
+        return value.map(normalizeWave).filter(wave => /^W[1-5]$/.test(wave || ''));
       }
+      if (typeof value !== 'string') return [];
+      const matches = value.match(/\bW?[1-5]\b/g) || [];
+      return [...new Set(matches.map(item => normalizeWave(item)).filter(wave => /^W[1-5]$/.test(wave || '')))];
+    }
+
+    function normalizeStructureTag(tag) {
+      const value = String(tag || '').toUpperCase();
+      if (value.includes('BOS')) return 'BOS';
+      if (value.includes('MSS')) return 'MSS';
+      if (value.includes('CHOCH')) return 'CHoCH';
+      return null;
+    }
+
+    function normalizeStructureDirection(direction) {
+      const value = String(direction || '').toLowerCase();
+      if (value.includes('bull')) return 'bullish';
+      if (value.includes('bear')) return 'bearish';
+      return 'neutral';
+    }
+
+    function tfDirStyle(direction) {
+      const normalized = normalizeAnalysisDirection(direction);
+      if (normalized === 'long') return { bg: '#4ade8015', border: '#4ade8040', color: '#4ade80', label: '▲ 상승' };
+      if (normalized === 'short') return { bg: '#f8717115', border: '#f8717140', color: '#f87171', label: '▼ 하락' };
+      return { bg: '#fbbf2415', border: '#fbbf2440', color: '#fbbf24', label: '↔ 중립' };
+    }
+
+    function structureLabel(tag, direction) {
+      const normalizedTag = normalizeStructureTag(tag);
+      if (!normalizedTag) return null;
+      const normalizedDirection = normalizeStructureDirection(direction);
+      const arrow = normalizedDirection === 'bullish' ? '▲' : normalizedDirection === 'bearish' ? '▼' : '↔';
+      return `ICT ${arrow}${normalizedTag}`;
+    }
+
+    function fmtAnalysisPrice(value) {
+      return value != null ? '$' + Number(value).toLocaleString() : '—';
+    }
+
+    function TFAlignmentBar({ pair, tfs }) {
+      return (
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+          {tfs.map(tf => {
+            const ew = pair.ew?.[tf] || {};
+            const ict = pair.ict?.[tf] || {};
+            const directionStyle = tfDirStyle(ew.direction);
+            const ictLabel = structureLabel(ict.structure_tag, ict.structure_direction);
+            return (
+              <div key={tf} style={{ flex: 1, background: directionStyle.bg, border: `1px solid ${directionStyle.border}`, borderRadius: '7px', padding: '10px', minWidth: 0 }}>
+                <div style={{ color: C.sub, fontSize: '10px', marginBottom: '4px' }}>{tf}</div>
+                <div style={{ color: directionStyle.color, fontWeight: 700, fontSize: '13px' }}>{directionStyle.label}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '5px' }}>
+                  <span style={{ color: C.heatHigh, fontSize: '10px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    EW {normalizeWave(ew.current_wave) || '—'}
+                  </span>
+                  {ictLabel && (
+                    <span style={{ color: C.cvdPos, fontSize: '10px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {ictLabel}
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    const ALL_WAVES = ['W1', 'W2', 'W3', 'W4', 'W5'];
+
+    function EWWaveStep({ ew }) {
+      const completed = normalizeCompletedWaves(ew?.completed_waves);
+      const current = normalizeWave(ew?.current_wave);
 
       return (
-        <div>
-          <div style={{ display: 'flex', gap: '6px', marginBottom: '14px' }}>
-            {TFS.map(tf => <TFPill key={tf} active={selTF === tf} onClick={() => setSelTF(tf)}>{tf}</TFPill>)}
+        <div style={{ background: C.bg, borderRadius: '8px', padding: '12px' }}>
+          <div style={{ color: C.heatHigh, fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', marginBottom: '8px' }}>EW 파동 위치</div>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', overflowX: 'auto', paddingBottom: '2px' }}>
+            {ALL_WAVES.map((wave, index) => {
+              const isDone = completed.includes(wave);
+              const isCurrent = current === wave;
+              const boxStyle = isDone
+                ? { background: '#4ade8033', border: `2px solid ${C.bull}`, color: C.bull }
+                : isCurrent
+                  ? { background: '#f59e0b22', border: `2px solid ${C.heatHigh}`, color: C.heatHigh }
+                  : { background: C.card, border: `1px solid ${C.border}`, color: '#4b5563' };
+              const lineColor = isDone ? C.bull : isCurrent ? C.heatHigh : C.border;
+              return (
+                <React.Fragment key={wave}>
+                  <div style={{ ...boxStyle, borderRadius: '4px', padding: '4px 7px', fontSize: '10px', fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap' }}>
+                    {wave}{isDone ? '✓' : isCurrent ? '◀' : ''}
+                  </div>
+                  {index < ALL_WAVES.length - 1 && <div style={{ height: '2px', width: '10px', background: lineColor, flexShrink: 0 }} />}
+                </React.Fragment>
+              );
+            })}
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
-            {pairs.map(renderCard)}
+          <div style={{ display: 'grid', gridTemplateColumns: ew?.target != null ? '1fr 1fr' : '1fr', gap: '5px' }}>
+            {ew?.target != null && (
+              <div style={{ background: C.panel, borderRadius: '5px', padding: '6px' }}>
+                <div style={{ color: C.sub, fontSize: '9px' }}>타겟</div>
+                <div style={{ color: C.cvdPos, fontWeight: 700, fontSize: '11px' }}>{fmtAnalysisPrice(ew.target)}</div>
+              </div>
+            )}
+            {ew?.confirmation && (
+              <div style={{ background: C.panel, borderRadius: '5px', padding: '6px' }}>
+                <div style={{ color: C.sub, fontSize: '9px' }}>확인 ✓</div>
+                <div style={{ color: C.bull, fontWeight: 700, fontSize: '10px', lineHeight: '1.3' }}>{ew.confirmation}</div>
+              </div>
+            )}
+            {ew?.invalidation && (
+              <div style={{ background: C.panel, borderRadius: '5px', padding: '6px', gridColumn: ew?.target != null ? '1 / -1' : 'auto' }}>
+                <div style={{ color: C.sub, fontSize: '9px' }}>무효화 ✗</div>
+                <div style={{ color: C.bear, fontWeight: 700, fontSize: '10px', lineHeight: '1.3' }}>{ew.invalidation}</div>
+              </div>
+            )}
           </div>
         </div>
       );
     }
 
-    function ICTTab({ pairs, isMobile }) {
-      const [selPair, setSelPair] = React.useState('BTCUSDT');
-      const [selTF, setSelTF] = React.useState('4H');
-      const TFS = ['1D', '4H', '1H'];
+    function ICTGrid({ ict }) {
+      const normalizedDirection = normalizeStructureDirection(ict?.structure_direction);
+      const normalizedTag = normalizeStructureTag(ict?.structure_tag);
+      const structureArrow = normalizedDirection === 'bullish' ? '▲' : normalizedDirection === 'bearish' ? '▼' : '↔';
 
-      const renderCard = p => {
-        const ict = p.ict[selTF];
-        const lvl = p.levels[selTF];
-        const dirColor = ict?.structure_direction?.includes('bull') ? C.bull : ict?.structure_direction?.includes('bear') ? C.bear : C.neutral;
-        return (
-          <Card key={p.symbol}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <span style={{ fontSize: '14px', fontWeight: 800, color: C.text }}>{p.short}</span>
-              <Badge color={dirColor}>{ict?.structure_tag || '—'}</Badge>
+      return (
+        <div style={{ background: C.bg, borderRadius: '8px', padding: '12px' }}>
+          <div style={{ color: C.cvdPos, fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', marginBottom: '8px' }}>ICT</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px', marginBottom: ict?.smt ? '6px' : 0 }}>
+            <div style={{ background: '#4ade8010', border: '1px solid #4ade8025', borderRadius: '5px', padding: '7px' }}>
+              <div style={{ color: C.bull, fontSize: '9px', fontWeight: 700, marginBottom: '2px' }}>구조</div>
+              <div style={{ color: C.text, fontWeight: 600, fontSize: '11px' }}>{normalizedTag ? `${structureArrow} ${normalizedTag}` : '—'}</div>
             </div>
-            <KVRow label="구조 방향" value={ict?.structure_direction || '—'} valueColor={dirColor} />
-            <KVRow label="POI 레벨" value={ict?.poi_level ? '$' + Number(ict.poi_level).toLocaleString() : '—'} />
-            <KVRow label="BSL" value={ict?.bsl ? '$' + Number(ict.bsl).toLocaleString() : '—'} valueColor={C.bull} />
-            <KVRow label="SSL" value={ict?.ssl ? '$' + Number(ict.ssl).toLocaleString() : '—'} valueColor={C.bear} />
-            {lvl && (
-              <div style={{ borderTop: '1px solid ' + C.border, paddingTop: '8px', marginTop: '8px', display: 'grid', gap: '6px' }}>
-                <div><div style={{ fontSize: '10px', color: C.dim, marginBottom: '3px' }}>FVG Bull</div><LevelPills values={lvl.fvg?.bull} color={C.cvdPos} /></div>
-                <div><div style={{ fontSize: '10px', color: C.dim, marginBottom: '3px' }}>FVG Bear</div><LevelPills values={lvl.fvg?.bear} color={C.cvdNeg} /></div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                  <div>
-                    <div style={{ fontSize: '10px', color: C.dim, marginBottom: '3px' }}>BSL 목록</div>
-                    <LevelPills values={lvl.bsl} color={C.bull} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '10px', color: C.dim, marginBottom: '3px' }}>SSL 목록</div>
-                    <LevelPills values={lvl.ssl} color={C.bear} />
-                  </div>
-                </div>
+            <div style={{ background: '#f59e0b10', border: '1px solid #f59e0b25', borderRadius: '5px', padding: '7px' }}>
+              <div style={{ color: C.heatHigh, fontSize: '9px', fontWeight: 700, marginBottom: '2px' }}>POI</div>
+              <div style={{ color: C.text, fontWeight: 600, fontSize: '11px' }}>{fmtAnalysisPrice(ict?.poi_level)}</div>
+            </div>
+            <div style={{ background: '#22d3ee10', border: '1px solid #22d3ee25', borderRadius: '5px', padding: '7px' }}>
+              <div style={{ color: C.cvdPos, fontSize: '9px', fontWeight: 700, marginBottom: '2px' }}>유동성</div>
+              <div style={{ color: C.text, fontWeight: 600, fontSize: '11px' }}>BSL {fmtAnalysisPrice(ict?.bsl)}</div>
+              <div style={{ color: C.sub, fontSize: '9px' }}>SSL {fmtAnalysisPrice(ict?.ssl)}</div>
+            </div>
+            <div style={{ background: '#a78bfa10', border: '1px solid #a78bfa25', borderRadius: '5px', padding: '7px' }}>
+              <div style={{ color: C.convergence, fontSize: '9px', fontWeight: 700, marginBottom: '2px' }}>구조 방향</div>
+              <div style={{ color: C.sub, fontSize: '10px', lineHeight: '1.4' }}>{normalizedDirection}</div>
+            </div>
+          </div>
+          {ict?.smt && (
+            <div style={{ background: '#fb923c10', border: '1px solid #fb923c25', borderRadius: '5px', padding: '6px', display: 'flex', gap: '6px', alignItems: 'center' }}>
+              <span style={{ color: C.cvdNeg, fontSize: '9px', fontWeight: 700 }}>SMT</span>
+              <span style={{ color: C.sub, fontSize: '10px', lineHeight: '1.4' }}>{ict.smt}</span>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    function AnalysisCard({ pair, isMobile }) {
+      const tfs = ['1D', '4H', '1H'];
+      const [selectedTF, setSelectedTF] = React.useState('4H');
+      const [textOpen, setTextOpen] = React.useState(false);
+      const bias = pair.bias === 'bull' ? 'long' : pair.bias === 'bear' ? 'short' : 'neutral';
+      const biasStyle = bias === 'long'
+        ? { bg: '#4ade8022', color: C.bull, label: '▲ LONG' }
+        : bias === 'short'
+          ? { bg: '#f8717122', color: C.bear, label: '▼ SHORT' }
+          : { bg: '#fbbf2422', color: C.neutral, label: '↔ NEUTRAL' };
+      const ew = pair.ew?.[selectedTF] || {};
+      const ict = pair.ict?.[selectedTF] || {};
+
+      return (
+        <div style={{ background: C.panel, borderRadius: '10px', padding: isMobile ? '14px' : '18px' }}>
+          <div style={{ display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', gap: '10px', marginBottom: '16px', paddingBottom: '14px', borderBottom: `1px solid ${C.card}` }}>
+            <div>
+              <span style={{ color: C.text, fontWeight: 700, fontSize: '15px' }}>{pair.symbol}</span>
+              <span style={{ color: C.dim, fontSize: '12px', marginLeft: '8px' }}>EW + ICT</span>
+            </div>
+            <span style={{ background: biasStyle.bg, color: biasStyle.color, padding: '4px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 700 }}>
+              {biasStyle.label}
+            </span>
+          </div>
+
+          <div style={{ marginBottom: '14px' }}>
+            <div style={{ color: C.sub, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>타임프레임 정렬</div>
+            <TFAlignmentBar pair={pair} tfs={tfs} />
+          </div>
+
+          <div style={{ marginBottom: '14px' }}>
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
+              {tfs.map(tf => <TFPill key={tf} active={selectedTF === tf} onClick={() => setSelectedTF(tf)}>{tf}</TFPill>)}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '10px' }}>
+              <EWWaveStep ew={ew} />
+              <ICTGrid ict={ict} />
+            </div>
+          </div>
+
+          {pair.confluence && pair.confluence.length > 0 && (
+            <div style={{ background: C.bg, borderRadius: '8px', padding: '12px', marginBottom: '12px' }}>
+              <div style={{ color: C.sub, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>컨플루언스 요약</div>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {pair.confluence.map((item, index) => (
+                  <span key={index} style={{ background: '#4ade8022', color: C.bull, padding: '3px 10px', borderRadius: '4px', fontSize: '11px' }}>{item}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div>
+            <div onClick={() => setTextOpen(open => !open)} style={{ color: C.dim, fontSize: '11px', textAlign: 'right', cursor: 'pointer', marginBottom: textOpen ? '10px' : 0 }}>
+              {textOpen ? '▾ 전체 분석 텍스트 닫기' : '▸ 전체 분석 텍스트 보기'}
+            </div>
+            {textOpen && (
+              <div style={{ fontSize: '11px', color: C.sub, lineHeight: '1.6' }}>
+                {tfs.map((tf, index) => {
+                  const ewTF = pair.ew?.[tf] || {};
+                  const ictTF = pair.ict?.[tf] || {};
+                  return (
+                    <div key={tf} style={{ marginBottom: index < tfs.length - 1 ? '14px' : 0 }}>
+                      <div style={{ color: C.heatHigh, fontWeight: 700, marginBottom: '4px' }}>{tf} — EW</div>
+                      <div style={{ marginBottom: '4px', color: C.text }}>{ewTF.count || normalizeWave(ewTF.current_wave) || '—'}</div>
+                      <div style={{ marginBottom: '8px' }}>{ewTF.detail || '—'}</div>
+                      <div style={{ color: C.cvdPos, fontWeight: 700, marginBottom: '4px' }}>{tf} — ICT</div>
+                      <div>구조: {ictTF.structure || normalizeStructureTag(ictTF.structure_tag) || '—'}</div>
+                      <div>POI: {ictTF.poi || fmtAnalysisPrice(ictTF.poi_level)}</div>
+                      <div>유동성: {ictTF.liquidity || `BSL ${fmtAnalysisPrice(ictTF.bsl)} / SSL ${fmtAnalysisPrice(ictTF.ssl)}`}</div>
+                      <div>킬존: {ictTF.killzone || '—'}</div>
+                      {ictTF.smt && <div>SMT: {ictTF.smt}</div>}
+                      {index < tfs.length - 1 && <div style={{ height: '1px', background: C.border, margin: '12px 0' }} />}
+                    </div>
+                  );
+                })}
               </div>
             )}
-          </Card>
-        );
-      };
-
-      if (isMobile) {
-        const p = pairs.find(x => x.symbol === selPair) || pairs[0];
-        return (
-          <div>
-            <PairSelector pairs={pairs} selected={selPair} onSelect={setSelPair} />
-            <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
-              {TFS.map(tf => <TFPill key={tf} active={selTF === tf} onClick={() => setSelTF(tf)}>{tf}</TFPill>)}
-            </div>
-            {renderCard(p)}
           </div>
-        );
-      }
+        </div>
+      );
+    }
+
+    function AnalysisTab({ pairs, selectedPair, onSelectPair, isMobile }) {
+      const pair = pairs.find(item => item.symbol === selectedPair) || pairs[0];
 
       return (
         <div>
-          <div style={{ display: 'flex', gap: '6px', marginBottom: '14px' }}>
-            {TFS.map(tf => <TFPill key={tf} active={selTF === tf} onClick={() => setSelTF(tf)}>{tf}</TFPill>)}
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
-            {pairs.map(renderCard)}
-          </div>
+          <PairSelector pairs={pairs} selected={pair.symbol} onSelect={onSelectPair} />
+          <AnalysisCard pair={pair} isMobile={isMobile} />
         </div>
       );
     }
@@ -1023,8 +1165,9 @@
     function Dashboard() {
       const isMobile = useIsMobile();
       const tabBarRef = React.useRef(null);
-      const TABS = ['Overview', 'Macro', 'Elliott Wave', 'ICT', 'Orderflow', 'Scenarios', 'Risk'];
+      const TABS = ['Overview', 'Macro', '분석', 'Orderflow', 'Scenarios', 'Risk'];
       const [activeTab, setActiveTab] = React.useState('Overview');
+      const [selectedPair, setSelectedPair] = React.useState('BTCUSDT');
 
       React.useEffect(() => {
         if (!isMobile || !tabBarRef.current) return;
@@ -1038,8 +1181,7 @@
       let tabContent;
       if (activeTab === 'Overview')     tabContent = <OverviewTab pairs={PAIRS} isMobile={isMobile} />;
       else if (activeTab === 'Macro')   tabContent = <MacroTab events={MACRO_EVENTS} isMobile={isMobile} />;
-      else if (activeTab === 'Elliott Wave') tabContent = <EWTab pairs={PAIRS} isMobile={isMobile} />;
-      else if (activeTab === 'ICT')     tabContent = <ICTTab pairs={PAIRS} isMobile={isMobile} />;
+      else if (activeTab === '분석')    tabContent = <AnalysisTab pairs={PAIRS} selectedPair={selectedPair} onSelectPair={setSelectedPair} isMobile={isMobile} />;
       else if (activeTab === 'Orderflow') tabContent = <OrderflowTab pairs={PAIRS} isMobile={isMobile} />;
       else if (activeTab === 'Scenarios') tabContent = <ScenariosTab pairs={PAIRS} isMobile={isMobile} />;
       else if (activeTab === 'Risk')    tabContent = <RiskTab pairs={PAIRS} isMobile={isMobile} />;
