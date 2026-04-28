@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Crypto Futures Analysis — 2026-04-29</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&family=Roboto:wght@400;500&family=Inconsolata&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0b0e14; font-family: 'Roboto', sans-serif; color: #e8eaed; }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: #0b0e14; }
+    ::-webkit-scrollbar-thumb { background: #374151; border-radius: 2px; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+// ─── COLORS ──────────────────────────────────────────────────────────────────
+const C = {
+  bg: '#0b0e14', panel: '#131720', card: '#1a1f2e', border: '#1e293b',
+  text: '#e8eaed', sub: '#9ca3af', dim: '#6b7280',
+  bull: '#4ade80', bear: '#f87171', neutral: '#fbbf24',
+  heatHigh: '#f59e0b', cvdPos: '#22d3ee', cvdNeg: '#fb923c', convergence: '#a78bfa',
+  primary: '#3b82f6',
+};
+
+// ─── DATA ────────────────────────────────────────────────────────────────────
+const PAIRS = [
+  {
+    symbol: 'BTCUSDT', short: 'BTC', price: 76171.6, change: '-1.10%',
+    bias: 'neutral', biasLabel: 'Neutral',
+    oi: '$7.44B', oi_change: '+0.09%', oi_trend: 'rising',
+    funding: '+0.5242%', funding_predicted: '+0.2301%', cvd: 'negative/rising',
+    ema: {
+      '1D': { 7: 77056.1, 50: 73425.7, 200: 82334 },
+      '4H': { 7: 76499.5, 50: 76931.5, 200: 73920.6 },
+      '1H': { 7: 76243.9, 50: 76878.4, 200: 76948.9 }
+    },
+    rsi: { '1D': 62.05, '4H': 47.49, '1H': 36.64 },
+    levels: {
+      '1D': {
+        ob: { bull: [74555, 70375, 68884.5], bear: [83786, 84408.6, 85226] },
+        fvg: { bull: [], bear: [88786, 93550.3, 94977.5] },
+        bsl: [94657.65], ssl: [64999.6],
+        swing_highs: [90599, 94185, 94555],
+        swing_lows: [65569.2, 65081, 64918.2]
+      },
+      '4H': {
+        ob: { bull: [76025, 75342.3, 74824.3], bear: [77444, 77627.4, 77715] },
+        fvg: { bull: [72431, 70960.3, 68613.8], bear: [] },
+        bsl: [79449.5], ssl: [73352.9, 70380.73, 68855.8],
+        swing_highs: [78300, 79444, 79455],
+        swing_lows: [74777.9, 73669, 73449]
+      },
+      '1H': {
+        ob: { bull: [76129, 76105.6, 75924.4], bear: [76623.1, 76740.3, 77206.8] },
+        fvg: { bull: [], bear: [76217.8, 76701, 79032.3] },
+        bsl: [77762.5, 78238.27, 78518.6], ssl: [75414.5, 74801.1, 74559.75],
+        swing_highs: [76531, 76999, 77450],
+        swing_lows: [75635.6, 75433.1, 75395.9]
+      }
+    },
+    ew: {
+      '1D': { direction: 'neutral', current_wave: 'Wave 2/B (중간 조정)', completed_waves: ['1↓', '2↑', '3↓', '4↑', '5↓'], target: 82334,
+        count: 'ATH ~108k 이후 대형 하락 후 64.9k에서 반등. 현재 EMA200(82,334) 방향으로 중기 상승 시도. RSI 62 건강.',
+        detail: '1D EMA50(73,425) 지지 유효. EMA200(82,334)이 다음 주요 저항. EMA7(77,056) 단기 압박.' },
+      '4H': { direction: 'short', current_wave: 'Wave 2 (되돌림)', completed_waves: ['1↑'], target: 72431,
+        count: '73k→79.4k Wave 1 완성 후 Wave 2 조정 진행 중. BSL(79,449) 스윕 후 MSS. FVG(72,431) 잠재 목표.',
+        detail: '4H RSI 47.49 중립이하. EMA50(76,931)>EMA7(76,499)>가격(76,171) — 단기 하락 배열.' },
+      '1H': { direction: 'short', current_wave: 'Wave B/ii (단기 반등)', completed_waves: ['A/i↓'], target: 74801.1,
+        count: '77,450→75,414 하락 후 76,185 반등 중. 베어 OB(76,623-76,740) 리젝션 예상. RSI 36.64 과매도 근접.',
+        detail: '1H EMA200(76,948)>EMA50(76,878)>EMA7(76,243)>가격 — 전 EMA 하방. 단기 반등 후 재하락 가능.' }
+    },
+    ict: {
+      '1D': { structure_tag: 'BOS', structure_direction: 'bullish', poi_level: 74555, bsl: 94657.65, ssl: 64999.6,
+        structure: '1D 강세 BOS — 73k 이전 스윙하이 상향 돌파. SSL(64,999) 스윕 완료. 중기 회복 국면.',
+        poi: 'Bull OB 74,555 (1D 핵심 지지). Bear OB 83,786-85,226이 다음 주요 저항대.',
+        liquidity: 'BSL 94,657(상단 최종 목표). Bear FVG 88,786-94,977 장벽.',
+        killzone: '뉴욕 오픈(22:00 KST) 킬존 주시. CME 주간 오픈 갭 확인.',
+        smt: 'ETH/SOL 모두 하락 조정 중 — BTC 상대 강도 점검 필요.' },
+      '4H': { structure_tag: 'MSS', structure_direction: 'bearish', poi_level: 76025, bsl: 79449.5, ssl: 73352.9,
+        structure: '4H MSS 하락 — BSL(79,449) 스윕 후 이전 저점 하향 이탈. 단기 하락 구조.',
+        poi: 'Bull OB 76,025 (현재 가격 지지 테스트). Bear OB 77,444-77,715 저항대.',
+        liquidity: 'SSL 73,352→70,380→68,855 아래 대기. FVG 72,431 잠재 목표.',
+        killzone: '런던(15:00-18:00 KST) / 뉴욕 오픈(22:00 KST) 방향 결정.',
+        smt: '—' },
+      '1H': { structure_tag: 'BOS', structure_direction: 'bearish', poi_level: 76129, bsl: 77762.5, ssl: 75414.5,
+        structure: '1H 하락 BOS — 75,635 스윙로우 하향 이탈. SSL(75,414) 스윕 후 반등 중.',
+        poi: 'Bull OB 76,129-76,105 (현재 지지). Bear OB 76,623-76,740 (저항).',
+        liquidity: 'BSL 77,762→78,238→78,518 상방. SSL 74,801→74,559 하방.',
+        killzone: '실버불릿(23:00-00:00 KST) 주의.',
+        smt: 'BTC 신저점 시 ETH 비확인이면 강세 반전 신호 탐색.' }
+    },
+    confluence: ['1H RSI 36.6 — 단기 과매도 반등 가능', '4H Bull OB 76,025 지지 vs Bear OB 77,444 저항'],
+    scenarios: {
+      bull: { prob: 40, title: 'Bull OB 지지 → Bear OB 돌파', trigger: '4H 76,025 지지 + 1H 76,623 Bear OB 상향 돌파', invalidation: '4H 74,824 Bull OB 하향 이탈', targets: [77715, 79449.5] },
+      bear: { prob: 45, title: 'Bull OB 이탈 → SSL 캐스케이드', trigger: '4H 76,025 하향 이탈', invalidation: '1H 77,444 상향 돌파', targets: [73352.9, 72431] },
+      neutral: { prob: 15, title: '75,414-77,444 박스 횡보', trigger: '양방향 돌파 실패', invalidation: '어느 방향이든 4H 이탈', targets: [] }
+    },
+    risk: {
+      long: { entry: 76025, tp: 79449.5, sl: 74824.3, rr: '1:2.9', notes: '4H Bull OB 지지 확인 후 분할 진입. 고펀딩(+0.52%) 리스크 주의 — 포지션 사이즈 보수적으로.' },
+      short: { entry: 77444, tp: 73352.9, sl: 78300, rr: '1:4.8', notes: 'Bear OB 리젝션 확인 필수. FOMC 03:00 KST ±2시간 신규 entry 금지.' }
+    }
+  },
+  {
+    symbol: 'ETHUSDT', short: 'ETH', price: 2283.4, change: '-0.34%',
+    bias: 'bear', biasLabel: 'Bearish',
+    oi: '$4.51B', oi_change: '-2.25%', oi_trend: 'falling',
+    funding: '+0.0025%', funding_predicted: '+0.1573%', cvd: 'negative/rising',
+    ema: {
+      '1D': { 7: 2316.32, 50: 2241.72, 200: 2620.64 },
+      '4H': { 7: 2290.68, 50: 2316.08, 200: 2251.26 },
+      '1H': { 7: 2287.62, 50: 2299.23, 200: 2316.41 }
+    },
+    rsi: { '1D': 57.05, '4H': 47.57, '1H': 44.48 },
+    levels: {
+      '1D': {
+        ob: { bull: [2282.7, 2156, 2024.11], bear: [2314.08, 2784.15, 2902.8] },
+        fvg: { bull: [], bear: [2634.63, 2752.5, 2981.7] },
+        bsl: [4761], ssl: [],
+        swing_highs: [2385.78, 2463.86, 3045],
+        swing_lows: [2250.91, 1936.54, 1906.63]
+      },
+      '4H': {
+        ob: { bull: [2280.82, 2250.91, 2233.88], bear: [2305.07, 2307.42, 2312.61] },
+        fvg: { bull: [2235.41, 2194.62, 2092.61], bear: [] },
+        bsl: [2385.23, 2419.7], ssl: [2282.28, 2173.74, 2100.01],
+        swing_highs: [2329.99, 2346.84, 2384.67],
+        swing_lows: [2283.31, 2282.7, 2280.82]
+      },
+      '1H': {
+        ob: { bull: [2280.82, 2280.26, 2270.5], bear: [2285.29, 2288.79, 2292.88] },
+        fvg: { bull: [], bear: [2294.04, 2389.34] },
+        bsl: [2320.9, 2329.36, 2335.12], ssl: [2280.28, 2265.21, 2253.47],
+        swing_highs: [2309.73, 2319.59, 2322.22],
+        swing_lows: [2283.31, 2280.82, 2276.71]
+      }
+    },
+    ew: {
+      '1D': { direction: 'short', current_wave: 'Wave C (ABC 대형 조정)', completed_waves: ['A↓', 'B↑'], target: 2100,
+        count: 'ATH→1,936 Wave A, 반등 3,045 Wave B 완성. 현재 Wave C 하락 진행 추정. 타겟: Bull OB 2,100.',
+        detail: '1D EMA200(2,620) 크게 하회. EMA50(2,241) 방어가 관건. RSI 57.05 하강 중.' },
+      '4H': { direction: 'short', current_wave: 'Wave 2 (조정)', completed_waves: ['1↑'], target: 2233.88,
+        count: '2,100→2,384 Wave 1 완성 후 Wave 2 되돌림. 현재 1D+4H 이중 Bull OB(2,280-2,283) 지지 테스트.',
+        detail: '4H RSI 47.57. Bear OB 클러스터(2,305-2,312) 강력 저항. FVG(2,235-2,194-2,092) 잠재 타겟.' },
+      '1H': { direction: 'neutral', current_wave: 'Wave B / 기술적 반등', completed_waves: ['A↓'], target: 2265.21,
+        count: '2,384→2,253 급락 후 2,283 반등 중. 1H Bear OB(2,285-2,292) 직상방 — 돌파 실패 시 재하락.',
+        detail: '1H RSI 44.48. EMA 3개 모두 가격 위(2,287-2,316) — 단기 하방 압력 지속.' }
+    },
+    ict: {
+      '1D': { structure_tag: 'BOS', structure_direction: 'bearish', poi_level: 2282.7, bsl: 4761, ssl: null,
+        structure: '1D 장기 하락 BOS. EMA200(2,620) 대형 저항. 1D Bull OB(2,282.7) = 현재 가격과 일치 — 임계 지지.',
+        poi: '1D Bull OB 2,282.7 (현재 가격 접촉). Bear OB 2,314.08 직상방 저항.',
+        liquidity: 'BSL 4,761 (원거리). 스윙로우 2,250.91 → 1,936.54 하방.',
+        killzone: '런던 오픈(15:00-18:00 KST) 방향성 결정 가능성.',
+        smt: 'BTC가 신저점 미기록 시 ETH 강세 다이버전스 신호 탐색.' },
+      '4H': { structure_tag: 'CHoCH', structure_direction: 'bearish', poi_level: 2280.82, bsl: 2385.23, ssl: 2282.28,
+        structure: '4H CHoCH — BSL(2,385) 스윕 후 이전 저점 붕괴. 4H Bull OB(2,280.82) 현재 지지.',
+        poi: 'Bull OB 2,280.82 (4H 핵심 지지). Bear OB 클러스터 2,305-2,312 저항.',
+        liquidity: 'SSL 2,282→2,173→2,100. FVG 2,235→2,194→2,092.',
+        killzone: '뉴욕 오픈 킬존(22:00 KST) 방향 결정.',
+        smt: '—' },
+      '1H': { structure_tag: 'BOS', structure_direction: 'bearish', poi_level: 2285.29, bsl: 2320.9, ssl: 2280.28,
+        structure: '1H 하락 BOS. Bear OB 2,285-2,292 직상방 — 0.4% 밴드 내 매우 타이트.',
+        poi: 'Bear OB 2,285.29-2,292.88 (즉각 저항). Bull OB 2,280.82 (마지막 지지).',
+        liquidity: 'BSL 2,320.9→2,329→2,335 상방. SSL 2,280.28→2,265→2,253 하방.',
+        killzone: '실버불릿(23:00-00:00 KST) 진입 주의.',
+        smt: 'ETH OI -2.25% 감소 = 롱 청산 주도. BTC OI 안정과 대비 — ETH 상대 약세.' }
+    },
+    confluence: ['1D+4H Bull OB 2,280-2,283 이중지지 (수렴)', 'OI 감소(-2.25%) + Bear OB 클러스터 2,285-2,292 직상방'],
+    scenarios: {
+      bull: { prob: 30, title: '이중 OB 지지 → Bear OB 돌파', trigger: '4H 2,305 Bear OB 상향 돌파 + 거래량 급증', invalidation: '4H 2,233 FVG 하향 이탈', targets: [2346.84, 2385.23] },
+      bear: { prob: 55, title: 'Bull OB 이탈 → SSL 캐스케이드', trigger: '1H 2,280.28 SSL 하향 이탈', invalidation: '4H 2,312 Bear OB 상향 돌파', targets: [2173.74, 2100.01] },
+      neutral: { prob: 15, title: '2,253-2,312 박스 횡보', trigger: '양방향 돌파 실패', invalidation: '어느 방향이든 4H 이탈', targets: [] }
+    },
+    risk: {
+      long: { entry: 2280.82, tp: 2385.23, sl: 2233.88, rr: '1:2.2', notes: '4H Bull OB 지지 확인 후 진입. 1H BOS 상방 전환 확인 필수. OI 감소 추세 주시.' },
+      short: { entry: 2292.88, tp: 2173.74, sl: 2312.61, rr: '1:6.0', notes: '베어 OB 2,285-2,292 리젝션 확인 후 소규모 진입. 이중 OB 지지 강도 주의. FOMC ±2시간 금지.' }
+    }
+  },
+  {
+    symbol: 'SOLUSDT', short: 'SOL', price: 83.6, change: '-0.87%',
+    bias: 'bear', biasLabel: 'Bearish',
+    oi: '$813M', oi_change: '+2.24%', oi_trend: 'rising',
+    funding: '-0.4511%', funding_predicted: '-0.0762%', cvd: 'negative/rising',
+    ema: {
+      '1D': { 7: 85.3, 50: 86.75, 200: 114.8 },
+      '4H': { 7: 83.93, 50: 85.42, 200: 85.42 },
+      '1H': { 7: 83.67, 50: 84.46, 200: 85.46 }
+    },
+    rsi: { '1D': 51.49, '4H': 42.58, '1H': 38.50 },
+    levels: {
+      '1D': {
+        ob: { bull: [83.26, 81.64, 79.89], bear: [83.91, 84.15, 84.75] },
+        fvg: { bull: [], bear: [85.78, 111.75, 124.69] },
+        bsl: [144.74], ssl: [76.59],
+        swing_highs: [87.19, 90.71, 91.19],
+        swing_lows: [80.18, 76.63, 76.54]
+      },
+      '4H': {
+        ob: { bull: [83.01, 82.65, 82.09], bear: [83.75, 84.26, 84.28] },
+        fvg: { bull: [82.25], bear: [] },
+        bsl: [87.13, 88.07, 90.75], ssl: [82.69, 81.3, 78.38],
+        swing_highs: [84.35, 84.98, 85.93],
+        swing_lows: [82.77, 82.6, 81.76]
+      },
+      '1H': {
+        ob: { bull: [83.19], bear: [83.7, 84.04, 84.52] },
+        fvg: { bull: [], bear: [87.35, 87.64, 88.45] },
+        bsl: [85.78, 86.72, 86.96], ssl: [82.84],
+        swing_highs: [84.89, 85.74, 85.81],
+        swing_lows: [83.56, 82.91, 82.77]
+      }
+    },
+    ew: {
+      '1D': { direction: 'short', current_wave: '5파 완성 or 대형 C파', completed_waves: ['1↓', '2↑', '3↓', '4↑'], target: 76.59,
+        count: 'ATH ~295 이후 대형 하락 임펄스. SSL(76.59) 스윕이 최종 타겟. 현재 1D Bear OB(83.91-84.75) 저항에서 공방 중.',
+        detail: '1D RSI 51.49 중립. EMA200(114.8) 크게 하회. EMA50(86.75)=EMA7(85.3)이 겹쳐 강력 저항.' },
+      '4H': { direction: 'short', current_wave: 'Wave 2 (되돌림)', completed_waves: ['1↑'], target: 82.25,
+        count: '81.3→85.93 Wave 1 반등 후 Wave 2 되돌림 중. FVG(82.25)/Bull OB(82.09) 목표 가능. EMA50=EMA200(85.42)가 위에서 눌림.',
+        detail: '4H RSI 42.58. EMA50=EMA200=85.42 수렴 — 이중저항. Bear OB 83.75-84.28 즉각 저항.' },
+      '1H': { direction: 'short', current_wave: 'Wave C / 소하락 연장', completed_waves: ['A↓', 'B↑'], target: 82.84,
+        count: '85.93→82.77 5파 하락 후 83.6 반등. 1H Bear OB(83.7) 직상방. RSI 38.50 과매도 근접.',
+        detail: '1H EMA200(85.46)>EMA50(84.46)>EMA7(83.67)>가격(83.6) — 전 EMA 하방.' }
+    },
+    ict: {
+      '1D': { structure_tag: 'MSS', structure_direction: 'bullish', poi_level: 83.26, bsl: 144.74, ssl: 76.59,
+        structure: '1D MSS 잠재 — SSL(76.59) 스윕 후 반전 가능성. 현재 Bull OB(83.26) + Bear OB(83.91) 사이에서 공방.',
+        poi: 'Bull OB 83.26 (1D 지지). Bear OB 83.91-84.75 (즉각 저항대).',
+        liquidity: 'BSL 144.74 (원거리 목표). Bear FVG 85.78-124.69 장벽.',
+        killzone: '아시아 세션 레인지 후 런던 방향 결정.',
+        smt: '음수 펀딩(-0.45%) = 숏 과다 → 단기 숏스퀴즈 리스크 내포.' },
+      '4H': { structure_tag: 'CHoCH', structure_direction: 'bearish', poi_level: 83.01, bsl: 87.13, ssl: 82.69,
+        structure: '4H CHoCH 하락 — 85.93 고점 후 이전 저점 하향 이탈. Bull OB 82.65-83.01 지지 테스트 중.',
+        poi: 'Bull OB 83.01-82.65 (4H 핵심 지지). Bear OB 83.75-84.28 (저항).',
+        liquidity: 'SSL 82.69→81.3→78.38 스윕 위험. BSL 87.13→88.07→90.75 회복 목표.',
+        killzone: '뉴욕 오픈 킬존(22:00 KST) 방향 확인.',
+        smt: 'OI +2.24% + 가격 하락 = 신규 숏 포지션 누적. 스퀴즈 주의.' },
+      '1H': { structure_tag: 'BOS', structure_direction: 'bearish', poi_level: 83.19, bsl: 85.78, ssl: 82.84,
+        structure: '1H 하락 BOS. SSL(82.84) 재스윕 위험. Bear OB(83.7) 직상방(0.1달러 차).',
+        poi: 'Bull OB 83.19 vs Bear OB 83.70 — 0.51달러 극단적 타이트 구간.',
+        liquidity: 'BSL 85.78→86.72→86.96 상방. SSL 82.84 재스윕 위험.',
+        killzone: '실버불릿 주의.',
+        smt: '—' }
+    },
+    confluence: ['1D Bear OB(83.91-84.75) + 4H Bear OB(83.75-84.28) 이중저항 수렴', '음수 펀딩(-0.45%) 숏 과다 — 스퀴즈 vs 추가 하락 양방향 리스크'],
+    scenarios: {
+      bull: { prob: 35, title: '음수 펀딩 숏스퀴즈 → BSL 타겟', trigger: '1H 83.75 Bear OB 상향 돌파 (숏스퀴즈 발동)', invalidation: '4H 82.09 Bull OB 하향 이탈', targets: [84.98, 87.13] },
+      bear: { prob: 50, title: 'Bear OB 저항 → SSL 캐스케이드', trigger: '4H 82.69 SSL 하향 이탈', invalidation: '1H 84.52 Bear OB 상향 돌파', targets: [81.3, 78.38] },
+      neutral: { prob: 15, title: '82.65-84.28 박스 횡보', trigger: '양방향 돌파 실패', invalidation: '어느 방향이든 4H 이탈', targets: [] }
+    },
+    risk: {
+      long: { entry: 83.01, tp: 87.13, sl: 82.09, rr: '1:4.5', notes: '4H Bull OB 지지 확인 후 진입. 음수 펀딩(-0.45%)→ 스퀴즈 발동 시 빠른 수익. SL 타이트하여 실패 시 소손.' },
+      short: { entry: 83.75, tp: 81.3, sl: 84.52, rr: '1:3.2', notes: '4H Bear OB 리젝션 확인 필수. 음수 펀딩으로 숏 추가 위험. EMA50=EMA200(85.42) 돌파 시 즉시 손절.' }
+    }
+  },
+  {
+    symbol: 'HYPEUSDT', short: 'HYPE', price: 39.998, change: '-3.40%',
+    bias: 'neutral', biasLabel: 'Neutral+',
+    oi: '$202M', oi_change: '+2.24%', oi_trend: 'rising',
+    funding: '+0.5000%', funding_predicted: '+0.2072%', cvd: 'negative/rising',
+    ema: {
+      '1D': { 7: 41.232, 50: 38.964, 200: 36.251 },
+      '4H': { 7: 40.432, 50: 41.344, 200: 40.209 },
+      '1H': { 7: 39.954, 50: 40.826, 200: 41.354 }
+    },
+    rsi: { '1D': 56.00, '4H': 49.03, '1H': 31.96 },
+    levels: {
+      '1D': {
+        ob: { bull: [38.59, 38.34, 38.19], bear: [40.6, 42.54, 42.63] },
+        fvg: { bull: [31.28, 23.42], bear: [55.24, 57.31] },
+        bsl: [], ssl: [35.45, 29.39],
+        swing_highs: [41.58, 41.71, 43.75],
+        swing_lows: [39.72, 38.87, 36.95]
+      },
+      '4H': {
+        ob: { bull: [39.98, 39.68, 39.13], bear: [40.35, 40.5, 40.54] },
+        fvg: { bull: [36.49], bear: [40.78, 42.14] },
+        bsl: [41.89], ssl: [36.76, 35.7],
+        swing_highs: [40.29, 40.45, 40.76],
+        swing_lows: [38.87, 38.59, 38.34]
+      },
+      '1H': {
+        ob: { bull: [39.67, 39.62], bear: [40.27, 40.61, 40.78] },
+        fvg: { bull: [], bear: [41.61, 44.05] },
+        bsl: [41.51, 41.85, 45.49], ssl: [],
+        swing_highs: [40.7, 41.4, 41.49],
+        swing_lows: [39.44, 38.87]
+      }
+    },
+    ew: {
+      '1D': { direction: 'long', current_wave: 'Wave 4 조정 (5파 상승 대기)', completed_waves: ['1↑', '2↓', '3↑'], target: 43.75,
+        count: '저점에서 강한 임펄스 후 43.75 고점 형성. 4파 조정(-3.40% 급락 중). EMA50+200 모두 하방 = 강세구조 유지.',
+        detail: '1D RSI 56.00 건강. EMA7(41.23)>EMA50(38.96)>EMA200(36.25) — 4개 페어 중 유일 강세 EMA 배열.' },
+      '4H': { direction: 'short', current_wave: 'Wave B (ABC 조정)', completed_waves: ['A↓'], target: 36.49,
+        count: '43.75→38.87 Wave A 하락 후 Wave B 반등(~40). Wave B 고점 확인 후 Wave C→36.49 FVG 가능.',
+        detail: '4H RSI 49.03. Bear OB 40.35-40.54 직상방 (0.35 달러 간격). EMA50(41.34) 압박.' },
+      '1H': { direction: 'short', current_wave: 'Wave C 초입 / 소파동', completed_waves: ['A↓', 'B↑'], target: 39.62,
+        count: '1H RSI 31.96 극단 과매도 — 4개 페어 중 최저. Bear OB(40.27-40.78) 직상방 저항.',
+        detail: '1H EMA200(41.35)>EMA50(40.83)>EMA7(39.95)>가격(39.99) — 전 EMA 상방. 반등 기대.' }
+    },
+    ict: {
+      '1D': { structure_tag: 'BOS', structure_direction: 'bullish', poi_level: 38.59, bsl: null, ssl: 35.45,
+        structure: '1D 강세 BOS — 주요 스윙하이 연속 상향 돌파. 현재 4파 조정 중. EMA50+200 하방 강세구조.',
+        poi: 'Bull OB 38.59-38.19 (1D 핵심 지지구간). Bear OB 40.6-42.63 저항.',
+        liquidity: 'SSL 35.45→29.39. 스윙하이 43.75 복귀가 단기 목표.',
+        killzone: '1D 강세 구조 유지 중 — 조정은 매수 기회로 해석.',
+        smt: 'BTC/ETH/SOL 대비 상대 강도 우위. 4개 중 유일 1D 강세.' },
+      '4H': { structure_tag: 'CHoCH', structure_direction: 'bearish', poi_level: 39.68, bsl: 41.89, ssl: 36.76,
+        structure: '4H CHoCH — 43.75 고점 후 이전 저점 하향 이탈. Bull OB 39.13-39.98 지지 테스트 중.',
+        poi: 'Bull OB 39.98→39.68→39.13 지지. Bear OB 40.35-40.54 저항(0.37달러 위).',
+        liquidity: 'BSL 41.89 상방. SSL 36.76→35.7 하방.',
+        killzone: '4H Bear OB(40.35-40.54) 돌파 여부가 단기 방향 결정.',
+        smt: 'OI +2.24% + CVD 음수/상승 = 신규 매수세 유입 가능성.' },
+      '1H': { structure_tag: 'BOS', structure_direction: 'bearish', poi_level: 40.27, bsl: 41.51, ssl: null,
+        structure: '1H BOS 하락. RSI 31.96 극단 과매도. Bear OB 40.27-40.78 직상방.',
+        poi: 'Bear OB 40.27-40.61-40.78 (0.5달러 범위 내 3개 중첩). Bull OB 39.67-39.62 하방 지지.',
+        liquidity: 'BSL 41.51→41.85→45.49 상방 목표. 현재 Bear OB 집중 저항대.',
+        killzone: '실버불릿(23:00-00:00 KST) — 과매도 반등 셋업 주의.',
+        smt: '—' }
+    },
+    confluence: ['1D 유일 강세 EMA 배열(EMA7>50>200) — 4파 조정은 매수 기회', '1H RSI 31.96 극단 과매도 + Bear OB 40.27-40.78 직상방 저항'],
+    scenarios: {
+      bull: { prob: 45, title: '4파 조정 완성 → 5파 상승', trigger: '1H 40.78 Bear OB 상향 돌파 + RSI 회복', invalidation: '4H 39.13 Bull OB 하향 이탈', targets: [41.89, 43.75] },
+      bear: { prob: 40, title: 'Wave C 하락 → FVG 타겟', trigger: '4H 39.13 Bull OB 하향 이탈', invalidation: '1H 41.51 BSL 상향 돌파', targets: [36.76, 35.7] },
+      neutral: { prob: 15, title: '38.87-41.89 박스 횡보', trigger: '양방향 돌파 실패', invalidation: '어느 방향이든 4H 이탈', targets: [] }
+    },
+    risk: {
+      long: { entry: 39.68, tp: 41.89, sl: 38.87, rr: '1:2.7', notes: '4H Bull OB + 1H RSI 극과매도 조합. 1D 강세 구조 배경. 고펀딩(+0.5%) 리스크 인식. 분할 진입 권장.' },
+      short: { entry: 40.78, tp: 38.87, sl: 41.51, rr: '1:2.6', notes: 'Bear OB 클러스터(40.27-40.78) 리젝션 확인 후 진입. 1D 강세 구조 감안 소규모. FOMC ±2시간 금지.' }
+    }
+  }
+];
+
+const MACRO_EVENTS = [
+  { id: 'fomc-rate-decision-apr2026', time_kst: '2026-04-30T03:00:00+09:00', region: 'US', category: 'monetary_policy', title: 'FOMC 금리결정 (2026년 4월)', importance: 'high', forecast: '동결 예상 (4.25-4.50%)', previous: '4.25-4.50%', summary: '연준 4월 FOMC 금리결정. 동결 예상이나 Powell 기자회견 발언이 핵심. 결정 ±2시간 모든 페어 entry 금지 구간. 포지션 50% 축소 권장.', impact_assets: ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'HYPEUSDT'], source: 'Federal Reserve', source_url: 'https://www.federalreserve.gov/' },
+  { id: 'boj-holds-apr29', time_kst: '2026-04-29T12:00:00+09:00', region: 'JP', category: 'monetary_policy', title: 'BoJ 금리 동결 — 6월 인상 가능성 시사', importance: 'medium', actual: '동결', forecast: '동결', previous: '0.50%', summary: 'BoJ가 현행 금리 동결. 위원회 분열 투표로 6월 인상 가능성 시사. 엔화 강세 시 위험자산 전반에 압박 가능.', impact_assets: ['BTCUSDT'], source: 'TradingView News' },
+  { id: 'btc-slips-76k-apr29', time_kst: '2026-04-29T13:00:00+09:00', region: 'CRYPTO', category: 'crypto_event', title: 'BTC $76k 아래 하락 — AI·이란 긴장감', importance: 'medium', summary: 'BTC가 $77,000 돌파 실패 후 $76k 아래로 하락. 지정학적 긴장과 FOMC 대기 심리에 압박. 4H Bull OB(76,025) 지지 테스트 중.', impact_assets: ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'], source: 'Investing.com' },
+  { id: 'sp500-record-apr28', time_kst: '2026-04-29T05:00:00+09:00', region: 'US', category: 'macro_data', title: 'S&P 500 신고점 — Mag 7 실적 앞두고 리스크온', importance: 'medium', actual: '신고점 경신', summary: 'S&P 500이 신고가 경신. 주식 리스크온과 크립토 하락이 동반 — 전통 리스크온이 크립토로 전이될 경우 단기 반등 촉매.', impact_assets: ['BTCUSDT', 'ETHUSDT'], source: 'TradingView News' },
+  { id: 'sc-blackrock-okx-tokenized', time_kst: '2026-04-29T17:00:00+09:00', region: 'GLOBAL', category: 'crypto_event', title: 'SC·BlackRock·OKX 토큰화 국채 담보 프레임워크', importance: 'medium', summary: '스탠다드차타드·블랙록·OKX가 토큰화된 국채펀드를 기관 담보로 활용하는 프레임워크 출시. 기관 크립토 채택 가속화 신호.', impact_assets: ['BTCUSDT', 'ETHUSDT'], source: 'Investing.com' },
+  { id: 'strategy-btc-buy-apr27', time_kst: '2026-04-27T23:00:00+09:00', region: 'US', category: 'crypto_event', title: 'Strategy, BTC 3,273개 추가 매입 ($2.55억)', importance: 'low', actual: '3,273 BTC / $255M', summary: 'MicroStrategy(Strategy)가 약 $255M 상당 BTC를 추가 매입. 76k 하락 구간에서의 기관 수요 확인.', impact_assets: ['BTCUSDT'], source: 'Investing.com' },
+  { id: 'btc-79k-peak-apr22', time_kst: '2026-04-22T19:00:00+09:00', region: 'GLOBAL', category: 'news', title: 'BTC 이란 휴전에 $79k 돌파 (고점 형성)', importance: 'medium', summary: '이란 휴전 연장 발표 후 BTC가 $79k 돌파. 현재 BSL(79,449) 스윕 후 되돌림 구간. 지정학 리스크 재부각 시 $76k 지지 재테스트.', impact_assets: ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'], source: 'Investing.com' },
+];
+
+const ORDERFLOW_DATA = {
+  BTCUSDT: { price_usd: 76180.8, oi_usd_str: '$7.44B', oi_change_24h: '+0.09%', oi_trend: 'rising', funding_rate: '+0.5242%', funding_rate_predicted: '+0.2301%', cvd_direction: 'negative', cvd_trend: 'rising' },
+  ETHUSDT: { price_usd: 2285.02, oi_usd_str: '$4.51B', oi_change_24h: '-2.25%', oi_trend: 'falling', funding_rate: '+0.0025%', funding_rate_predicted: '+0.1573%', cvd_direction: 'negative', cvd_trend: 'rising' },
+  SOLUSDT: { price_usd: 83.73, oi_usd_str: '$813M', oi_change_24h: '+2.24%', oi_trend: 'rising', funding_rate: '-0.4511%', funding_rate_predicted: '-0.0762%', cvd_direction: 'negative', cvd_trend: 'rising' },
+  HYPEUSDT: { price_usd: 39.998, oi_usd_str: '$202M', oi_change_24h: '+2.24%', oi_trend: 'rising', funding_rate: '+0.5000%', funding_rate_predicted: '+0.2072%', cvd_direction: 'negative', cvd_trend: 'rising' },
+};
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function biasColor(bias) {
+  if (bias === 'bull') return C.bull;
+  if (bias === 'bear') return C.bear;
+  return C.neutral;
+}
+function rsiColor(rsi) {
+  if (rsi >= 70) return C.bear;
+  if (rsi <= 30) return C.bull;
+  if (rsi >= 60) return C.neutral;
+  return C.sub;
+}
+function fmtPrice(n, dec) {
+  if (n == null) return '—';
+  const d = dec != null ? dec : (n >= 100 ? 1 : n >= 10 ? 2 : 3);
+  return typeof n === 'number' ? n.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d }) : n;
+}
+function importanceColor(imp) {
+  if (imp === 'high') return C.bear;
+  if (imp === 'medium') return C.neutral;
+  return '#9ca3af';
+}
+function kstDate(iso) {
+  try { return new Date(iso).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }); } catch { return iso; }
+}
+function dirColor(d) {
+  if (d === 'bullish' || d === 'long') return C.bull;
+  if (d === 'bearish' || d === 'short') return C.bear;
+  return C.neutral;
+}
+function structTag(tag) { return tag || '—'; }
+
+// ─── BASE COMPONENTS ─────────────────────────────────────────────────────────
+function Badge({ color, children, outline }) {
+  const bg = outline ? 'transparent' : color + '22';
+  const border = outline ? `1px solid ${color}` : 'none';
+  return (
+    <span style={{ background: bg, border, color, borderRadius: '4px', padding: '2px 7px', fontSize: '10px', fontWeight: 700, letterSpacing: '0.3px', whiteSpace: 'nowrap' }}>
+      {children}
+    </span>
+  );
+}
+function Card({ children, style }) {
+  return (
+    <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: '8px', padding: '14px', ...style }}>
+      {children}
+    </div>
+  );
+}
+function SectionTitle({ children }) {
+  return <div style={{ fontSize: '11px', color: C.sub, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>{children}</div>;
+}
+function KV({ label, value, valueColor }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '11px', marginBottom: '4px' }}>
+      <span style={{ color: C.dim }}>{label}</span>
+      <span style={{ color: valueColor || C.text, fontWeight: 600, fontFamily: 'Inconsolata' }}>{value}</span>
+    </div>
+  );
+}
+
+// ─── STRATEGY UTILS ──────────────────────────────────────────────────────────
+function asNumber(value) {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim() !== '') { const p = Number(value); return Number.isFinite(p) ? p : null; }
+  return null;
+}
+function dedupeLevels(levels) {
+  return [...new Set((levels || []).map(asNumber).filter(v => v != null))].sort((a, b) => a - b);
+}
+function pickNearest(levels, predicate, sortFn) {
+  const filtered = dedupeLevels(levels).filter(predicate || (() => true));
+  if (filtered.length === 0) return null;
+  return [...filtered].sort(sortFn || ((a, b) => a - b))[0];
+}
+function formatStrategyPrice(value) {
+  const n = asNumber(value);
+  if (n == null) return '—';
+  return n >= 1000 ? `$${n.toLocaleString(undefined, { maximumFractionDigits: 1 })}` : `$${n.toFixed(2)}`;
+}
+function sortScenariosByProbability(pair) {
+  const order = ['bull', 'bear', 'neutral'];
+  return order.map(key => ({ key, ...(pair.scenarios?.[key] || {}) }))
+    .sort((l, r) => { const lp = asNumber(l.prob) ?? -Infinity, rp = asNumber(r.prob) ?? -Infinity; return rp !== lp ? rp - lp : order.indexOf(l.key) - order.indexOf(r.key); });
+}
+function collectStrategyLevels(pair) {
+  const price = asNumber(pair.price);
+  const levels4H = pair.levels?.['4H'] || {};
+  const ict4H = pair.ict?.['4H'] || {};
+  const ew4H = pair.ew?.['4H'] || {};
+  const support = dedupeLevels([...(levels4H.ssl || []), ...(levels4H.swing_lows || [])]);
+  const resistance = dedupeLevels([...(levels4H.bsl || []), ...(levels4H.swing_highs || [])]);
+  const poi = asNumber(ict4H.poi_level);
+  const poiAsBull = poi != null && price != null ? poi <= price * 1.02 : poi != null;
+  const poiAsBear = poi != null && price != null ? poi > price : poi != null;
+  const longEntries = dedupeLevels([...support, ...(poiAsBull ? [poi] : [])]);
+  const shortEntries = dedupeLevels([...resistance, ...(poiAsBear ? [poi] : [])]);
+  const longTargets = dedupeLevels([...resistance.filter(v => price == null || v > price), ew4H.target]);
+  const shortTargets = dedupeLevels([...support.filter(v => price == null || v < price)]);
+  const longStops = dedupeLevels([...support, ...(poi != null ? [poi] : [])]);
+  const shortStops = dedupeLevels([...resistance, ...(poi != null ? [poi] : [])]);
+  return { price, support, resistance, longEntries, shortEntries, longTargets, shortTargets, longStops, shortStops };
+}
+function buildStrategyRecommendation(pair, rankedScenario, variant) {
+  const { price, support, resistance, longEntries, shortEntries, longTargets, shortTargets, longStops, shortStops } = collectStrategyLevels(pair);
+  const scenarioKey = rankedScenario?.key || 'neutral';
+  const prob = asNumber(rankedScenario?.prob) ?? 0;
+  const confluence = Array.isArray(pair.confluence) ? pair.confluence.slice(0, 2).join(' + ') : '';
+  const label = variant || 'Primary';
+  const nearestResistance = pickNearest(resistance, v => price == null || v > price, (a, b) => Math.abs(a - price) - Math.abs(b - price));
+  const nearestSupport = pickNearest(support, v => price == null || v < price, (a, b) => Math.abs(a - price) - Math.abs(b - price));
+  const nearResistance = price != null && nearestResistance != null ? Math.abs(nearestResistance - price) / price <= 0.01 : false;
+  const nearSupportBreakdown = price != null && nearestSupport != null ? Math.abs(price - nearestSupport) / price <= 0.01 : false;
+  if (scenarioKey === 'neutral') return { label, scenarioKey, prob, action: 'Wait', entry: null, tp: null, sl: null, rationale: `${rankedScenario?.title || 'Neutral bias'} — 방향성 확인 후 진입.` };
+  if (scenarioKey === 'bull') {
+    const entry = pickNearest(longEntries, v => price == null || v <= price * 1.02, (a, b) => price == null ? a - b : Math.abs(a - price) - Math.abs(b - price));
+    const tp = pickNearest(longTargets, v => price == null || v > price, (a, b) => a - b);
+    const sl = entry != null ? pickNearest(longStops, v => v < entry, (a, b) => b - a) : null;
+    if (entry == null || tp == null || sl == null) return { label, scenarioKey, prob, action: 'Wait', entry: null, tp: null, sl: null, rationale: '강세 방향이나 레벨 불완전 — 대기.' };
+    return { label, scenarioKey, prob, action: nearResistance ? 'Breakout Long' : 'Pullback Long', entry, tp, sl, rationale: `Bull ${prob}% + ${pair.biasLabel} bias${confluence ? ` · ${confluence.split(' + ')[0]}` : ''}.` };
+  }
+  const entry = pickNearest(shortEntries, v => price == null || v >= price * 0.98, (a, b) => price == null ? a - b : Math.abs(a - price) - Math.abs(b - price));
+  const tp = pickNearest(shortTargets, v => price == null || v < price, (a, b) => b - a);
+  const sl = entry != null ? pickNearest(shortStops, v => v > entry, (a, b) => a - b) : null;
+  if (entry == null || tp == null || sl == null) return { label, scenarioKey: 'bear', prob, action: 'Wait', entry: null, tp: null, sl: null, rationale: '약세 방향이나 레벨 불완전 — 대기.' };
+  return { label, scenarioKey: 'bear', prob, action: nearSupportBreakdown ? 'Breakdown Short' : 'Rejection Short', entry, tp, sl, rationale: `Bear ${prob}% + ${pair.biasLabel} bias${confluence ? ` · ${confluence.split(' + ')[0]}` : ''}.` };
+}
+
+// ─── STRATEGY COMPONENTS ─────────────────────────────────────────────────────
+function StrategyKVRow({ label, value }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', fontSize: '11px', marginBottom: '3px' }}>
+      <span style={{ color: C.dim }}>{label}</span>
+      <span style={{ color: C.text, fontWeight: 600, fontFamily: 'Inconsolata' }}>{value}</span>
+    </div>
+  );
+}
+function strategyTone(strategy) {
+  if (strategy.action.includes('Long')) return { color: C.bull, bg: '#4ade8010', border: '#4ade8030' };
+  if (strategy.action.includes('Short')) return { color: C.bear, bg: '#f8717110', border: '#f8717130' };
+  return { color: C.neutral, bg: '#fbbf2410', border: '#fbbf2430' };
+}
+function StrategyBlock({ title, strategy, muted }) {
+  const tone = strategyTone(strategy);
+  return (
+    <div style={{ background: muted ? C.bg : tone.bg, border: `1px solid ${muted ? C.border : tone.border}`, borderRadius: '8px', padding: '12px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+        <span style={{ color: muted ? C.sub : tone.color, fontSize: '11px', fontWeight: 700 }}>{title}</span>
+        <span style={{ color: muted ? C.sub : tone.color, fontSize: '11px', fontWeight: 700 }}>{strategy.prob}%</span>
+      </div>
+      <StrategyKVRow label="Action" value={strategy.action} />
+      <StrategyKVRow label="Entry" value={formatStrategyPrice(strategy.entry)} />
+      <StrategyKVRow label="TP" value={formatStrategyPrice(strategy.tp)} />
+      <StrategyKVRow label="SL" value={formatStrategyPrice(strategy.sl)} />
+      <div style={{ marginTop: '8px', fontSize: '10px', color: C.sub, lineHeight: '1.5' }}>{strategy.rationale}</div>
+    </div>
+  );
+}
+function OverviewStrategyCard({ pair }) {
+  const ranked = sortScenariosByProbability(pair);
+  const primary = buildStrategyRecommendation(pair, ranked[0], 'Primary');
+  const alternate = buildStrategyRecommendation(pair, ranked[1], 'Alternate');
+  return (
+    <Card>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+        <div>
+          <div style={{ fontSize: '14px', fontWeight: 800, color: C.text, fontFamily: 'Poppins' }}>{pair.short}</div>
+          <div style={{ fontSize: '11px', color: C.sub, fontFamily: 'Inconsolata' }}>${fmtPrice(pair.price)}</div>
+        </div>
+        <Badge color={biasColor(pair.bias)}>{pair.biasLabel}</Badge>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
+        <StrategyBlock title="Primary" strategy={primary} />
+        <StrategyBlock title="Alternate" strategy={alternate} muted />
+      </div>
+    </Card>
+  );
+}
+function OverviewStrategyGrid({ pairs, isMobile }) {
+  return (
+    <div style={{ marginBottom: '16px' }}>
+      <SectionTitle>Overview Strategy</SectionTitle>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '12px' }}>
+        {pairs.map(p => <OverviewStrategyCard key={p.symbol} pair={p} />)}
+      </div>
+    </div>
+  );
+}
+
+// ─── useIsMobile HOOK ─────────────────────────────────────────────────────────
+function useIsMobile() {
+  const [m, setM] = React.useState(() => window.matchMedia('(max-width: 767px)').matches);
+  React.useEffect(() => {
+    const mql = window.matchMedia('(max-width: 767px)');
+    const h = e => setM(e.matches);
+    mql.addEventListener('change', h);
+    return () => mql.removeEventListener('change', h);
+  }, []);
+  return m;
+}
+
+// ─── TAB COMPONENTS ──────────────────────────────────────────────────────────
+
+// ── Overview ──
+function PairCard({ p, selected, onSelect, isMobile }) {
+  const changeColor = p.change.startsWith('+') ? C.bull : C.bear;
+  return (
+    <div onClick={() => onSelect(p.symbol)} style={{ background: C.card, border: `1px solid ${selected ? biasColor(p.bias) : C.border}`, borderRadius: '8px', padding: '14px', cursor: 'pointer', minWidth: isMobile ? '78%' : undefined, scrollSnapAlign: isMobile ? 'start' : undefined }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+        <div>
+          <div style={{ fontSize: '14px', fontWeight: 800, color: C.text, fontFamily: 'Poppins' }}>{p.short}</div>
+          <div style={{ fontSize: '18px', fontWeight: 700, color: C.text, fontFamily: 'Inconsolata', marginTop: '2px' }}>
+            ${p.price >= 1000 ? p.price.toLocaleString() : p.price.toFixed(3)}
+          </div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <Badge color={changeColor}>{p.change}</Badge>
+          <div style={{ marginTop: '6px' }}><Badge color={biasColor(p.bias)}>{p.biasLabel}</Badge></div>
+        </div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
+        {['1D', '4H', '1H'].map(tf => (
+          <div key={tf} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px' }}>
+            <span style={{ color: C.dim }}>{tf} RSI</span>
+            <span style={{ color: rsiColor(p.rsi[tf]), fontFamily: 'Inconsolata', fontWeight: 700 }}>{p.rsi[tf]}</span>
+          </div>
+        ))}
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px' }}>
+          <span style={{ color: C.dim }}>OI</span>
+          <span style={{ color: C.sub, fontFamily: 'Inconsolata' }}>{p.oi}</span>
+        </div>
+      </div>
+      {p.confluence.length > 0 && (
+        <div style={{ marginTop: '8px', padding: '6px', background: C.bg, borderRadius: '4px', fontSize: '10px', color: C.sub, lineHeight: '1.5' }}>
+          ◆ {p.confluence[0]}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function OverviewTab({ pairs, selectedPair, onSelectPair, isMobile }) {
+  if (isMobile) {
+    return (
+      <div>
+        <div style={{ display: 'flex', overflowX: 'auto', scrollSnapType: 'x mandatory', gap: '10px', margin: '0 -12px', padding: '0 12px 8px', WebkitOverflowScrolling: 'touch' }}>
+          {pairs.map(p => <PairCard key={p.symbol} p={p} selected={selectedPair === p.symbol} onSelect={onSelectPair} isMobile={true} />)}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginBottom: '16px' }}>
+          {pairs.map(p => (
+            <div key={p.symbol} onClick={() => onSelectPair(p.symbol)} style={{ width: '6px', height: '6px', borderRadius: '50%', cursor: 'pointer', background: selectedPair === p.symbol ? C.bull : '#374151' }} />
+          ))}
+        </div>
+        <OverviewStrategyGrid pairs={pairs} isMobile={isMobile} />
+      </div>
+    );
+  }
+  return (
+    <div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
+        {pairs.map(p => <PairCard key={p.symbol} p={p} selected={selectedPair === p.symbol} onSelect={onSelectPair} isMobile={false} />)}
+      </div>
+      <OverviewStrategyGrid pairs={pairs} isMobile={isMobile} />
+    </div>
+  );
+}
+
+// ── Macro ──
+function MacroTab({ isMobile }) {
+  const sorted = [...MACRO_EVENTS].sort((a, b) => new Date(a.time_kst) - new Date(b.time_kst));
+  const tabContent = (
+    <div>
+      <div style={{ background: C.bear + '15', border: `1px solid ${C.bear}40`, borderRadius: '8px', padding: '12px', marginBottom: '16px', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+        <span style={{ color: C.bear, fontSize: '14px' }}>⚠</span>
+        <div style={{ fontSize: '11px', color: C.bear, lineHeight: '1.6' }}>
+          <strong>FOMC 경보:</strong> 2026-04-30 03:00 KST ±2시간은 <strong>모든 페어 신규 entry 금지 구간</strong>. 기존 포지션 50% 축소 및 SL 타이트닝 권장.
+        </div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {sorted.map(ev => (
+          <div key={ev.id} style={{ background: C.card, borderRadius: '8px', borderLeft: `4px solid ${importanceColor(ev.importance)}`, padding: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '11px', color: C.sub, fontFamily: 'Inconsolata' }}>{kstDate(ev.time_kst)} KST</span>
+              <Badge color={importanceColor(ev.importance)}>{ev.region}</Badge>
+              <Badge color={C.primary}>{ev.category}</Badge>
+              <Badge color={importanceColor(ev.importance)}>{ev.importance}</Badge>
+            </div>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: C.text, marginBottom: '6px' }}>{ev.title}</div>
+            {ev.actual && <div style={{ fontSize: '10px', color: C.neutral, marginBottom: '4px', fontFamily: 'Inconsolata' }}>실제: {ev.actual}</div>}
+            {ev.forecast && <div style={{ fontSize: '10px', color: C.sub, marginBottom: '4px', fontFamily: 'Inconsolata' }}>예측: {ev.forecast}</div>}
+            {ev.previous && <div style={{ fontSize: '10px', color: C.dim, marginBottom: '4px', fontFamily: 'Inconsolata' }}>이전: {ev.previous}</div>}
+            <div style={{ fontSize: '12px', color: C.sub, lineHeight: '1.6', marginBottom: '8px' }}>{ev.summary}</div>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {ev.impact_assets.map(a => <Badge key={a} color={C.bull} outline>{a}</Badge>)}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+  return tabContent;
+}
+
+// ── Analysis ──
+function TFAlignmentBar({ pair }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '14px' }}>
+      {['1D', '4H', '1H'].map(tf => {
+        const ew = pair.ew?.[tf] || {};
+        const ict = pair.ict?.[tf] || {};
+        return (
+          <div key={tf} style={{ background: C.bg, borderRadius: '6px', padding: '10px', borderTop: `2px solid ${dirColor(ew.direction)}` }}>
+            <div style={{ fontSize: '10px', color: C.dim, marginBottom: '4px' }}>{tf}</div>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: dirColor(ew.direction), marginBottom: '2px' }}>{ew.current_wave || '—'}</div>
+            <div style={{ fontSize: '10px', color: C.sub }}>{structTag(ict.structure_tag)} · {ict.structure_direction || '—'}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+function EWWaveStep({ ew, tf }) {
+  if (!ew) return <div style={{ color: C.dim, fontSize: '12px' }}>—</div>;
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+        <span style={{ fontSize: '13px', fontWeight: 700, color: dirColor(ew.direction) }}>{ew.current_wave || '—'}</span>
+        <Badge color={dirColor(ew.direction)}>{ew.direction || '—'}</Badge>
+      </div>
+      {ew.completed_waves?.length > 0 && (
+        <div style={{ marginBottom: '6px', display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+          {ew.completed_waves.map((w, i) => <Badge key={i} color={C.dim}>{w}</Badge>)}
+        </div>
+      )}
+      <KV label="Target" value={ew.target ? formatStrategyPrice(ew.target) : '—'} />
+      {ew.count && <div style={{ marginTop: '6px', fontSize: '10px', color: C.sub, lineHeight: '1.5' }}>{ew.count}</div>}
+    </div>
+  );
+}
+function ICTGrid({ ict, tf }) {
+  if (!ict) return <div style={{ color: C.dim, fontSize: '12px' }}>—</div>;
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
+        <Badge color={dirColor(ict.structure_direction)}>{structTag(ict.structure_tag)}</Badge>
+        <Badge color={dirColor(ict.structure_direction)}>{ict.structure_direction || '—'}</Badge>
+      </div>
+      <KV label="POI" value={ict.poi_level ? formatStrategyPrice(ict.poi_level) : '—'} />
+      <KV label="BSL" value={ict.bsl ? formatStrategyPrice(ict.bsl) : '—'} valueColor={C.bull} />
+      <KV label="SSL" value={ict.ssl ? formatStrategyPrice(ict.ssl) : '—'} valueColor={C.bear} />
+      {ict.poi && <div style={{ marginTop: '6px', fontSize: '10px', color: C.sub, lineHeight: '1.5' }}>{ict.poi}</div>}
+    </div>
+  );
+}
+function AnalysisCard({ p, isMobile }) {
+  const [tf, setTf] = React.useState('4H');
+  const ew = p.ew?.[tf];
+  const ict = p.ict?.[tf];
+  return (
+    <div>
+      <TFAlignmentBar pair={p} />
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
+        {['1D', '4H', '1H'].map(t => (
+          <button key={t} onClick={() => setTf(t)} style={{ background: tf === t ? '#3b82f622' : C.bg, color: tf === t ? C.primary : C.sub, border: `1px solid ${tf === t ? C.primary : C.border}`, borderRadius: '6px', padding: '5px 14px', fontSize: '11px', fontWeight: tf === t ? 700 : 400, cursor: 'pointer' }}>{t}</button>
+        ))}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '12px' }}>
+        <Card>
+          <div style={{ fontSize: '11px', color: C.sub, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Elliott Wave · {tf}</div>
+          <EWWaveStep ew={ew} tf={tf} />
+          <div style={{ marginTop: '10px' }}>
+            <KV label="RSI" value={p.rsi?.[tf] ?? '—'} valueColor={rsiColor(p.rsi?.[tf])} />
+            <KV label="EMA 7" value={p.ema?.[tf]?.[7] ? formatStrategyPrice(p.ema[tf][7]) : '—'} />
+            <KV label="EMA 50" value={p.ema?.[tf]?.[50] ? formatStrategyPrice(p.ema[tf][50]) : '—'} />
+            <KV label="EMA 200" value={p.ema?.[tf]?.[200] ? formatStrategyPrice(p.ema[tf][200]) : '—'} />
+          </div>
+        </Card>
+        <Card>
+          <div style={{ fontSize: '11px', color: C.sub, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.3px' }}>ICT / SMC · {tf}</div>
+          <ICTGrid ict={ict} tf={tf} />
+          <div style={{ marginTop: '10px' }}>
+            <div style={{ fontSize: '10px', color: C.dim, marginBottom: '4px' }}>Bull OB</div>
+            <div style={{ fontFamily: 'Inconsolata', fontSize: '10px', color: C.bull }}>{(p.levels?.[tf]?.ob?.bull || []).slice(0, 3).map(v => formatStrategyPrice(v)).join(' · ') || '—'}</div>
+            <div style={{ fontSize: '10px', color: C.dim, marginBottom: '4px', marginTop: '6px' }}>Bear OB</div>
+            <div style={{ fontFamily: 'Inconsolata', fontSize: '10px', color: C.bear }}>{(p.levels?.[tf]?.ob?.bear || []).slice(0, 3).map(v => formatStrategyPrice(v)).join(' · ') || '—'}</div>
+            <div style={{ fontSize: '10px', color: C.dim, marginBottom: '4px', marginTop: '6px' }}>FVG</div>
+            <div style={{ fontFamily: 'Inconsolata', fontSize: '10px', color: C.cvdPos }}>
+              Bull: {(p.levels?.[tf]?.fvg?.bull || []).slice(0, 2).map(v => formatStrategyPrice(v)).join(' · ') || '—'} · Bear: {(p.levels?.[tf]?.fvg?.bear || []).slice(0, 2).map(v => formatStrategyPrice(v)).join(' · ') || '—'}
+            </div>
+          </div>
+        </Card>
+      </div>
+      {p.confluence?.length > 0 && (
+        <Card>
+          <div style={{ fontSize: '10px', color: C.sub, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Confluence</div>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            {p.confluence.map((c, i) => <Badge key={i} color={C.convergence}>{c}</Badge>)}
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+}
+function AnalysisTab({ pairs, selectedPair, onSelectPair, isMobile }) {
+  const pair = pairs.find(p => p.symbol === selectedPair) || pairs[0];
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+        {pairs.map(p => (
+          <button key={p.symbol} onClick={() => onSelectPair(p.symbol)} style={{ background: selectedPair === p.symbol ? '#f59e0b22' : C.card, color: selectedPair === p.symbol ? C.heatHigh : C.sub, border: `1px solid ${selectedPair === p.symbol ? C.heatHigh : C.border}`, borderRadius: '6px', padding: isMobile ? '8px 14px' : '6px 16px', fontSize: '12px', fontWeight: selectedPair === p.symbol ? 700 : 400, cursor: 'pointer' }}>{p.short}</button>
+        ))}
+      </div>
+      <AnalysisCard p={pair} isMobile={isMobile} />
+    </div>
+  );
+}
+
+// ── Orderflow ──
+function OrderflowTab({ pairs, isMobile }) {
+  const symbols = pairs.map(p => p.symbol);
+  return (
+    <div>
+      <SectionTitle>Coinalyze · 2026-04-28 23:04 UTC 기준</SectionTitle>
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', minWidth: isMobile ? '480px' : 'auto', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+              {['Pair', 'Price', 'OI', 'OI 24h', 'Funding', 'Predicted', 'CVD'].map(h => (
+                <th key={h} style={{ textAlign: 'left', padding: '8px 10px', fontSize: '10px', color: C.dim, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {symbols.map(sym => {
+              const d = ORDERFLOW_DATA[sym];
+              const p = pairs.find(x => x.symbol === sym);
+              if (!d) return null;
+              const fundColor = parseFloat(d.funding_rate) >= 0 ? C.bull : C.bear;
+              const predColor = parseFloat(d.funding_rate_predicted) >= 0 ? C.bull : C.bear;
+              return (
+                <tr key={sym} style={{ borderBottom: `1px solid ${C.border}18` }}>
+                  <td style={{ padding: '10px', fontFamily: 'Poppins', fontWeight: 700, color: C.text, fontSize: '12px' }}>{p?.short}</td>
+                  <td style={{ padding: '10px', fontFamily: 'Inconsolata', color: C.sub, fontSize: '11px' }}>${d.price_usd.toLocaleString()}</td>
+                  <td style={{ padding: '10px', fontFamily: 'Inconsolata', color: C.text, fontSize: '11px' }}>{d.oi_usd_str}</td>
+                  <td style={{ padding: '10px', fontFamily: 'Inconsolata', fontSize: '11px', color: d.oi_change_24h.startsWith('+') ? C.bull : C.bear }}>{d.oi_change_24h}</td>
+                  <td style={{ padding: '10px', fontFamily: 'Inconsolata', fontSize: '11px', color: fundColor }}>{d.funding_rate}</td>
+                  <td style={{ padding: '10px', fontFamily: 'Inconsolata', fontSize: '11px', color: predColor }}>{d.funding_rate_predicted}</td>
+                  <td style={{ padding: '10px', fontSize: '11px', color: d.cvd_direction === 'positive' ? C.cvdPos : C.cvdNeg }}>{d.cvd_direction}/{d.cvd_trend}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ marginTop: '16px' }}>
+        <SectionTitle>Orderflow 카드 요약</SectionTitle>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: '10px' }}>
+          {pairs.map(p => {
+            const d = ORDERFLOW_DATA[p.symbol];
+            if (!d) return null;
+            return (
+              <Card key={p.symbol}>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: C.text, marginBottom: '8px', fontFamily: 'Poppins' }}>{p.short}</div>
+                <KV label="OI" value={d.oi_usd_str} />
+                <KV label="OI 24h" value={d.oi_change_24h} valueColor={d.oi_change_24h.startsWith('+') ? C.bull : C.bear} />
+                <KV label="Funding" value={d.funding_rate} valueColor={parseFloat(d.funding_rate) >= 0 ? C.bull : C.bear} />
+                <KV label="CVD" value={`${d.cvd_direction}/${d.cvd_trend}`} valueColor={d.cvd_direction === 'positive' ? C.cvdPos : C.cvdNeg} />
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+      <div style={{ marginTop: '16px' }}>
+        <SectionTitle>오더플로우 해석</SectionTitle>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '10px' }}>
+          <Card>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: C.bear, marginBottom: '8px' }}>베어리시 시그널</div>
+            <div style={{ fontSize: '11px', color: C.sub, lineHeight: '1.7' }}>
+              · BTC 펀딩 +0.52% 극단 양수 → 롱 과다 누적, 고펀딩 청산 압력<br/>
+              · ETH OI 감소(-2.25%) + CVD 음수 → 롱 청산 주도, ETH 상대 약세<br/>
+              · SOL OI 상승(+2.24%) + 가격 하락 → 신규 숏 포지션 적극 누적<br/>
+              · 전 페어 CVD 음수 — 매도 우세 환경 지속
+            </div>
+          </Card>
+          <Card>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: C.bull, marginBottom: '8px' }}>주목 시그널 (역발상)</div>
+            <div style={{ fontSize: '11px', color: C.sub, lineHeight: '1.7' }}>
+              · SOL 펀딩 -0.45% 극단 음수 → 숏 과다 누적 → 단기 숏스퀴즈 리스크<br/>
+              · HYPE 펀딩 +0.50% 양수 + OI 상승 → 롱 선호, 4개 중 유일 강세<br/>
+              · 전 페어 CVD "rising" → 매도세 완화 중, 매수세 유입 시작 신호<br/>
+              · BTC CVD 음수/상승 → 하락 중 저가 매수세 점진 유입 관찰
+            </div>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Scenarios ──
+function ScenariosTab({ pairs, isMobile }) {
+  const scenarioKeys = ['bull', 'neutral', 'bear'];
+  const scenarioColors = { bull: C.bull, neutral: C.neutral, bear: C.bear };
+  const scenarioLabels = { bull: '강세', neutral: '중립', bear: '약세' };
+  return (
+    <div>
+      <div style={{ background: C.neutral + '12', border: `1px solid ${C.neutral}30`, borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
+        <div style={{ fontSize: '11px', color: C.neutral, fontWeight: 700, marginBottom: '4px' }}>시장 전체 시나리오 요약 (2026-04-29)</div>
+        <div style={{ fontSize: '11px', color: C.sub, lineHeight: '1.6' }}>
+          BTC/ETH/SOL 베어 우세(45-55%). HYPE 강세 우세(45%). 전 페어 RSI 중립이하(BTC 4H 47, SOL 4H 42, HYPE 1H 31.96 극과매도). FOMC 03:00 KST 이벤트 대기 중 — 방향성 결정 전까지 보수적 포지션 유지.
+        </div>
+      </div>
+      {pairs.map(p => (
+        <div key={p.symbol} style={{ marginBottom: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+            <span style={{ fontSize: '14px', fontWeight: 800, color: C.text, fontFamily: 'Poppins' }}>{p.short}</span>
+            <span style={{ fontSize: '12px', color: C.sub, fontFamily: 'Inconsolata' }}>${fmtPrice(p.price)}</span>
+            <Badge color={biasColor(p.bias)}>{p.biasLabel}</Badge>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '10px' }}>
+            {scenarioKeys.map(key => {
+              const sc = p.scenarios?.[key];
+              if (!sc) return null;
+              const color = scenarioColors[key];
+              return (
+                <div key={key} style={{ background: color + '10', border: `1px solid ${color}30`, borderRadius: '8px', padding: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <Badge color={color}>{scenarioLabels[key]}</Badge>
+                    <span style={{ color, fontSize: '13px', fontWeight: 800, fontFamily: 'Inconsolata' }}>{sc.prob}%</span>
+                  </div>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: C.text, marginBottom: '8px' }}>{sc.title}</div>
+                  <KV label="트리거" value={sc.trigger} />
+                  <KV label="무효화" value={sc.invalidation} />
+                  {sc.targets?.length > 0 && <KV label="목표가" value={sc.targets.map(t => formatStrategyPrice(t)).join(' → ')} valueColor={color} />}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Risk ──
+function RiskCard({ p }) {
+  const { long: l, short: s } = p.risk;
+  const rrLong = ((l.tp - l.entry) / (l.entry - l.sl)).toFixed(1);
+  const rrShort = ((s.entry - s.tp) / (s.sl - s.entry)).toFixed(1);
+  return (
+    <Card>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+        <div style={{ fontSize: '14px', fontWeight: 800, color: C.text, fontFamily: 'Poppins' }}>{p.short}</div>
+        <Badge color={biasColor(p.bias)}>{p.biasLabel}</Badge>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+        <div style={{ background: '#4ade8010', border: '1px solid #4ade8030', borderRadius: '6px', padding: '10px' }}>
+          <div style={{ fontSize: '10px', fontWeight: 700, color: C.bull, marginBottom: '8px' }}>LONG</div>
+          <KV label="Entry" value={formatStrategyPrice(l.entry)} />
+          <KV label="TP" value={formatStrategyPrice(l.tp)} valueColor={C.bull} />
+          <KV label="SL" value={formatStrategyPrice(l.sl)} valueColor={C.bear} />
+          <KV label="R:R" value={`1:${rrLong}`} valueColor={parseFloat(rrLong) >= 2 ? C.bull : C.neutral} />
+        </div>
+        <div style={{ background: '#f8717110', border: '1px solid #f8717130', borderRadius: '6px', padding: '10px' }}>
+          <div style={{ fontSize: '10px', fontWeight: 700, color: C.bear, marginBottom: '8px' }}>SHORT</div>
+          <KV label="Entry" value={formatStrategyPrice(s.entry)} />
+          <KV label="TP" value={formatStrategyPrice(s.tp)} valueColor={C.bull} />
+          <KV label="SL" value={formatStrategyPrice(s.sl)} valueColor={C.bear} />
+          <KV label="R:R" value={`1:${rrShort}`} valueColor={parseFloat(rrShort) >= 2 ? C.bull : C.neutral} />
+        </div>
+      </div>
+      <div style={{ marginTop: '8px', fontSize: '10px', color: C.sub, lineHeight: '1.6' }}>
+        <span style={{ color: C.bull }}>L: </span>{l.notes} &nbsp;|&nbsp; <span style={{ color: C.bear }}>S: </span>{s.notes}
+      </div>
+    </Card>
+  );
+}
+function RiskTab({ pairs, selectedPair, onSelectPair, isMobile }) {
+  if (!isMobile) {
+    return (
+      <div>
+        <div style={{ background: C.bear + '15', border: `1px solid ${C.bear}40`, borderRadius: '8px', padding: '12px', marginBottom: '16px', fontSize: '11px', color: C.bear }}>
+          ⚠ FOMC 결정 예정 (2026-04-30 03:00 KST) ±2시간 신규 entry 금지. BTC 펀딩 +0.52% 극단 롱 리스크. SOL 펀딩 -0.45% 숏스퀴즈 경계.
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+          {pairs.map(p => <RiskCard key={p.symbol} p={p} />)}
+        </div>
+      </div>
+    );
+  }
+  const pair = pairs.find(p => p.symbol === selectedPair) || pairs[0];
+  return (
+    <div>
+      <div style={{ background: C.bear + '15', border: `1px solid ${C.bear}40`, borderRadius: '8px', padding: '10px', marginBottom: '12px', fontSize: '10px', color: C.bear }}>
+        ⚠ FOMC ±2시간 entry 금지 · BTC +0.52% 극단 롱 · SOL 숏스퀴즈 경계
+      </div>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+        {pairs.map(p => (
+          <button key={p.symbol} onClick={() => onSelectPair(p.symbol)} style={{ background: selectedPair === p.symbol ? '#f8717122' : C.card, color: selectedPair === p.symbol ? C.bear : C.sub, border: `1px solid ${selectedPair === p.symbol ? C.bear : C.border}`, borderRadius: '6px', padding: '8px 14px', fontSize: '12px', fontWeight: selectedPair === p.symbol ? 700 : 400, cursor: 'pointer' }}>{p.short}</button>
+        ))}
+      </div>
+      <RiskCard p={pair} />
+    </div>
+  );
+}
+
+// ─── DASHBOARD ────────────────────────────────────────────────────────────────
+function Dashboard() {
+  const isMobile = useIsMobile();
+  const tabBarRef = React.useRef(null);
+  const TABS = ['Overview', 'Macro', '분석', 'Orderflow', 'Scenarios', 'Risk'];
+  const [activeTab, setActiveTab] = React.useState('Overview');
+  const [selectedPair, setSelectedPair] = React.useState('BTCUSDT');
+
+  React.useEffect(() => {
+    if (!isMobile || !tabBarRef.current) return;
+    const activeBtn = tabBarRef.current.querySelector('[data-active="true"]');
+    if (activeBtn) activeBtn.scrollIntoView({ inline: 'center', behavior: 'smooth' });
+  }, [activeTab, isMobile]);
+
+  const contentPadding = isMobile ? '14px 12px' : '20px 24px';
+  const headerPadding = isMobile ? '12px' : '14px 24px';
+
+  const bullCount = PAIRS.filter(p => p.bias === 'bull').length;
+  const bearCount = PAIRS.filter(p => p.bias === 'bear').length;
+  const neutralCount = PAIRS.filter(p => p.bias === 'neutral').length;
+  const mktSentiment = bullCount > bearCount ? '강세 우세' : bearCount > bullCount ? '약세 우세' : '혼조';
+
+  let tabContent;
+  if (activeTab === 'Overview') {
+    tabContent = <OverviewTab pairs={PAIRS} selectedPair={selectedPair} onSelectPair={setSelectedPair} isMobile={isMobile} />;
+  } else if (activeTab === 'Macro') {
+    tabContent = <MacroTab isMobile={isMobile} />;
+  } else if (activeTab === '분석') {
+    tabContent = <AnalysisTab pairs={PAIRS} selectedPair={selectedPair} onSelectPair={setSelectedPair} isMobile={isMobile} />;
+  } else if (activeTab === 'Orderflow') {
+    tabContent = <OrderflowTab pairs={PAIRS} isMobile={isMobile} />;
+  } else if (activeTab === 'Scenarios') {
+    tabContent = <ScenariosTab pairs={PAIRS} isMobile={isMobile} />;
+  } else if (activeTab === 'Risk') {
+    tabContent = <RiskTab pairs={PAIRS} selectedPair={selectedPair} onSelectPair={setSelectedPair} isMobile={isMobile} />;
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', background: C.bg }}>
+      <div style={{ background: C.panel, borderBottom: `1px solid ${C.border}`, padding: headerPadding }}>
+        {isMobile ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div>
+              <div style={{ fontSize: '16px', fontWeight: 800, color: C.text, fontFamily: 'Poppins', marginBottom: '2px' }}>Crypto Futures Analysis</div>
+              <div style={{ fontSize: '11px', color: C.dim }}>2026-04-29 · EW + ICT/SMC + Orderflow</div>
+            </div>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {bullCount > 0 && <Badge color={C.bull}>강세 ×{bullCount}</Badge>}
+              {neutralCount > 0 && <Badge color={C.neutral}>중립 ×{neutralCount}</Badge>}
+              {bearCount > 0 && <Badge color={C.bear}>약세 ×{bearCount}</Badge>}
+              <Badge color={C.primary}>{mktSentiment}</Badge>
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: '18px', fontWeight: 800, color: C.text, fontFamily: 'Poppins' }}>Crypto Futures Analysis</div>
+              <div style={{ fontSize: '11px', color: C.dim, marginTop: '2px' }}>2026-04-29 · BTCUSDT · ETHUSDT · SOLUSDT · HYPEUSDT · EW + ICT/SMC + Orderflow</div>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              {bullCount > 0 && <Badge color={C.bull}>강세 ×{bullCount}</Badge>}
+              {neutralCount > 0 && <Badge color={C.neutral}>중립 ×{neutralCount}</Badge>}
+              {bearCount > 0 && <Badge color={C.bear}>약세 ×{bearCount}</Badge>}
+              <Badge color={C.primary}>{mktSentiment}</Badge>
+              <Badge color={C.bear}>FOMC 03:00 KST</Badge>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div ref={tabBarRef} style={{ background: C.panel, borderBottom: `1px solid ${C.border}`, display: 'flex', overflowX: 'auto', scrollbarWidth: 'none' }}>
+        {TABS.map(tab => (
+          <button key={tab} data-active={activeTab === tab ? 'true' : 'false'} onClick={() => setActiveTab(tab)} style={{ background: 'none', border: 'none', borderBottom: `2px solid ${activeTab === tab ? C.primary : 'transparent'}`, color: activeTab === tab ? C.primary : C.sub, padding: isMobile ? '14px 14px' : '12px 20px', fontSize: '12px', fontWeight: activeTab === tab ? 700 : 400, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'Poppins', transition: 'color 0.15s' }}>{tab}</button>
+        ))}
+      </div>
+
+      <div style={{ padding: contentPadding }}>
+        {tabContent}
+      </div>
+
+      <div style={{ padding: isMobile ? '12px' : '14px 24px', borderTop: `1px solid ${C.border}`, background: C.panel, display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', gap: isMobile ? '6px' : '0', alignItems: isMobile ? 'flex-start' : 'center', fontSize: '10px', color: C.dim }}>
+        <span>데이터 기준: 2026-04-28 23:04 UTC (Binance · Coinalyze · Coinglass · Investing.com · TradingView)</span>
+        <span>투자 참고용 분석 · 손익에 대한 책임은 본인에게 있습니다</span>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Dashboard />);
+</script>
+</body>
+</html>
