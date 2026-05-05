@@ -237,20 +237,37 @@
   }
 
   // ─── useLivePrices ───────────────────────────────────────────────────────────
+  // HYPEUSDT is not listed on Binance — fetch it from Bybit separately
+  const BYBIT_SYMS = new Set(['HYPEUSDT']);
   function useLivePrices(symbols) {
     const [prices, setPrices] = React.useState({});
     const [lastUpdated, setLastUpdated] = React.useState(null);
     React.useEffect(() => {
-      const url = 'https://api.binance.com/api/v3/ticker/price?symbols=[' +
-        symbols.map(s => '"' + s + '"').join(',') + ']';
+      const binanceSym = symbols.filter(s => !BYBIT_SYMS.has(s));
+      const bybitSym   = symbols.filter(s =>  BYBIT_SYMS.has(s));
+      const fetches = [];
+      if (binanceSym.length) {
+        const url = 'https://api.binance.com/api/v3/ticker/price?symbols=[' +
+          binanceSym.map(s => '"' + s + '"').join(',') + ']';
+        fetches.push(
+          fetch(url).then(r => r.json())
+            .then(data => { const m = {}; data.forEach(({ symbol, price }) => { m[symbol] = parseFloat(price); }); return m; })
+            .catch(() => ({}))
+        );
+      }
+      bybitSym.forEach(sym => {
+        fetches.push(
+          fetch(`https://api.bybit.com/v5/market/tickers?category=spot&symbol=${sym}`)
+            .then(r => r.json())
+            .then(d => { const p = d?.result?.list?.[0]?.lastPrice; return p ? { [sym]: parseFloat(p) } : {}; })
+            .catch(() => ({}))
+        );
+      });
       const fetch_ = () =>
-        fetch(url).then(r => r.json())
-          .then(data => {
-            const map = {};
-            data.forEach(({ symbol, price }) => { map[symbol] = parseFloat(price); });
-            setPrices(map);
-            setLastUpdated(new Date());
-          }).catch(() => {});
+        Promise.all(fetches).then(results => {
+          const merged = Object.assign({}, ...results);
+          if (Object.keys(merged).length > 0) { setPrices(merged); setLastUpdated(new Date()); }
+        });
       fetch_();
       const id = setInterval(fetch_, 30000);
       return () => clearInterval(id);
