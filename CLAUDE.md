@@ -82,16 +82,32 @@ screenshots/YYYYMMDD/
 - 추측으로 레벨을 생성하지 않음
 
 ## 대시보드 규칙
+
+### ⛔ 템플릿 사용 필수 (구조 드리프트 방지)
+신규 대시보드 생성 시 **반드시** 다음 절차를 따른다:
+1. `reports/_template.html` 을 `reports/YYYYMMDD_dashboard.html` 로 복사
+2. 파일 상단 **DATA SECTION** (두 개의 `═══` 마커 사이) 만 채운다:
+   - `ANALYSIS_DATE` — 분석 날짜 (`'YYYY-MM-DD'` 형식)
+   - `DATA_TIMESTAMP` — 데이터 생성 타임스탬프
+   - `MACRO_EVENTS` — events.json 데이터
+   - `ORDERFLOW_DATA` — coinalyze_data.json의 pairs 객체
+   - `ORDERFLOW_INSIGHTS` — 페어별 오더플로우 분석 텍스트 (4개 항목)
+   - `pairs` — 페어별 분석 데이터 배열
+3. **`═══ END DATA ═══` 마커 아래는 절대 수정하지 않는다.** 컴포넌트/함수/C 토큰 등 모든 코드는 고정.
+4. 새 UI 기능이 필요하면 `_template.html` 자체를 수정한다 (당일 대시보드 파일은 건드리지 않음).
+
 - **파일 형식**: `<head>`에 React/ReactDOM/Babel CDN 포함, `<script type="text/babel">` 안에 분석 데이터 및 컴포넌트 내장, 파일 끝에 `ReactDOM.createRoot(document.getElementById('root')).render(<Dashboard />)` 마운트 코드 포함
-- 다크 테마 필수: 배경 #0b0e14, 패널 #131720, 카드 #1a1f2e
 - inline style hex 값만 사용 (Tailwind opacity 수정자 금지)
-- 텍스트: 주요 #e8eaed, 보조 #9ca3af
-- 강세 #4ade80, 약세 #f87171, 중립 #fbbf24
-- 오더플로우 색상: 히트맵고밀도 #f59e0b, CVD양수 #22d3ee, CVD음수 #fb923c, 수렴 #a78bfa
+- **테마**: Binance 다크 (배경 `#0B0E11`, 패널 `#1E2026`, 카드 `#252930`, primary `#FCD535`, Inter/JetBrains Mono)
+- **시맨틱 색상 토큰** (C 객체에 정의, 직접 hex 하드코딩 금지):
+  - `C.bull #0ECB81` / `C.bullText #0ECB81`, `C.bear #F6465D` / `C.bearText #F6465D`, `C.neutral #F0B90B` / `C.neutralText #F0B90B`
+  - 배지/칩 텍스트는 반드시 `bullText`/`bearText`/`neutralText` 사용 (WCAG AA 대비 확보)
+  - 배경/보더 알파: `C.bull + '20'` 형식 사용 (하드코딩 hex 금지)
+- 오더플로우 색상: 히트맵고밀도 `C.heatHigh #F0B90B`, CVD양수 `C.cvdPos #0ECB81`, CVD음수 `C.cvdNeg #F6465D`, 수렴 `C.convergence #C99BFF`
 - 탭 구조: Overview / Macro / 분석 / Orderflow / Scenarios / Risk
-- **Macro 탭**: `const MACRO_EVENTS = [...]` 상수로 events.json 데이터 임베드, 시간순(KST) 카드 리스트, importance별 좌측 보더 color-coded (high `#f87171` / medium `#fbbf24` / low `#9ca3af`), `tabContent` 변수 패턴 필수
+- **Macro 탭**: `const MACRO_EVENTS = [...]` 상수로 events.json 데이터 임베드, 시간순(KST) 카드 리스트, importance별 좌측 보더 color-coded (high `C.bear` / medium `C.neutral` / low `#9ca3af`), `tabContent` 변수 패턴 필수
 - **분석 탭**: EW + ICT 통합. `bias`(루트), `confluence[]`(루트), `ew[TF].direction/current_wave/completed_waves/target`, `ict[TF].structure_tag/structure_direction/poi_level/bsl/ssl` 필드 필수. 신규 필드가 없거나 `null`이면 해당 카드는 `"—"` 표시. 추정값 생성 금지. `confluence` 배열은 분석 시 수동 작성하고 자동 계산하지 않는다.
-- **Orderflow 탭**: `const ORDERFLOW_DATA = {...}` 상수로 coinalyze_data.json의 `pairs` 객체 그대로 임베드. OI/CVD/펀딩비 컬럼은 추정치 금지 — JSON 수치 직접 사용. CVD 컬럼은 `cvd_direction + '/' + cvd_trend` 형식 (예: `positive/rising`). 펀딩비 셀은 양수 `#4ade80`, 음수 `#f87171`로 색상 구분.
+- **Orderflow 탭**: `const ORDERFLOW_DATA = {...}` 상수로 coinalyze_data.json의 `pairs` 객체 그대로 임베드. OI/CVD/펀딩비 컬럼은 추정치 금지 — JSON 수치 직접 사용. CVD 컬럼은 `cvd_direction + '/' + cvd_trend` 형식 (예: `positive/rising`). 펀딩비 셀은 양수 `C.bull`, 음수 `C.bear`로 색상 구분.
 - **레벨 임베드 규칙**: PAIRS 상수의 `support`/`resistance`/`bsl`/`ssl`/`ob`/`fvg` 배열은 `{PAIR}_{TF}_data.txt` 의 `levels` 필드 원본 숫자를 그대로 사용. 소수점 보존, 라운드 넘버 반올림 금지 (예: `72000` ❌ → `72148.3` ✅). `levels`가 `null`이거나 해당 TF에 값이 없으면 "데이터 없음"으로 표시 (임의 추정값 생성 금지).
 - **반응형 필수**: `useIsMobile()` 훅(`window.matchMedia('(max-width: 767px)')` + resize 리스너)을 `Dashboard()` 위에 정의하고, `Dashboard()` 최상단에서 `const isMobile = useIsMobile();` 호출 후 모든 Tab 컴포넌트에 `isMobile` prop으로 전달
 - **모바일 분기 규칙** (768px 미만):
