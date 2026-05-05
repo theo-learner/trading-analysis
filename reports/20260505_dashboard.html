@@ -20,157 +20,174 @@
   <div id="root"></div>
   <script type="text/babel">
 
-  // ─── MACRO EVENTS ────────────────────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DATA SECTION — REPLACE EACH DAY (lines below until END DATA marker)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // STEP 1: Set analysis date and data timestamp
+  const ANALYSIS_DATE = '2026-05-05';
+  const DATA_TIMESTAMP = '2026-05-05T00:04 UTC';
+
+  // STEP 2: Macro events (from macro/events.json)
   const MACRO_EVENTS = [
-    { id: "blackrock-okx-treasury-20260428", time_utc: "2026-04-28T14:00:00Z", time_kst: "2026-04-28T23:00:00+09:00", region: "US", category: "crypto_event", title: "Standard Chartered, BlackRock, OKX Launch Tokenized Treasury Framework", importance: "high", actual: null, forecast: null, previous: null, impact_assets: ["BTCUSDT","ETHUSDT"], summary: "스탠다드차타드·블랙록·OKX가 기관 고객을 위한 토큰화 국채 담보 프레임워크를 공동 출범했습니다.", source: "investing_crypto", source_url: "https://www.investing.com/news/cryptocurrency-news" },
-    { id: "boj-hold-20260429", time_utc: "2026-04-29T03:00:00Z", time_kst: "2026-04-29T12:00:00+09:00", region: "JP", category: "monetary_policy", title: "Bank of Japan Holds Rates; Split Vote Signals June Hike", importance: "medium", actual: "동결", forecast: "동결", previous: "동결", impact_assets: ["BTCUSDT","ETHUSDT"], summary: "일본은행이 금리를 동결했으나 분할 투표로 6월 인상 가능성을 시사, 엔화 변동성이 크게 확대되었습니다.", source: "tradingview_news", source_url: "https://www.tradingview.com/news/" },
-    { id: "fed-hold-20260429", time_utc: "2026-04-29T18:00:00Z", time_kst: "2026-04-30T03:00:00+09:00", region: "US", category: "monetary_policy", title: "Fed Holds Rates — BTC Initially Dips Below $76K", importance: "high", actual: "동결", forecast: "동결", previous: "동결", impact_assets: ["BTCUSDT","ETHUSDT","SOLUSDT","HYPEUSDT"], summary: "연방준비제도가 금리를 동결하면서 단기적으로 비트코인이 $76K 아래로 하락했으나 이후 회복했습니다.", source: "tradingview_news", source_url: "https://www.tradingview.com/news/" },
-    { id: "strategy-sell-20260430", time_utc: "2026-04-30T14:00:00Z", time_kst: "2026-04-30T23:00:00+09:00", region: "US", category: "news", title: "Strategy Inc (MicroStrategy) Sells ~492K Shares", importance: "medium", actual: null, forecast: null, previous: null, impact_assets: ["BTCUSDT"], summary: "마이크로스트래티지가 지난주 약 49만 2천 주를 매각, 기관 매도 압력이 일시적으로 상승을 제한했습니다.", source: "investing_crypto", source_url: "https://www.investing.com/news/cryptocurrency-news" },
-    { id: "sp500-7200-20260501", time_utc: "2026-05-01T20:00:00Z", time_kst: "2026-05-02T05:00:00+09:00", region: "US", category: "macro_data", title: "S&P 500 Makes History — First Close Above 7,200", importance: "high", actual: "7,204", forecast: null, previous: "7,180", impact_assets: ["BTCUSDT","ETHUSDT","SOLUSDT","HYPEUSDT"], summary: "S&P 500이 역사상 처음으로 7,200선을 상회하며 위험자산 전반에 긍정적 심리를 제공했습니다.", source: "tradingview_news", source_url: "https://www.tradingview.com/news/" },
-    { id: "btc-etf-inflows-20260502", time_utc: "2026-05-02T12:00:00Z", time_kst: "2026-05-02T21:00:00+09:00", region: "US", category: "crypto_event", title: "Bitcoin ETF Inflows Continue — Best Month Since 2024", importance: "high", actual: null, forecast: null, previous: null, impact_assets: ["BTCUSDT"], summary: "비트코인 현물 ETF 지속 유입으로 $78K를 상단에서 지지하며 2024년 이후 최고의 월간 수익률을 기록했습니다.", source: "investing_crypto", source_url: "https://www.investing.com/news/cryptocurrency-news" },
-    { id: "btc-reg-progress-20260503", time_utc: "2026-05-03T10:00:00Z", time_kst: "2026-05-03T19:00:00+09:00", region: "US", category: "news", title: "Bitcoin Targets $80K on Regulatory Progress + S&P 500 Record", importance: "medium", actual: null, forecast: null, previous: null, impact_assets: ["BTCUSDT"], summary: "규제 환경 개선과 S&P 500 신고점이 겹치며 비트코인의 $80K 돌파에 대한 시장 기대가 높아졌습니다.", source: "investing_crypto", source_url: "https://www.investing.com/news/cryptocurrency-news" },
-    { id: "nasdaq-jump-20260504", time_utc: "2026-05-04T14:00:00Z", time_kst: "2026-05-04T23:00:00+09:00", region: "US", category: "macro_data", title: "Nasdaq Futures Jump as Tech Buyers Keep Showing Up", importance: "medium", actual: null, forecast: null, previous: null, impact_assets: ["BTCUSDT","ETHUSDT"], summary: "나스닥 선물이 강세를 보이며 기술주 매수세가 지속, 위험자산 심리 전반에 긍정적 영향을 주었습니다.", source: "tradingview_news", source_url: "https://www.tradingview.com/news/" },
-    { id: "btc-80k-legislation-20260505", time_utc: "2026-05-04T22:00:00Z", time_kst: "2026-05-05T07:00:00+09:00", region: "US", category: "crypto_event", title: "Bitcoin Tops $80K on Stablecoin Legislative Breakthrough", importance: "high", actual: null, forecast: null, previous: null, impact_assets: ["BTCUSDT","ETHUSDT"], summary: "스테이블코인 입법 진전으로 비트코인이 3개월 고점인 $80,000을 돌파했습니다.", source: "investing_crypto", source_url: "https://www.investing.com/news/cryptocurrency-news" },
+    { id: 'btc-80k-stablecoin-legislation-20260505', time_utc: '2026-05-04T22:00:00Z', time_kst: '2026-05-05T07:00:00+09:00', region: 'US', category: 'crypto_event', title: 'Bitcoin Tops $80K on Stablecoin Legislative Breakthrough', importance: 'high', actual: null, forecast: null, previous: null, impact_assets: ['BTCUSDT','ETHUSDT'], summary: '스테이블코인 입법 진전으로 비트코인이 3개월 고점인 $80,000을 돌파했습니다.', source: 'investing_crypto', source_url: 'https://www.investing.com/news/cryptocurrency-news' },
+    { id: 'sp500-7200-record-20260501', time_utc: '2026-05-01T20:00:00Z', time_kst: '2026-05-02T05:00:00+09:00', region: 'US', category: 'macro_data', title: 'S&P 500 Makes History with First Close Above 7,200', importance: 'high', actual: '7,204', forecast: null, previous: '7,180', impact_assets: ['BTCUSDT','ETHUSDT','SOLUSDT','HYPEUSDT'], summary: 'S&P 500이 역사상 처음으로 7,200선을 상회하며 위험자산 전반에 긍정적 심리를 제공했습니다.', source: 'tradingview_news', source_url: 'https://www.tradingview.com/news/' },
+    { id: 'blackrock-stchartered-okx-treasury-20260428', time_utc: '2026-04-28T14:00:00Z', time_kst: '2026-04-28T23:00:00+09:00', region: 'US', category: 'crypto_event', title: 'Standard Chartered, BlackRock, OKX Launch Tokenized Treasury Framework', importance: 'high', actual: null, forecast: null, previous: null, impact_assets: ['BTCUSDT','ETHUSDT'], summary: '스탠다드차타드·블랙록·OKX가 기관 고객을 위한 토큰화 국채 담보 프레임워크를 공동 출범했습니다.', source: 'investing_crypto', source_url: 'https://www.investing.com/news/cryptocurrency-news' },
+    { id: 'btc-etf-inflows-20260502', time_utc: '2026-05-02T12:00:00Z', time_kst: '2026-05-02T21:00:00+09:00', region: 'US', category: 'crypto_event', title: 'Bitcoin Hovers Above $78K with ETF Inflows — Best Month Since 2024', importance: 'high', actual: null, forecast: null, previous: null, impact_assets: ['BTCUSDT'], summary: '비트코인 현물 ETF 지속 유입으로 $78K를 상단에서 지지하며 2024년 이후 최고의 월간 수익률을 기록했습니다.', source: 'investing_crypto', source_url: 'https://www.investing.com/news/cryptocurrency-news' },
+    { id: 'fed-rate-hold-20260429', time_utc: '2026-04-29T18:00:00Z', time_kst: '2026-04-30T03:00:00+09:00', region: 'US', category: 'monetary_policy', title: 'Fed Holds Rates — Bitcoin Slips Below $76K', importance: 'high', actual: '동결(현 수준 유지)', forecast: '동결', previous: '동결', impact_assets: ['BTCUSDT','ETHUSDT','SOLUSDT','HYPEUSDT'], summary: '연방준비제도가 금리를 동결하면서 단기적으로 비트코인이 $76K 아래로 하락했으나 이후 회복했습니다.', source: 'tradingview_news', source_url: 'https://www.tradingview.com/news/' },
+    { id: 'boj-rate-hold-june-signal-20260429', time_utc: '2026-04-29T03:00:00Z', time_kst: '2026-04-29T12:00:00+09:00', region: 'JP', category: 'monetary_policy', title: 'Bank of Japan Holds Rates; Split Vote Signals Possible June Hike', importance: 'medium', actual: '동결', forecast: '동결', previous: '동결', impact_assets: ['BTCUSDT','ETHUSDT'], summary: '일본은행이 금리를 동결했으나 분할 투표로 6월 인상 가능성을 시사, 엔화 변동성이 크게 확대되었습니다.', source: 'tradingview_news', source_url: 'https://www.tradingview.com/news/' },
+    { id: 'strategy-btc-sell-20260430', time_utc: '2026-04-30T14:00:00Z', time_kst: '2026-04-30T23:00:00+09:00', region: 'US', category: 'news', title: 'Strategy Inc (MicroStrategy) Sells ~492K Shares of BTC Holdings', importance: 'medium', actual: null, forecast: null, previous: null, impact_assets: ['BTCUSDT'], summary: '마이크로스트래티지가 지난주 약 49만 2천 주를 매각, 기관 매도 압력이 일시적으로 상승을 제한했습니다.', source: 'investing_crypto', source_url: 'https://www.investing.com/news/cryptocurrency-news' },
+    { id: 'btc-regulatory-progress-80k-target-20260503', time_utc: '2026-05-03T10:00:00Z', time_kst: '2026-05-03T19:00:00+09:00', region: 'US', category: 'crypto_event', title: 'Bitcoin Targets $80,000 on Regulatory Progress + S&P 500 Record', importance: 'medium', actual: null, forecast: null, previous: null, impact_assets: ['BTCUSDT'], summary: '규제 환경 개선과 S&P 500 신고점이 겹치며 비트코인의 $80K 돌파에 대한 시장 기대가 높아졌습니다.', source: 'investing_crypto', source_url: 'https://www.investing.com/news/cryptocurrency-news' },
+    { id: 'nasdaq-futures-tech-buyers-20260504', time_utc: '2026-05-04T14:00:00Z', time_kst: '2026-05-04T23:00:00+09:00', region: 'US', category: 'macro_data', title: 'Nasdaq Futures Jump as Tech Buyers Keep Showing Up', importance: 'medium', actual: null, forecast: null, previous: null, impact_assets: ['BTCUSDT','ETHUSDT'], summary: '나스닥 선물이 강세를 보이며 기술주 매수세가 지속, 위험자산 심리 전반에 긍정적 영향을 주었습니다.', source: 'tradingview_news', source_url: 'https://www.tradingview.com/news/' },
+    { id: 'delorean-solana-20260504', time_utc: '2026-05-03T23:00:00Z', time_kst: '2026-05-04T08:00:00+09:00', region: 'Global', category: 'crypto_event', title: 'DeLorean Brings Major IP to Solana Blockchain', importance: 'low', actual: null, forecast: null, previous: null, impact_assets: ['SOLUSDT'], summary: '디로리안의 대표 IP가 솔라나 블록체인으로 이전되어 SOL 생태계 확장에 기여했습니다.', source: 'investing_crypto', source_url: 'https://www.investing.com/news/cryptocurrency-news' },
   ];
 
-  // ─── ORDERFLOW DATA ──────────────────────────────────────────────────────────
+  // STEP 3: Orderflow data (from coinalyze/coinalyze_data.json)
   const ORDERFLOW_DATA = {
-    generated_at: "2026-05-04T23:04:41.623Z",
+    generated_at: '2026-05-05T00:04:41.042Z',
     pairs: {
-      BTCUSDT:  { price_usd: 79917.5,  oi_usd_str: "$8.69B", oi_change_24h: "+5.21%", oi_trend: "rising", funding_rate: "-0.3160%", funding_rate_predicted: "-0.1600%", cvd_direction: "negative", cvd_trend: "falling" },
-      ETHUSDT:  { price_usd: 2350.37,  oi_usd_str: "$4.89B", oi_change_24h: "+0.01%", oi_trend: "rising", funding_rate: "-0.0209%", funding_rate_predicted: "-0.3225%", cvd_direction: "positive", cvd_trend: "falling" },
-      SOLUSDT:  { price_usd: 84.12,    oi_usd_str: "$812M",  oi_change_24h: "+2.96%", oi_trend: "rising", funding_rate: "+0.2423%", funding_rate_predicted: "+1.0000%", cvd_direction: "negative", cvd_trend: "falling" },
-      HYPEUSDT: { price_usd: 42.009,   oi_usd_str: "$213M",  oi_change_24h: "+2.47%", oi_trend: "rising", funding_rate: "-0.0714%", funding_rate_predicted: "+0.5000%", cvd_direction: "positive", cvd_trend: "falling" },
+      BTCUSDT:  { price_usd: 79900.1, oi_usd_str: '$8.68B', oi_change_24h: '+5.61%', oi_trend: 'rising', funding_rate: '-0.0383%', funding_rate_predicted: '-0.0265%', cvd_direction: 'negative', cvd_trend: 'falling' },
+      ETHUSDT:  { price_usd: 2349,    oi_usd_str: '$4.88B', oi_change_24h: '+0.87%', oi_trend: 'rising', funding_rate: '-0.0209%', funding_rate_predicted: '-0.1760%', cvd_direction: 'positive', cvd_trend: 'falling' },
+      SOLUSDT:  { price_usd: 84.1,    oi_usd_str: '$815M',  oi_change_24h: '+3.58%', oi_trend: 'rising', funding_rate: '+0.2423%', funding_rate_predicted: '+0.6161%', cvd_direction: 'negative', cvd_trend: 'falling' },
+      HYPEUSDT: { price_usd: 41.881,  oi_usd_str: '$211M',  oi_change_24h: '+2.26%', oi_trend: 'rising', funding_rate: '+0.5000%', funding_rate_predicted: '+0.5000%', cvd_direction: 'positive', cvd_trend: 'falling' },
     }
   };
 
-  // ─── PAIRS DATA ──────────────────────────────────────────────────────────────
+  // STEP 4: Orderflow insights
+  const ORDERFLOW_INSIGHTS = [
+    { sym: 'BTC', color: '#F0B90B', title: 'BTC — OI 급증 + CVD 음수: 롱트랩 경계', body: 'OI +5.61% (하루 $460M+ 증가)에도 CVD는 음수/하락. $80K 뉴스 트리거로 매수한 리테일 대비 기관이 숏을 쌓는 패턴. 펀딩 -0.038% (숏이 소폭 유리). $80K 위 Bear FVG $80,003 구간에서 롱 청산 트리거 주의.' },
+    { sym: 'ETH', color: '#848E9C', title: 'ETH — CVD 반전 중: 상승 모멘텀 소진', body: '$2,400 BSL 스윕 후 CVD positive→falling. 펀딩 -0.021% → 예측 -0.176% (숏 포지션 대폭 확대 예상). OI +0.87%로 소폭 증가. 4H 정배열이나 1H 역배열 + RSI 42 = 단기 매도 압력. $2,319-2,331 OB 재진입 후 방향 확인 필요.' },
+    { sym: 'SOL', color: '#F6465D', title: 'SOL — OI 급등 + CVD 음수: 롱스퀴즈 위험', body: 'OI +3.58% (SOL 기준 대형), CVD 음수/하락, 펀딩 +0.2423% (롱 비용 증가). 롱이 쌓이는 가운데 CVD는 실제 매수세가 없음을 보여줌. 극압축 EMA와 결합 시 롱스퀴즈 → $82.69 SSL 방향 움직임 경계. 방향 확정 전 신규 진입 비추.' },
+    { sym: 'HYPE', color: '#0ECB81', title: 'HYPE — MAX 펀딩에도 가격 유지: 강세 신호', body: '펀딩 +0.5000% (바이낸스 최대치). 통상 최대 펀딩은 롱스퀴즈 선행지표이나 가격이 하락하지 않고 $41.9 유지. CVD positive (실제 매수세 존재). OI +2.26% 증가. 이 조합은 숏이 압박받는 구간 = 실질적 강세 신호로 해석 가능. $42.11 Bear OB 돌파 시 squeeze 가속화 예상.' },
+  ];
+
+  // STEP 5: Pairs analysis data
   const pairs = [
     {
-      symbol: 'BTCUSDT', short: 'BTC', price: 80015.9, change24h: '+0.91%',
-      bias: 'bull', biasLabel: 'Bullish',
-      confluence: ['4H+1H 강세 EMA 스택 (7>50>200)', '$80K 돌파 안착 (스테이블코인 입법 호재)', '1H BSL 80,680 직상방 유동성 목표', '1D Bear OB 83,786-85,226 = 주요 저항'],
+      symbol: 'BTCUSDT', short: 'BTC', price: 79802, change24h: '+1.79%', bias: 'bull', biasLabel: 'Bull Bias',
+      confluence: ['4H 완전 정배열 (EMA7>50>200)', '1D/4H RSI 61~62 상승 모멘텀', '$80K 스테이블코인 뉴스 트리거 + ETF 유입', '1H BSL $80,680 단기 타겟', '4H Bull OB $78,376 지지'],
       levels: {
-        '1D': { ob: { bull: [77280, 77206.8, 74555], bear: [83786, 84408.6, 85226] }, fvg: { bull: [76630.3], bear: [88786, 93550.3, 94977.5] }, bsl: [94657.65], ssl: [64999.6], swing_highs: [90599, 94185, 94555], swing_lows: [74868, 65569.2, 65081] },
+        '1D': { ob: { bull: [77280, 77206.8, 74555], bear: [83786, 84408.6, 85226] }, fvg: { bull: [79428.9, 76630.3], bear: [88786, 93550.3, 94977.5] }, bsl: [94657.65], ssl: [64999.6], swing_highs: [90599, 94185, 94555], swing_lows: [74868, 65569.2, 65081] },
         '4H': { ob: { bull: [78376, 78277, 77715], bear: [] }, fvg: { bull: [77177.1, 76536.2, 72431], bear: [] }, bsl: [], ssl: [74822.95, 73352.9, 70443.1], swing_highs: [], swing_lows: [78027, 77100, 76504.6] },
-        '1H': { ob: { bull: [79600.2, 79246.7, 78794.6], bear: [] }, fvg: { bull: [79099.7, 76347], bear: [] }, bsl: [80680.95], ssl: [78047.57, 77736.57, 77343.65], swing_highs: [80590.2, 80771.7], swing_lows: [78514.2, 78235.4, 78128.3] },
+        '1H': { ob: { bull: [79600.2, 79246.7, 78794.6], bear: [] }, fvg: { bull: [79099.7, 76347], bear: [80003.6] }, bsl: [80680.95], ssl: [78047.57, 77736.57, 77343.65], swing_highs: [80590.2, 80771.7], swing_lows: [78514.2, 78235.4, 78128.3] },
       },
-      ema: { '1D': { 7: 78281.3, 50: 74405.5, 200: 82078.7 }, '4H': { 7: 79597.4, 50: 77992.7, 200: 75143.3 }, '1H': { 7: 80001.8, 50: 79229.9, 200: 77978.7 } },
-      rsi: { '1D': 61.32, '4H': 62.55, '1H': 54.99 },
+      ema: { '1D': { 7: 78629, 50: 74610.6, 200: 82054.3 }, '4H': { 7: 79612.4, 50: 78056.4, 200: 75187.7 }, '1H': { 7: 79917.7, 50: 79245.4, 200: 77995 } },
+      rsi: { '1D': 61.55, '4H': 62.27, '1H': 55.34 },
       ew: {
-        '1D': { direction: 'long', current_wave: 'Wave B (Corrective)', completed_waves: ['Wave A — 65K 저점 완료'], target: 82078.7, count: '1D: 94K 고점에서 ABC 조정 중. Wave A 완료(65K). Wave B 반등 진행.', detail: 'Wave B 목표: EMA200(82,078) ~ Bear OB 83,786. RSI 61 모멘텀 있으나 EMA200이 핵심 저항. 돌파 시 Bear OB 85,226까지 확장.' },
-        '4H': { direction: 'long', current_wave: 'Wave 3 (Impulse)', completed_waves: ['Wave 1', 'Wave 2'], target: 84408.6, count: '4H: 74K 저점에서 임펄스 3파 진행 중. EMA7>50>200 완전 정렬.', detail: '3파 1.618 확장 시 84-85K 목표. Bull OBs 77,715-78,376 = 2파 지지 구간. RSI 62.55 강세.' },
-        '1H': { direction: 'long', current_wave: 'Wave 5 (Approaching BSL)', completed_waves: ['W1', 'W2', 'W3', 'W4'], target: 80771.7, count: '1H: BSL 80,680-80,771 접근 중. 5파 완성 후 단기 ABC 조정 예상.', detail: 'RSI 55 — 과열 없음. BSL 청산 후 4H Bull OB 79,246-79,600 복귀 패턴 유력.' },
+        '1D': { direction: 'long', current_wave: 'Wave 3↑ (추정)', completed_waves: ['Wave 1 ($65K→$94K)', 'Wave 2 ($65K 재테스트 완료)'], target: 105000, count: '1D: $65,081 저점에서 반등 중. 현재 $79,800은 Wave 3 초입 구간.', detail: 'EMA200 $82,054 구간이 Wave 3 첫 번째 저항. 돌파 시 $90,599 스윙하이 재시험 예상. 1D RSI 61 — 과열 전 추가 상승 여력.' },
+        '4H': { direction: 'long', current_wave: 'Wave ③↑ 진행 중', completed_waves: ['① $74K', '② $78K 되돌림'], target: 83786, count: '4H: $77,100→$80,771 임펄스. 현재 소폭 조정 후 재상승 시도.', detail: '4H EMA 완전 정배열. 조정은 EMA7($79,612) 위 유지 중. 다음 타겟 Bear OB $83,786.' },
+        '1H': { direction: 'long', current_wave: 'Wave (iv) 조정', completed_waves: ['(i)~(iii): $77,700→$80,771'], target: 80680.95, count: '1H: 5파 구조 중 (iii) 완료 후 소폭 조정. Bear FVG $80,003 미회복.', detail: 'RSI 55 = 조정 구간. $79,600 Bull OB 지지 유지 시 (v)파 $80,680 BSL 스윕 예상.' },
       },
       ict: {
-        '1D': { structure_tag: 'BOS', structure_direction: 'bullish', poi_level: 77280, bsl: 94657.65, ssl: 64999.6, structure: '1D BOS 상향: 65K SSL 스윕 후 구조적 반등.', poi: 'Bull OBs 77,206-77,280 = 1D 핵심 POI.', liquidity: 'BSL 94,657 원거리. 근거리 장벽: Bear OBs 83,786-85,226.', killzone: '뉴욕(21:00-00:00 KST) 킬존 $80K 수렴 시 진입.', smt: 'BTC +0.91% vs ETH +0.24% — BTC 선도. ETH SMT 다이버전스 주의.' },
-        '4H': { structure_tag: 'BOS', structure_direction: 'bullish', poi_level: 78376, bsl: null, ssl: 74822.95, structure: '4H BOS 연속. EMA7>50>200 강세 정렬.', poi: 'Bull OBs 77,715-78,376 = 4H 핵심 POI 클러스터.', liquidity: 'SSL 74,822/73,352/70,443 하방 유동성.', killzone: '4H Bull OB 리테스트 시 1H 킬존 진입.', smt: 'CVD 음수/하락 + 펀딩 -0.316% = 숏 누적 → 숏스퀴즈 잠재.' },
-        '1H': { structure_tag: 'BOS', structure_direction: 'bullish', poi_level: 79600.2, bsl: 80680.95, ssl: 78047.57, structure: '1H BOS 상향. BSL 80,680 즉각 목표.', poi: 'Bull OBs 79,246-79,600 = 이상적 롱 POI.', liquidity: 'BSL 80,680/80,771 직상방. SSL 78,047 하방.', killzone: '실버불릿(23:00-00:00 KST) 1H Bull OB 리테스트 진입.', smt: '음수 CVD에도 가격 유지 = 숏스퀴즈 잠재력.' },
+        '1D': { structure_tag: 'BOS↑', structure_direction: 'bullish', poi_level: 82054.3, bsl: 94657.65, ssl: 64999.6, structure: '$80K 돌파로 1D 구조 BOS 확인. EMA200 $82,054 구간이 다음 주요 POI.', poi: 'Bear OB $83,786-$85,226 = 1D 분배 구역. 이 구간에서 숏 압력 예상.', killzone: 'NY 킬존 (14:00-17:00 UTC) 진입 선호. 현재 $80K 뉴스 이벤트 ±2시간 entry 금지 구간.', smt: 'BTC $80K 돌파 vs ETH $2,400 미돌파 = BTC/ETH SMT 다이버전스 주목.' },
+        '4H': { structure_tag: 'CHoCH→BOS↑', structure_direction: 'bullish', poi_level: 78376, bsl: null, ssl: 74822.95, structure: '4H 완전 정배열. $78K 위 BOS 이후 풀백은 Bull OB $78,376 재테스트 기회.', poi: 'Bull OB $78,376-$78,277 = 핵심 4H POI. 이 구간 이탈 시 바이어스 재평가 필요.', killzone: 'London/NY 오버랩 (13:00-16:00 UTC) 고변동성 구간.', smt: null },
+        '1H': { structure_tag: 'MSS↑', structure_direction: 'bullish', poi_level: 79600.2, bsl: 80680.95, ssl: 78047.57, structure: '1H MSS 확인. 현재 Bear FVG $80,003 미회복. $79,600 Bull OB = 단기 지지.', poi: 'Bear FVG $80,003 = 가격이 이 구간 회복해야 다음 상승 자격.', killzone: null, smt: null },
       },
       scenarios: {
-        bull: { prob: 55, title: 'BSL 청산 → EMA200 테스트', trigger: '$80K 안착 + 1H BSL 80,680 돌파', target: '82,078 (EMA200 1D) → 83,786 (Bear OB)', invalidate: '78,047 (1H SSL) 이탈' },
-        bear: { prob: 25, title: 'EMA200 거부 → OB 복귀', trigger: '82,078 EMA200 거부 또는 4H Bull OB 이탈', target: '77,715-78,376 (4H Bull OB 클러스터)', invalidate: '82,500 이상 안착' },
-        neutral: { prob: 20, title: '$78K-82K 레인지', trigger: '방향성 부재, 매크로 관망', target: '78,000-82,000 레인지', invalidate: '82,078 돌파 또는 77,992 이탈' },
+        bull: { prob: 65, title: '$80K 돌파 유지 → EMA200 $82K 재시험', trigger: '4H 봉 기준 $80,003 Bear FVG 회복 + $80,680 BSL 스윕', target: '$83,786 (1D Bear OB)', invalidate: '4H 종가 $78,376 (Bull OB) 하향 이탈' },
+        bear: { prob: 25, title: '$80K 뉴스 페이드 → $78K 재테스트', trigger: '1H 종가 $79,246 (Bull OB) 하향 이탈', target: '$78,376 (4H Bull OB)', invalidate: '$80,500 이상 회복' },
+        neutral: { prob: 10, title: '$79K-$80.3K 레인지 횡보', trigger: 'FOMC 인사 발언 / 뉴스 없는 주말', target: '레인지 유지', invalidate: '$80,500 돌파 또는 $79,000 이탈' },
       },
       risk: {
-        long:  { entry: '79,246-79,600', sl: '78,047', tp1: '82,078', tp2: '83,786', rr: '2.5:1', note: '1H Bull OB 리테스트. 뉴욕 킬존 우선' },
-        short: { entry: '83,786-84,408', sl: '85,226', tp1: '80,015', tp2: '77,992', rr: '2.0:1', note: '1D Bear OB 반응 확인 후 진입' },
+        long:  { entry: '$79,246-$79,600', sl: '$78,376', tp1: '$80,680', tp2: '$83,786', rr: '2.5:1', note: '1H Bull OB 터치 후 반등 캔들 확인 후 진입. 뉴스 이벤트 ±2h 진입 금지.' },
+        short: { entry: '$80,003-$80,300', sl: '$80,800', tp1: '$79,246', tp2: '$78,376', rr: '2.0:1', note: 'Bear FVG 상단 거부 신호 (1H 핀바 / 인게이징 베어 캔들) 확인 후 진입.' },
       },
     },
     {
-      symbol: 'ETHUSDT', short: 'ETH', price: 2350.2, change24h: '+0.24%',
-      bias: 'bull', biasLabel: 'Bullish',
-      confluence: ['4H 강세 EMA 스택 (7>50>200)', '4H BSL 2,385/2,419 청산 목표', 'BTC 대비 상대 약세 — SMT 다이버전스 주의', '1H RSI 44.43 + EMA7 괴리 = 단기 조정 리스크'],
+      symbol: 'ETHUSDT', short: 'ETH', price: 2345, change24h: '+1.27%', bias: 'neutral', biasLabel: 'Neutral',
+      confluence: ['4H 정배열 vs 1H 역배열 — TF 불일치', '$2,400 BSL 스윕 후 풀백 진행 중', '1D EMA200 $2,599 = 중기 회복 관문', 'OI 소폭 증가 + CVD 하락 = 모멘텀 소진', 'BTC/ETH SMT 다이버전스 (BTC $80K 돌파, ETH 미돌파)'],
       levels: {
         '1D': { ob: { bull: [2314.08, 2305.07, 2282.7], bear: [2784.15, 2902.8, 2943.31] }, fvg: { bull: [2277.92], bear: [2634.63, 2752.5, 2981.7] }, bsl: [4761], ssl: [], swing_highs: [2385.78, 2463.86, 3045], swing_lows: [2250.91, 2218.83, 1936.54] },
-        '4H': { ob: { bull: [2327.4, 2322.35, 2319.67], bear: [2366.62] }, fvg: { bull: [2266.35, 2194.62, 2092.61], bear: [] }, bsl: [2385.23, 2419.7], ssl: [2282.28, 2253.47, 2173.74], swing_highs: [2384.67, 2385.78, 2403.99], swing_lows: [2296.01, 2283.31, 2282.7] },
-        '1H': { ob: { bull: [2351.81, 2347.52, 2331.99], bear: [2357, 2388.76, 2390.69] }, fvg: { bull: [2258], bear: [] }, bsl: [2401.43], ssl: [2305.57, 2299.19, 2279.78], swing_highs: [2382, 2398.88, 2403.99], swing_lows: [2330, 2321.97, 2313.05] },
+        '4H': { ob: { bull: [2327.4, 2322.35, 2319.67], bear: [2366.62] }, fvg: { bull: [2266.35, 2194.62, 2092.61], bear: [] }, bsl: [2401.43, 2419.7], ssl: [2282.28, 2253.47, 2173.74], swing_highs: [2346.48, 2346.84, 2384.67], swing_lows: [2296.01, 2283.31, 2282.7] },
+        '1H': { ob: { bull: [2331.99, 2331.3, 2323.16], bear: [2347.52, 2351.81, 2357] }, fvg: { bull: [2258], bear: [2352.68] }, bsl: [2401.43], ssl: [2305.57, 2299.19, 2279.78], swing_highs: [2346.48, 2382, 2398.88], swing_lows: [2330, 2321.97, 2313.05] },
       },
-      ema: { '1D': { 7: 2314.91, 50: 2254.44, 200: 2601.94 }, '4H': { 7: 2346.91, 50: 2314.59, 200: 2267.73 }, '1H': { 7: 2257.25, 50: 2292.29, 200: 2311.52 } },
-      rsi: { '1D': 54.15, '4H': 58.77, '1H': 44.43 },
+      ema: { '1D': { 7: 2321.95, 50: 2257.88, 200: 2599.36 }, '4H': { 7: 2345.41, 50: 2315.59, 200: 2268.45 }, '1H': { 7: 2255.82, 50: 2290.69, 200: 2310.92 } },
+      rsi: { '1D': 54.14, '4H': 58.66, '1H': 42.06 },
       ew: {
-        '1D': { direction: 'long', current_wave: 'Wave B (Corrective)', completed_waves: ['Wave A — 1,936 저점 완료'], target: 2463.86, count: '1D: 3,045 고점에서 ABC 조정. Wave A 완료(1,936). Wave B 반등 중.', detail: 'Wave B 목표: 50-61.8% 되돌림 = 2,450-2,570. RSI 54 — 모멘텀 중립. 이후 Wave C 하락 리스크 내재.' },
-        '4H': { direction: 'long', current_wave: 'Wave 3 or 5', completed_waves: ['Wave 1', 'Wave 2'], target: 2403.99, count: '4H: 2,194 저점에서 임펄스. 3파 또는 5파 접근 중.', detail: 'Bear OB 2,366 저항. 돌파 시 BSL 2,385-2,420 즉시 목표. RSI 58.77 양호.' },
-        '1H': { direction: 'neutral', current_wave: 'Potential Wave 5 / Exhaustion', completed_waves: ['W1', 'W2', 'W3', 'W4'], target: null, count: '1H RSI 44.43 약세 + EMA7(2,257)과 현재가(2,350) 괴리 93$ = 소진 신호.', detail: '1H 조정 후 Bull OBs 2,331-2,351 재테스트 시 재진입 기회.' },
+        '1D': { direction: 'long', current_wave: 'Corrective B↑ (추정)', completed_waves: ['하락 A: $3,045→$1,936'], target: 2599, count: '1D: $1,936 저점 이후 반등. EMA7>EMA50 이나 EMA200 $2,599 아래 = 아직 장기 회복 미확인.', detail: '$2,463 스윙하이 > $2,599 EMA200 돌파 전까지 하락 추세 안의 반등으로 취급. RSI 54 = 중립.' },
+        '4H': { direction: 'long', current_wave: 'Wave (iii)↑ 완료 후 (iv) 조정', completed_waves: ['(i) $2,194', '(ii) $2,268', '(iii) $2,400 근처'], target: 2401.43, count: '4H: $2,194 Bull FVG → $2,401 BSL 스윕 완료. 현재 Bear OB $2,366 아래로 내려온 상태.', detail: 'BSL $2,401 스윕 후 조정 중. Bull OB $2,319-$2,327 구간 되돌림 예상. RSI 58 = 아직 여력.' },
+        '1H': { direction: 'short', current_wave: '풀백 진행 중', completed_waves: ['$2,194→$2,400 상승 완료'], target: 2319.67, count: '1H: $2,400 스윕 후 급락. EMA 역배열 + RSI 42 = 약세 단기 구조.', detail: '1H Bear OB $2,347-$2,357 저항에서 거부 시 $2,319-$2,331 Bull OB 방향. 지지 실패 시 $2,282 테스트.' },
       },
       ict: {
-        '1D': { structure_tag: 'BOS', structure_direction: 'bullish', poi_level: 2314.08, bsl: 4761, ssl: null, structure: '1D BOS 상향: 1,936 SSL 스윕 후 반등.', poi: 'Bull OBs 2,282-2,314 = 1D 핵심 POI.', liquidity: 'Swing highs 2,385→2,463 = 근거리 목표.', killzone: 'BTC 동반 확인 후 킬존 진입.', smt: 'BTC +0.91% vs ETH +0.24% = SMT 다이버전스 잠재.' },
-        '4H': { structure_tag: 'BOS', structure_direction: 'bullish', poi_level: 2327.4, bsl: 2385.23, ssl: 2282.28, structure: '4H BOS 상향. EMA7>50>200 강세.', poi: 'Bull OBs 2,319-2,327 = 4H 핵심 POI.', liquidity: 'BSL 2,385/2,419 직상방. SSL 2,282 하방.', killzone: 'Bear OB 2,366 돌파 여부 = 4H 방향 결정.', smt: 'OI +0.01% 정체 + CVD 양수/하락 = 매수세 감소.' },
-        '1H': { structure_tag: 'CHoCH', structure_direction: 'bullish', poi_level: 2347.52, bsl: 2401.43, ssl: 2305.57, structure: '1H CHoCH 상향 후 급등. RSI 44.43 단기 소진 주의.', poi: 'Bull OBs 2,331-2,351 = 현재가 수준. Bear OB 2,357 즉각 저항.', liquidity: 'BSL 2,401 목표. SSL 2,305/2,299 하방.', killzone: '1H 조정 대기 후 Bull OB 리테스트 진입.', smt: 'EMA7(2,257)과 현재가(2,350) 괴리 = 급등 후 평균 회귀 리스크.' },
+        '1D': { structure_tag: 'Reaccumulation', structure_direction: 'neutral', poi_level: 2599.36, bsl: 4761, ssl: null, structure: '1D 장기 하락 구조 안에서 반등 중. $2,250 지지 유지 중. EMA200 $2,599 = 중기 저항.', poi: 'Bull OB $2,282-$2,314 = 1D 핵심 지지. 이 구간 유지 시 반등 지속.', killzone: '아시아 킬존 이후 London 오픈에서 방향 결정 패턴 관찰.', smt: 'BTC $80K 돌파, ETH $2,400 미돌파 = ETH 상대 약세. BTC 조정 시 ETH 더 크게 하락 가능성.' },
+        '4H': { structure_tag: 'BSL 스윕 후 재분배', structure_direction: 'bullish', poi_level: 2327.4, bsl: 2401.43, ssl: 2282.28, structure: '4H 정배열 유지. BSL $2,401 스윕 완료. 현재 Bull OB $2,319-$2,327 로 조정 중.', poi: '4H Bull OB $2,319-$2,327 = 핵심 롱 POI. 여기서 반응 없으면 $2,282 SSL 테스트.', killzone: null, smt: null },
+        '1H': { structure_tag: 'CHoCH↓', structure_direction: 'bearish', poi_level: 2347.52, bsl: 2401.43, ssl: 2305.57, structure: '1H CHoCH 하향. Bear OB $2,347-$2,357 = 단기 분배 구역. RSI 42 약세 모멘텀.', poi: 'Bear OB $2,347-$2,357 = 바운스 숏 POI. 되돌림 후 재거부 시 $2,305 SSL 방향.', killzone: null, smt: null },
       },
       scenarios: {
-        bull: { prob: 45, title: 'Bear OB 돌파 → BSL 청산', trigger: '4H Bear OB 2,366 돌파', target: '2,385 → 2,419 (BSL) → 2,463', invalidate: '2,282 (4H SSL) 이탈' },
-        bear: { prob: 35, title: 'Bear OB 거부 → OB 복귀', trigger: '2,357-2,366 거부 + 1H RSI 약세 지속', target: '2,319-2,327 → 2,266 (Bull FVG)', invalidate: '2,401 이상 안착' },
-        neutral: { prob: 20, title: '2,320-2,385 레인지', trigger: 'BTC 방향성 대기', target: '2,320-2,385 횡보', invalidate: '2,401 돌파 또는 2,282 이탈' },
+        bull: { prob: 30, title: '$2,327 OB 반응 후 $2,401 재시험', trigger: '4H 종가 기준 $2,327 Bull OB 에서 강세 반응 + BTC $80K 유지', target: '$2,401 (BSL)', invalidate: '4H 종가 $2,282 (SSL) 하향 이탈' },
+        bear: { prob: 20, title: '$2,282 지지 이탈 → $2,194 FVG 하락', trigger: '1H 종가 $2,305 (SSL) 하향 이탈 + BTC 약세', target: '$2,194 (4H Bull FVG)', invalidate: '$2,366 Bear OB 회복' },
+        neutral: { prob: 50, title: '$2,282-$2,400 레인지 횡보', trigger: 'BTC 변동 없고 ETH 독자 방향 부재', target: '$2,319-$2,350 레인지', invalidate: '$2,401 돌파 또는 $2,282 이탈' },
       },
       risk: {
-        long:  { entry: '2,319-2,327', sl: '2,282', tp1: '2,385', tp2: '2,419', rr: '2.3:1', note: '4H Bull OB 리테스트. BTC 동반 필수' },
-        short: { entry: '2,357-2,366', sl: '2,401', tp1: '2,314', tp2: '2,282', rr: '1.8:1', note: '1H RSI + Bear OB 반응 확인. SMT 발생 시 강화' },
+        long:  { entry: '$2,319-$2,331', sl: '$2,282', tp1: '$2,401', tp2: '$2,463', rr: '2.7:1', note: '4H Bull OB 터치 후 반등 확인. BTC 강세 지속 조건부. 1H 역배열 감안 소량 진입.' },
+        short: { entry: '$2,347-$2,366', sl: '$2,401', tp1: '$2,319', tp2: '$2,282', rr: '1.5:1', note: '1H Bear OB / Bear FVG 거부 후 숏. CVD 하락 + 펀딩 음수 예측 조건 일치.' },
       },
     },
     {
-      symbol: 'SOLUSDT', short: 'SOL', price: 84.1, change24h: '-0.67%',
-      bias: 'neutral', biasLabel: 'Neutral',
-      confluence: ['EMA 극단 압축 (4H/1H 동시) — 폭발적 이동 임박', '1D Bear OB 84.75-86.41 + EMA50(86.11) = 복합 저항', '1D EMA200(112.99) 대비 -25% = 구조적 약세', 'OI +2.96% + CVD 음수 + 펀딩 양수 = 오버레버리지 롱 리스크'],
+      symbol: 'SOLUSDT', short: 'SOL', price: 84.1, change24h: '+0.38%', bias: 'neutral', biasLabel: 'Neutral — Coil',
+      confluence: ['전 TF EMA 극압축 ($84.1 ± $1 이내)', 'RSI 1D/4H/1H 모두 48~52 (완벽한 중립)', '4H Bear OB $84.26-$84.30 = 가격 바로 위', '1H Bull OB $84.04 = 가격 바로 아래', 'OI +3.58% + CVD 음수 = 롱스퀴즈 위험 잠재'],
       levels: {
-        '1D': { ob: { bull: [84.15, 83.91, 83.26], bear: [84.75, 85.78, 86.41] }, fvg: { bull: [], bear: [111.75, 124.69, 137.65] }, bsl: [144.74], ssl: [76.59], swing_highs: [87.19, 90.71, 91.19], swing_lows: [81.31, 80.18, 76.63] },
+        '1D': { ob: { bull: [83.91, 83.26, 81.64], bear: [84.15, 84.75, 85.78] }, fvg: { bull: [], bear: [111.75, 124.69, 137.65] }, bsl: [144.74], ssl: [76.59], swing_highs: [87.19, 90.71, 91.19], swing_lows: [81.31, 80.18, 76.63] },
         '4H': { ob: { bull: [84.04, 83.75, 83.47], bear: [84.26, 84.28, 84.3] }, fvg: { bull: [], bear: [] }, bsl: [84.92, 87.13, 90.75], ssl: [82.69, 81.3, 78.38], swing_highs: [84.35, 84.82, 84.96], swing_lows: [83.7, 82.91, 82.77] },
-        '1H': { ob: { bull: [84.11, 84.1, 84.05], bear: [84.3, 84.63, 84.83] }, fvg: { bull: [83.06, 83.0], bear: [87.35, 87.64, 88.45] }, bsl: [84.27, 84.89, 85.41], ssl: [83.52, 83.25, 82.69], swing_highs: [84.37, 84.82, 84.89], swing_lows: [83.56, 83.52, 83.47] },
+        '1H': { ob: { bull: [84.04, 83.88, 83.8], bear: [84.1, 84.11, 84.3] }, fvg: { bull: [83.06, 83], bear: [87.35, 87.64, 88.45] }, bsl: [84.27, 84.89, 85.41], ssl: [83.52, 83.25, 82.69], swing_highs: [84.11, 84.16, 84.37], swing_lows: [83.56, 83.52, 83.47] },
       },
-      ema: { '1D': { 7: 84.11, 50: 86.11, 200: 112.99 }, '4H': { 7: 84.3, 50: 84.33, 200: 84.96 }, '1H': { 7: 84.29, 50: 84.31, 200: 84.36 } },
-      rsi: { '1D': 49.07, '4H': 51.91, '1H': 48.16 },
+      ema: { '1D': { 7: 84.1, 50: 86.03, 200: 112.71 }, '4H': { 7: 84.23, 50: 84.32, 200: 84.95 }, '1H': { 7: 84.22, 50: 84.3, 200: 84.36 } },
+      rsi: { '1D': 48.79, '4H': 51.65, '1H': 48.24 },
       ew: {
-        '1D': { direction: 'neutral', current_wave: 'Wave C / 하락 추세', completed_waves: ['Wave 1(하락)', 'Wave 2(반등)', 'Wave 3(하락)'], target: null, count: '1D: 182+ 고점에서 하락 구조. Wave C 또는 4파 전개 중.', detail: 'EMA200(112.99) 대비 -25%. Wave C 완료 시 SSL 76.59 목표. RSI 49 모멘텀 없음.' },
-        '4H': { direction: 'neutral', current_wave: 'EMA Compression / Coiling', completed_waves: [], target: null, count: '4H: 모든 EMA가 84.0-85.0 범위 수렴. 삼각 수렴 가능성.', detail: '돌파 방향 추종 전략 필요. RSI 52 중립. 방향 이탈 시 폭발적 이동.' },
-        '1H': { direction: 'neutral', current_wave: 'Extreme Compression', completed_waves: [], target: null, count: '1H: EMA7/50/200 모두 84.29-84.36 (7센트 범위). 극단 압축.', detail: 'Bear OB 84.30 직상방, Bull OB 84.05 직하방. 브레이크아웃 직전 상태.' },
+        '1D': { direction: 'neutral', current_wave: 'Wave 4 Flat (추정)', completed_waves: ['Wave 1: $76→$91', 'Wave 2: $80 되돌림', 'Wave 3: $91 근처'], target: null, count: '1D: $76-$91 범위 내 압축. EMA7 ≈ EMA50 수렴 = 추세 미결정.', detail: '1D EMA200 $112.71 = 장기 저항. 현재는 중기 레인지 $76-$91 내 중심부.' },
+        '4H': { direction: 'neutral', current_wave: '삼각형 수렴 패턴 (추정)', completed_waves: [], target: null, count: '4H: 전 EMA가 $84.23-$84.95 이내 수렴. 일반적으로 큰 방향성 이탈 전 패턴.', detail: '4H Bear OB $84.26-84.30이 즉각적인 저항. Bull OB $84.04가 즉각 지지. 레인지 폭 불과 $0.26.' },
+        '1H': { direction: 'neutral', current_wave: '레인지 중립', completed_waves: [], target: null, count: '1H: EMA 7/50/200 모두 $84.22-$84.36 수렴. 파동 카운트 불가 = 레인지 유지.', detail: 'Bear OB $84.10-84.30, Bull OB $84.04-83.88 = 20-26센트 레인지. 이 레인지 이탈이 방향 신호.' },
       },
       ict: {
-        '1D': { structure_tag: 'MSS', structure_direction: 'bearish', poi_level: 84.75, bsl: 144.74, ssl: 76.59, structure: '1D MSS 하향: 하락 추세 지속. Bear OBs 84.75-86.41 = 강력한 저항.', poi: 'Bear OBs 84.75-86.41 = 숏 POI 구간.', liquidity: 'SSL 76.59 = 하방 유동성 주요 목표.', killzone: '1D 약세 구조 → Bear OB 반응 후 숏 진입.', smt: 'BTC +0.91% vs SOL -0.67% = 심각한 상대 약세. SMT 뚜렷.' },
-        '4H': { structure_tag: 'CHoCH', structure_direction: 'bearish', poi_level: 84.26, bsl: 84.92, ssl: 82.69, structure: '4H: Bear OBs 84.26-84.30 직상방. EMA 극단 압축.', poi: 'Bear OBs 84.26-84.30 = 4H 저항 POI.', liquidity: 'BSL 84.92/87.13 상방. SSL 82.69/81.3 하방.', killzone: '킬존 브레이크아웃 방향 추종 전략.', smt: 'OI +2.96% + CVD 음수 + 펀딩 +0.2423% = 롱 오버레버리지 위험.' },
-        '1H': { structure_tag: null, structure_direction: 'neutral', poi_level: 84.11, bsl: 84.27, ssl: 83.52, structure: '1H: 구조 불명확. EMA 극단 압축. 방향 대기.', poi: 'Bull OBs 84.05-84.11 지지. Bear OBs 84.30-84.63 저항.', liquidity: 'BSL 84.27/84.89. SSL 83.52/83.25. 양방향 유동성.', killzone: '브레이크아웃 방향 확인 전 진입 자제.', smt: '펀딩 양수 + CVD 음수 = 모순 신호. 조작 가능성 고려.' },
+        '1D': { structure_tag: '중립 (레인지)', structure_direction: 'neutral', poi_level: 86.03, bsl: 144.74, ssl: 76.59, structure: '1D EMA50 $86.03 아래 횡보. 1D Bear OB $84.15가 현재 가격 바로 위에서 지속 저항.', poi: '1D EMA50 $86.03 = 중기 회복의 기준선. 탈환 시 $87-91 목표 가능.', killzone: 'SOL은 아시아 세션 변동성 높음. NY 킬존 방향 추종 전략.', smt: null },
+        '4H': { structure_tag: '수렴 구간', structure_direction: 'neutral', poi_level: 84.26, bsl: 84.92, ssl: 82.69, structure: '4H 모든 EMA 수렴. Bear OB $84.26이 4H 저항 기준. Bull OB $84.04가 4H 지지 기준.', poi: 'Bear OB $84.26-84.30 이탈 = 상방 돌파 신호. BSL $84.92, $87.13 순차 타겟.', killzone: null, smt: null },
+        '1H': { structure_tag: '스퀴즈', structure_direction: 'neutral', poi_level: 84.1, bsl: 84.27, ssl: 83.52, structure: '1H 극압축. $84.04-$84.30 범위 내. OI 증가 + CVD 음수 = 롱스퀴즈 가능성.', poi: '$83.52 SSL = 롱스퀴즈 첫 타겟. $82.69 다음 타겟.', killzone: null, smt: null },
       },
       scenarios: {
-        bull: { prob: 30, title: '압축 상방 돌파 → BSL', trigger: '84.96 (4H EMA200) 돌파 + 거래량 확인', target: '87.13 (BSL) → 90.71-90.75', invalidate: '83.47 이탈' },
-        bear: { prob: 50, title: '압축 하방 이탈 → SSL', trigger: '83.47-83.52 (1H SSL) 이탈', target: '81.31-80.18 → 76.59 (SSL)', invalidate: '86.41 이상 안착' },
-        neutral: { prob: 20, title: '82.69-86.41 압축 지속', trigger: '방향성 부재', target: '82.69-86.41 레인지', invalidate: '86.41 돌파 또는 82.69 이탈' },
+        bull: { prob: 25, title: '$84.35 상방 돌파 → BSL $84.92 타겟', trigger: '4H 종가 $84.35 (4H Bear OB 상단) 이탈', target: '$84.92, $87.13 (BSL)', invalidate: '4H 종가 $83.70 하향 이탈' },
+        bear: { prob: 20, title: '$83.80 하향 이탈 → SSL $82.69 하락', trigger: '1H 종가 $83.80 (Bull OB) 하향 이탈 + OI 추가 증가', target: '$82.69 (4H SSL)', invalidate: '$84.35 이상 회복' },
+        neutral: { prob: 55, title: '$83.5-$84.5 레인지 지속', trigger: '현재 상태 (압축 계속)', target: '방향 이탈 전까지 레인지', invalidate: '$84.50 돌파 또는 $83.50 이탈' },
       },
       risk: {
-        long:  { entry: '83.06-83.26', sl: '82.69', tp1: '84.92', tp2: '87.13', rr: '2.4:1', note: '1H Bull FVG + 1D Bull OB. 반드시 거래량 확인 후 진입' },
-        short: { entry: '84.75-85.78', sl: '86.41', tp1: '82.69', tp2: '81.31', rr: '2.1:1', note: '1D Bear OB + EMA50 복합 저항. BTC 약세 동반 시 유효' },
+        long:  { entry: '$84.35 돌파 확인', sl: '$83.70', tp1: '$84.92', tp2: '$87.13', rr: '1.8:1', note: '방향 확인 후 브레이크아웃 진입. 현재 구간 진입 비추천 (OI+CVD 불일치).' },
+        short: { entry: '$84.26-$84.30 (Bear OB)', sl: '$84.96', tp1: '$83.52', tp2: '$82.69', rr: '1.2:1', note: 'R:R 낮음. 소량만. CVD 음수 + OI 롱스퀴즈 조건 확인 후 진입.' },
       },
     },
     {
-      symbol: 'HYPEUSDT', short: 'HYPE', price: 42.0, change24h: '+0.85%',
-      bias: 'bull', biasLabel: 'Bullish',
-      confluence: ['3개 TF 동시 강세 EMA 스택 (4쌍 중 유일)', '1D+4H Bear OB 복합 저항 42.54-43.25 = 단기 핵심 장벽', 'OI +2.47% + CVD 양수 = 포지션 강세 확인', '1D EMA200(36.52) 대비 +15% 구조적 강세'],
+      symbol: 'HYPEUSDT', short: 'HYPE', price: 41.881, change24h: '+0.85%', bias: 'bull', biasLabel: 'Bull Bias',
+      confluence: ['1D/4H/1H 전 TF 완전 정배열 (유일한 페어)', 'MAX 펀딩 +0.5% 에도 가격 유지 = 실수요 강세 증거', 'CVD 양수 (실제 매수세 존재)', '4H BSL $41.89 즉시 위 = 스윕 후 가속 예상', '1D EMA7/50/200 완전 정배열 ($36.577→$39.489→$41.398)'],
       levels: {
-        '1D': { ob: { bull: [40.64, 40.6, 38.34], bear: [42.54, 42.63, 42.91] }, fvg: { bull: [31.28, 23.42], bear: [55.24, 57.31] }, bsl: [], ssl: [35.45, 29.39], swing_highs: [43.6, 43.75, 45.75], swing_lows: [40.41, 39.72, 38.87] },
-        '4H': { ob: { bull: [41.84, 41.73, 41.45], bear: [42.71, 43.25, 44.24] }, fvg: { bull: [40.39, 39.39, 36.49], bear: [] }, bsl: [], ssl: [40.65, 40.51, 35.7], swing_highs: [42.46, 43.18, 43.6], swing_lows: [40.83, 40.66, 40.64] },
-        '1H': { ob: { bull: [41.79, 41.59, 41.52], bear: [42.11] }, fvg: { bull: [41.7, 41.6, 39.96], bear: [] }, bsl: [], ssl: [40.95, 40.83, 40.67], swing_highs: [42.46, 42.6, 42.92], swing_lows: [41.28, 41.08, 40.97] },
+        '1D': { ob: { bull: [40.93, 40.64, 40.6], bear: [42.54, 42.63, 42.91] }, fvg: { bull: [41.72, 31.28, 23.42], bear: [55.24, 57.31] }, bsl: [], ssl: [35.45, 29.39], swing_highs: [43.6, 43.75, 45.75], swing_lows: [40.41, 39.72, 38.87] },
+        '4H': { ob: { bull: [41.73, 41.45, 41.44], bear: [41.84, 42.71, 43.25] }, fvg: { bull: [41.78, 40.39, 39.39], bear: [] }, bsl: [41.89], ssl: [40.65, 40.51, 35.7], swing_highs: [41.89, 41.9, 42.46], swing_lows: [40.83, 40.66, 40.64] },
+        '1H': { ob: { bull: [41.79, 41.59, 41.52], bear: [42.11] }, fvg: { bull: [41.6, 39.96, 39.64], bear: [42.03] }, bsl: [41.87], ssl: [40.95, 40.83, 40.67], swing_highs: [41.82, 41.86, 41.89], swing_lows: [41.28, 41.08, 40.97] },
       },
-      ema: { '1D': { 7: 41.291, 50: 39.4, 200: 36.526 }, '4H': { 7: 41.626, 50: 41.096, 200: 40.393 }, '1H': { 7: 41.873, 50: 41.475, 200: 41.094 } },
-      rsi: { '1D': 52.08, '4H': 56.16, '1H': 50.74 },
+      ema: { '1D': { 7: 41.398, 50: 39.489, 200: 36.577 }, '4H': { 7: 41.649, 50: 41.118, 200: 40.406 }, '1H': { 7: 41.828, 50: 41.482, 200: 41.099 } },
+      rsi: { '1D': 52.51, '4H': 55.86, '1H': 50.96 },
       ew: {
-        '1D': { direction: 'long', current_wave: 'Wave 3 (Impulse Extension)', completed_waves: ['Wave 1', 'Wave 2'], target: 45.75, count: '1D: 강세 임펄스 3파 연장. EMA 골든 스택(7>50>200) 구조.', detail: 'Bear OBs 42.54-42.91 = 3파 내부 저항. 돌파 시 Swing high 43.6→45.75 목표.' },
-        '4H': { direction: 'long', current_wave: 'Wave 3 (Extended)', completed_waves: ['Wave 1', 'Wave 2'], target: 43.18, count: '4H: 3파 진행. RSI 56 양호. Bull OBs 41.45-41.84 = 2파 지지.', detail: '4H Bear OBs 42.71-43.25 돌파 시 Swing high 43.18-43.6 즉시 목표.' },
-        '1H': { direction: 'long', current_wave: 'Wave 3 / Consolidation', completed_waves: ['Wave 1', 'Wave 2'], target: 42.46, count: '1H: $42 레벨에서 소규모 조정 또는 3파 준비 중.', detail: 'Bear OB 42.11 즉각 저항. Bull OBs 41.52-41.79 지지. RSI 50.74 중립.' },
+        '1D': { direction: 'long', current_wave: 'Wave 3↑ 초입 (추정)', completed_waves: ['Wave 1: $12→$45', 'Wave 2: $23 되돌림'], target: 52.51, count: '1D RSI 52.51 = Wave 3 초기 구간. $23→$42 반등은 Wave 3 시작 확인 패턴.', detail: 'Wave 3 목표: Wave 1 ($45) × 1.618 = 약 $52-$55. 1D Bear FVG $55.24 근처가 Wave 3 타겟존.' },
+        '4H': { direction: 'long', current_wave: 'Wave (v)↑ 또는 Wave ③ 내 소파동', completed_waves: ['$39-$40 기반', '4H OB $41.44 테스트 완료'], target: 43.25, count: '4H: BSL $41.89 바로 위 = 스윕 직전 포지션. RSI 55 = 모멘텀 건강.', detail: 'BSL $41.89 스윕 → Bear OB $42.71-$43.25 타겟. 4H 정배열 유지.' },
+        '1H': { direction: 'long', current_wave: '소파동 조정 (wave iv)', completed_waves: ['i~iii: $40.64→$41.89'], target: 42.11, count: '1H: 최근 $41.89 근처 고점 후 소폭 조정. RSI 50 = 에너지 재충전.', detail: '1H Bull OB $41.52-$41.79 지지 유지 시 wave v $42.11 Bear OB 타겟.' },
       },
       ict: {
-        '1D': { structure_tag: 'BOS', structure_direction: 'bullish', poi_level: 40.64, bsl: null, ssl: 35.45, structure: '1D BOS 상향: 강세 트렌드. EMA7>50>200 완전 정렬.', poi: 'Bull OBs 38.34-40.64 = 1D 핵심 POI. Bear OBs 42.54-42.91 = 즉각 저항.', liquidity: 'Swing highs 43.6→45.75 = 상방 유동성 목표.', killzone: '뉴욕 킬존 BTC 동반 강세 시 진입 유효.', smt: 'BTC +0.91% vs HYPE +0.85% = 동조화. BTC 강세 유지 시 연동.' },
-        '4H': { structure_tag: 'BOS', structure_direction: 'bullish', poi_level: 41.84, bsl: null, ssl: 40.65, structure: '4H BOS 상향. EMA7>50>200 강세.', poi: 'Bull OBs 41.45-41.84 = 4H 핵심 POI.', liquidity: 'Swing highs 42.46→43.6 상방. SSL 40.65 경계.', killzone: 'Bear OBs 42.71-43.25 돌파가 4H 방향 결정.', smt: 'OI +2.47% + CVD 양수/하락 + 펀딩 음수 = 포지션 축적, 단기 압력.' },
-        '1H': { structure_tag: 'BOS', structure_direction: 'bullish', poi_level: 41.79, bsl: null, ssl: 40.95, structure: '1H BOS 상향. 강세 EMA 정렬.', poi: 'Bull OBs 41.52-41.79 = 1H 이상적 POI.', liquidity: 'Swing highs 42.46-42.92 단기 목표. SSL 40.95 하방.', killzone: '실버불릿(23:00-00:00 KST) Bull OB 리테스트 진입.', smt: '1H RSI 50.74 = 추가 매수세 유입 여지.' },
+        '1D': { structure_tag: 'CHoCH→BOS↑', structure_direction: 'bullish', poi_level: 40.93, bsl: null, ssl: 35.45, structure: '1D 완전 상승 구조. 가격이 모든 EMA 위. Bear OB $42.54-$42.91 = 다음 1D 저항.', poi: '1D Bull OB $40.93-$40.64 = 풀백 시 핵심 롱 POI. 1D 스윙로우 $40.41 위 유지 필수.', killzone: '아시아 킬존 $41.5-$41.8 매집 패턴 관찰.', smt: null },
+        '4H': { structure_tag: 'BOS↑ 연속', structure_direction: 'bullish', poi_level: 41.73, bsl: 41.89, ssl: 40.65, structure: '4H 정배열. BSL $41.89 = 즉시 위 타겟. 스윕 시 $42.46-$43.25 가속.', poi: '4H Bull OB $41.73-$41.44 = 핵심 4H 매수 POI. 이 구간 실패 시 $40.65 SSL.', killzone: null, smt: null },
+        '1H': { structure_tag: 'BOS↑', structure_direction: 'bullish', poi_level: 41.79, bsl: 41.87, ssl: 40.95, structure: '1H BOS 연속. BSL $41.87 바로 위. Bear OB $42.11 = 단기 저항.', poi: '1H Bull OB $41.52-$41.79 = 소파동 조정 후 롱 포지션 기준.', killzone: null, smt: null },
       },
       scenarios: {
-        bull: { prob: 55, title: 'Bear OB 돌파 → Swing High', trigger: '4H Bear OB 42.71-43.25 돌파 확인', target: '43.6 → 45.75', invalidate: '40.64 (1D Bull OB) 이탈' },
-        bear: { prob: 25, title: 'Bear OB 거부 → OB 복귀', trigger: '42.54-42.91 (1D Bear OB) 거부', target: '40.64 → 39.72', invalidate: '43.6 이상 안착' },
-        neutral: { prob: 20, title: '$41-43 레인지', trigger: 'BTC 방향성 대기', target: '41.0-43.0 레인지', invalidate: '43.25 돌파 또는 40.65 이탈' },
+        bull: { prob: 60, title: 'BSL $41.89 스윕 → $43.25 Bear OB 타겟', trigger: '1H 종가 $42.11 (1H Bear OB) 이탈', target: '$42.71-$43.25 (4H Bear OB)', invalidate: '4H 종가 $41.44 (Bull OB) 하향 이탈' },
+        bear: { prob: 25, title: 'MAX 펀딩 롱스퀴즈 → $40.65 SSL', trigger: '1H 종가 $41.52 (Bull OB) 하향 이탈 + 펀딩 급격 하락', target: '$40.65-$40.51 (4H SSL)', invalidate: '$42.11 이상 회복' },
+        neutral: { prob: 15, title: '$41.4-$42.2 레인지 소화', trigger: '비트코인 횡보 지속, HYPE 독자 방향 부재', target: '$41.5-$42.0 레인지', invalidate: '$42.30 돌파 또는 $41.40 이탈' },
       },
       risk: {
-        long:  { entry: '41.45-41.84', sl: '40.65', tp1: '43.18', tp2: '43.6',  rr: '2.4:1', note: '4H Bull OB 풀백 대기. 포지션 사이즈 주의 (유동성 낮음)' },
-        short: { entry: '42.54-42.91', sl: '43.6',  tp1: '40.64', tp2: '39.72', rr: '1.9:1', note: '1D Bear OB 반응 확인. RSI 다이버전스 동반 시 신뢰도 상승' },
+        long:  { entry: '$41.52-$41.79', sl: '$41.44', tp1: '$42.46', tp2: '$43.25', rr: '2.4:1', note: '1H Bull OB 반응 확인 후 진입. MAX 펀딩 감안 포지션 사이즈 축소 (스퀴즈 위험).' },
+        short: { entry: '$42.11-$42.54', sl: '$42.91', tp1: '$41.79', tp2: '$40.95', rr: '1.8:1', note: '1H Bear OB/Bear FVG 거부 캔들 확인 후 진입. MAX 펀딩 롱스퀴즈 타겟 동시 활용.' },
       },
     },
   ];
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // END DATA — DO NOT MODIFY ANYTHING BELOW THIS LINE
+  // ═══════════════════════════════════════════════════════════════════════════
 
   // ─── CONSTANTS ────────────────────────────────────────────────────────────────
   const C = {
@@ -589,15 +606,9 @@
   // ─── TAB: ORDERFLOW ───────────────────────────────────────────────────────────
   function OrderflowTab({ pairs, isMobile }) {
     const syms = ['BTCUSDT','ETHUSDT','SOLUSDT','HYPEUSDT'];
-    const insights = [
-      { sym: 'BTC', color: C.bull,       title: 'BTC — 숏스퀴즈 잠재', body: 'OI +5.21% 급증 + CVD 음수/하락 + 펀딩 -0.316% = 가격 상승 중 숏 포지션 급격 누적. $80K 안착 유지 시 숏스퀴즈 발생 가능성 높음.' },
-      { sym: 'ETH', color: C.neutral,    title: 'ETH — 중립, BTC 추종', body: 'OI +0.01% 정체 + CVD 양수/하락 = 매수세 감소. BTC 대비 소극적. BTC 확인 후 추종 전략 권장.' },
-      { sym: 'SOL', color: C.bear,       title: 'SOL — 오버레버리지 롱 경고', body: 'OI +2.96% + CVD 음수/하락 + 펀딩 +0.2423% = 가격 하락 중 롱 포지션 축적. EMA 압축 하방 이탈 시 강제청산 폭포 위험.' },
-      { sym: 'HYPE', color: C.cvdPos,   title: 'HYPE — 강세 포지션 확인', body: 'OI +2.47% + CVD 양수/하락 + 펀딩 소폭 음수 = 강세 포지션 축적 중. CVD 하락은 단기 매도세이나 방향성 롱 우세.' },
-    ];
     return (
       <div>
-        <SectionTitle>Orderflow — Coinalyze Data (2026-05-04 23:04 UTC)</SectionTitle>
+        <SectionTitle>Orderflow — Coinalyze Data ({DATA_TIMESTAMP})</SectionTitle>
         <div style={{ overflowX: 'auto', marginBottom: '20px' }}>
           <table style={{ width: '100%', minWidth: isMobile ? '480px' : 'auto', borderCollapse: 'collapse', fontSize: '12px' }}>
             <thead>
@@ -632,7 +643,7 @@
         </div>
         <SectionTitle>오더플로우 해석</SectionTitle>
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '12px' }}>
-          {insights.map(it => (
+          {ORDERFLOW_INSIGHTS.map(it => (
             <Card key={it.sym} style={{ borderLeft: `3px solid ${it.color}` }}>
               <div style={{ fontWeight: 700, fontSize: '13px', color: it.color, marginBottom: '6px' }}>{it.title}</div>
               <div style={{ fontSize: '12px', color: C.sub, lineHeight: '1.6' }}>{it.body}</div>
@@ -731,6 +742,10 @@
     const [selectedPair, setSelectedPair] = React.useState('BTCUSDT');
 
     React.useEffect(() => {
+      document.title = `Crypto Futures Analysis — ${ANALYSIS_DATE}`;
+    }, []);
+
+    React.useEffect(() => {
       if (!isMobile || !tabBarRef.current) return;
       const btn = tabBarRef.current.querySelector('[data-active="true"]');
       if (btn) btn.scrollIntoView({ inline: 'center', behavior: 'smooth' });
@@ -754,7 +769,7 @@
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div>
                 <div style={{ fontSize: '15px', fontWeight: 700, color: C.text, fontFamily: 'Inter' }}>Crypto Futures Analysis</div>
-                <div style={{ fontSize: '11px', color: C.dim }}>2026-05-05 · EW + ICT/SMC + Orderflow</div>
+                <div style={{ fontSize: '11px', color: C.dim }}>{ANALYSIS_DATE} · EW + ICT/SMC + Orderflow</div>
               </div>
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                 {pairs.map(p => <Badge key={p.symbol} color={biasColor(p.bias)}>{p.short} {p.change24h}</Badge>)}
@@ -764,7 +779,7 @@
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <div style={{ fontSize: '20px', fontWeight: 700, color: C.text, fontFamily: 'Inter' }}>Crypto Futures Analysis</div>
-                <div style={{ fontSize: '12px', color: C.dim }}>2026-05-05 · Elliott Wave + ICT/SMC + Orderflow Integration</div>
+                <div style={{ fontSize: '12px', color: C.dim }}>{ANALYSIS_DATE} · Elliott Wave + ICT/SMC + Orderflow Integration</div>
               </div>
               <div style={{ display: 'flex', gap: '16px' }}>
                 {pairs.map(p => (
@@ -802,7 +817,7 @@
 
         {/* FOOTER */}
         <div style={{ borderTop: `1px solid ${C.border}`, padding: isMobile ? '12px' : '12px 24px', display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', gap: isMobile ? '4px' : 0, alignItems: isMobile ? 'flex-start' : 'center', fontSize: '11px', color: C.dim }}>
-          <span>데이터 기준: 2026-05-04T23:00 UTC · Coinalyze / Coinglass / TradingView · EW + ICT/SMC 통합분석</span>
+          <span>데이터 기준: {DATA_TIMESTAMP} · Coinalyze / Coinglass / TradingView · EW + ICT/SMC 통합분석</span>
           <span>투자 참고용 · 투자 결과에 대한 책임은 본인에게 있습니다</span>
         </div>
       </div>
