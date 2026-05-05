@@ -1054,7 +1054,9 @@ async function captureChange24h(_browser) {
     } else if (changeOnly) {
       await captureChange24h(browser);
     } else {
-      // Price Structure Levels 먼저 수집 (TV 캡처 시 _data.txt에 주입)
+      // Coinalyze API 먼저 수집 — TV 캡처와 타임스탬프 정렬
+      await fetchCoinalyzeData();
+
       if (!ofOnly) {
         await fetchPriceLevels();
         await captureTradingView(browser);
@@ -1065,7 +1067,6 @@ async function captureChange24h(_browser) {
         await captureCoinalyze(browser);
         await captureHyblock(browser);
         await captureChange24h(browser);
-        await fetchCoinalyzeData();   // API 데이터 수집 (브라우저 불필요)
       }
     }
   } catch (err) {

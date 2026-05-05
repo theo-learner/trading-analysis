@@ -355,6 +355,28 @@
     return m;
   }
 
+  // ─── useLivePrices ───────────────────────────────────────────────────────────
+  function useLivePrices(symbols) {
+    const [prices, setPrices] = React.useState({});
+    const [lastUpdated, setLastUpdated] = React.useState(null);
+    React.useEffect(() => {
+      const url = 'https://api.binance.com/api/v3/ticker/price?symbols=[' +
+        symbols.map(s => '"' + s + '"').join(',') + ']';
+      const fetch_ = () =>
+        fetch(url).then(r => r.json())
+          .then(data => {
+            const map = {};
+            data.forEach(({ symbol, price }) => { map[symbol] = parseFloat(price); });
+            setPrices(map);
+            setLastUpdated(new Date());
+          }).catch(() => {});
+      fetch_();
+      const id = setInterval(fetch_, 30000);
+      return () => clearInterval(id);
+    }, []);
+    return { prices, lastUpdated };
+  }
+
   // ─── TAB: OVERVIEW ────────────────────────────────────────────────────────────
   function OverviewTab({ pairs, selectedPair, onSelectPair, isMobile }) {
     const pairCards = isMobile ? (
@@ -604,11 +626,11 @@
   }
 
   // ─── TAB: ORDERFLOW ───────────────────────────────────────────────────────────
-  function OrderflowTab({ pairs, isMobile }) {
+  function OrderflowTab({ pairs, isMobile, livePrices = {} }) {
     const syms = ['BTCUSDT','ETHUSDT','SOLUSDT','HYPEUSDT'];
     return (
       <div>
-        <SectionTitle>Orderflow — Coinalyze Data ({DATA_TIMESTAMP})</SectionTitle>
+        <SectionTitle>Orderflow — Coinalyze Data ({DATA_TIMESTAMP}){Object.keys(livePrices).length > 0 && <span style={{color:C.bull}}> · 가격: 실시간</span>}</SectionTitle>
         <div style={{ overflowX: 'auto', marginBottom: '20px' }}>
           <table style={{ width: '100%', minWidth: isMobile ? '480px' : 'auto', borderCollapse: 'collapse', fontSize: '12px' }}>
             <thead>
@@ -626,7 +648,7 @@
                 return (
                   <tr key={sym} style={{ background: idx % 2 === 0 ? C.card : C.panel }}>
                     <td style={{ padding: '10px 12px', color: C.text, fontWeight: 700, fontFamily: 'Inter' }}>{p?.short || sym}</td>
-                    <td style={{ padding: '10px 12px', color: C.text, fontFamily: "'JetBrains Mono', monospace" }}>${d.price_usd.toLocaleString()}</td>
+                    <td style={{ padding: '10px 12px', color: C.text, fontFamily: "'JetBrains Mono', monospace" }}>${(livePrices[sym] ?? d.price_usd).toLocaleString()}</td>
                     <td style={{ padding: '10px 12px', color: C.text, fontFamily: "'JetBrains Mono', monospace" }}>{d.oi_usd_str}</td>
                     <td style={{ padding: '10px 12px', color: d.oi_change_24h.startsWith('+') ? C.bull : C.bear, fontFamily: "'JetBrains Mono', monospace" }}>{d.oi_change_24h}</td>
                     <td style={{ padding: '10px 12px', color: fval > 0 ? C.bull : C.bear, fontFamily: "'JetBrains Mono', monospace" }}>
@@ -737,6 +759,8 @@
   // ─── DASHBOARD ────────────────────────────────────────────────────────────────
   function Dashboard() {
     const isMobile = useIsMobile();
+    const { prices: livePrices, lastUpdated } = useLivePrices(pairs.map(p => p.symbol));
+    const livePairs = pairs.map(p => ({ ...p, price: livePrices[p.symbol] ?? p.price }));
     const tabBarRef = React.useRef(null);
     const [activeTab, setActiveTab] = React.useState('Overview');
     const [selectedPair, setSelectedPair] = React.useState('BTCUSDT');
@@ -754,12 +778,12 @@
     const contentPadding = isMobile ? '14px 12px' : '20px 24px';
 
     let tabContent;
-    if (activeTab === 'Overview')   tabContent = <OverviewTab  pairs={pairs} selectedPair={selectedPair} onSelectPair={setSelectedPair} isMobile={isMobile} />;
+    if (activeTab === 'Overview')   tabContent = <OverviewTab  pairs={livePairs} selectedPair={selectedPair} onSelectPair={setSelectedPair} isMobile={isMobile} />;
     if (activeTab === 'Macro')      tabContent = <MacroTab />;
-    if (activeTab === '분석')       tabContent = <AnalysisTab  pairs={pairs} selectedPair={selectedPair} onSelectPair={setSelectedPair} isMobile={isMobile} />;
-    if (activeTab === 'Orderflow')  tabContent = <OrderflowTab pairs={pairs} isMobile={isMobile} />;
-    if (activeTab === 'Scenarios')  tabContent = <ScenariosTab pairs={pairs} isMobile={isMobile} />;
-    if (activeTab === 'Risk')       tabContent = <RiskTab      pairs={pairs} selectedPair={selectedPair} onSelectPair={setSelectedPair} isMobile={isMobile} />;
+    if (activeTab === '분석')       tabContent = <AnalysisTab  pairs={livePairs} selectedPair={selectedPair} onSelectPair={setSelectedPair} isMobile={isMobile} />;
+    if (activeTab === 'Orderflow')  tabContent = <OrderflowTab pairs={livePairs} isMobile={isMobile} livePrices={livePrices} />;
+    if (activeTab === 'Scenarios')  tabContent = <ScenariosTab pairs={livePairs} isMobile={isMobile} />;
+    if (activeTab === 'Risk')       tabContent = <RiskTab      pairs={livePairs} selectedPair={selectedPair} onSelectPair={setSelectedPair} isMobile={isMobile} />;
 
     return (
       <div style={{ minHeight: '100vh', background: C.bg }}>
@@ -769,7 +793,10 @@
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div>
                 <div style={{ fontSize: '15px', fontWeight: 700, color: C.text, fontFamily: 'Inter' }}>Crypto Futures Analysis</div>
-                <div style={{ fontSize: '11px', color: C.dim }}>{ANALYSIS_DATE} · EW + ICT/SMC + Orderflow</div>
+                <div style={{ fontSize: '11px', color: C.dim, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>{ANALYSIS_DATE} · EW + ICT/SMC + Orderflow</span>
+                  {lastUpdated && <span style={{ color: C.bull, fontWeight: 700 }}>● LIVE</span>}
+                </div>
               </div>
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                 {pairs.map(p => <Badge key={p.symbol} color={biasColor(p.bias)}>{p.short} {p.change24h}</Badge>)}
@@ -779,7 +806,10 @@
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <div style={{ fontSize: '20px', fontWeight: 700, color: C.text, fontFamily: 'Inter' }}>Crypto Futures Analysis</div>
-                <div style={{ fontSize: '12px', color: C.dim }}>{ANALYSIS_DATE} · Elliott Wave + ICT/SMC + Orderflow Integration</div>
+                <div style={{ fontSize: '12px', color: C.dim, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>{ANALYSIS_DATE} · Elliott Wave + ICT/SMC + Orderflow Integration</span>
+                  {lastUpdated && <span style={{ color: C.bull, fontWeight: 700, fontSize: '10px' }}>● LIVE</span>}
+                </div>
               </div>
               <div style={{ display: 'flex', gap: '16px' }}>
                 {pairs.map(p => (
@@ -817,7 +847,7 @@
 
         {/* FOOTER */}
         <div style={{ borderTop: `1px solid ${C.border}`, padding: isMobile ? '12px' : '12px 24px', display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', gap: isMobile ? '4px' : 0, alignItems: isMobile ? 'flex-start' : 'center', fontSize: '11px', color: C.dim }}>
-          <span>데이터 기준: {DATA_TIMESTAMP} · Coinalyze / Coinglass / TradingView · EW + ICT/SMC 통합분석</span>
+          <span>분석 기준: {DATA_TIMESTAMP} · Coinalyze / Coinglass / TradingView · EW + ICT/SMC{lastUpdated && ` · 가격 ${lastUpdated.toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit'})} KST`}</span>
           <span>투자 참고용 · 투자 결과에 대한 책임은 본인에게 있습니다</span>
         </div>
       </div>
