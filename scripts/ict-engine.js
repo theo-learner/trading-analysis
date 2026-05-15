@@ -33,10 +33,17 @@ function normalize(candles) {
   return [...candles].sort((a, b) => a.time - b.time);
 }
 
-function selectBestPOI(ltfFVGs, ltfOBs, htfBBs, direction) {
-  const activeFVGs = ltfFVGs.filter(f => f.status === 'active').map(p => ({ ...p, poiType: 'FVG' }));
-  const activeOBs  = ltfOBs.filter(o => o.status === 'active').map(p => ({ ...p, poiType: 'OB' }));
-  const pendingBBs = htfBBs.filter(b => b.retestStatus === 'pending').map(p => ({ ...p, poiType: 'BB' }));
+function selectBestPOI(ltfFVGs, ltfOBs, htfBBs, direction, currentPrice, ltfSwings) {
+  const swingsBelow = ltfSwings.filter(s => s.type === 'low'  && s.price <= currentPrice);
+  const swingsAbove = ltfSwings.filter(s => s.type === 'high' && s.price >= currentPrice);
+  const rangeLow  = swingsBelow.length > 0 ? swingsBelow[swingsBelow.length - 1].price : -Infinity;
+  const rangeHigh = swingsAbove.length > 0 ? swingsAbove[swingsAbove.length - 1].price : Infinity;
+
+  const inRange = (poi) => poi.low < rangeHigh && poi.high > rangeLow;
+
+  const activeFVGs = ltfFVGs.filter(f => f.status === 'active' && inRange(f)).map(p => ({ ...p, poiType: 'FVG' }));
+  const activeOBs  = ltfOBs.filter(o => o.status === 'active' && inRange(o)).map(p => ({ ...p, poiType: 'OB' }));
+  const pendingBBs = htfBBs.filter(b => b.retestStatus === 'pending' && inRange(b)).map(p => ({ ...p, poiType: 'BB' }));
 
   for (const list of [activeFVGs, activeOBs, pendingBBs]) {
     if (list.length === 0) continue;
@@ -67,6 +74,23 @@ function calculateTP(entry, sl, minRR) {
   ];
 }
 
+function scanDisplacements(candles, cfg) {
+  const result = [];
+  for (let i = 1; i < candles.length; i++) {
+    if (isDisplacement(candles[i], candles, i, cfg.displacement)) {
+      const c = candles[i];
+      const bodyPct = Math.abs(c.close - c.open) / c.open * 100;
+      result.push({
+        index: i,
+        time:  c.time,
+        direction: c.close > c.open ? 'bull' : 'bear',
+        bodyPct: +bodyPct.toFixed(2),
+      });
+    }
+  }
+  return result;
+}
+
 function calculateConfidence(alignmentScore, kzBonus, sweepConfirmed, amdPhase) {
   let total = alignmentScore + kzBonus;
   if (amdPhase === 'MANIPULATION') total += 10;
@@ -77,7 +101,7 @@ function calculateConfidence(alignmentScore, kzBonus, sweepConfirmed, amdPhase) 
   return 'LOW';
 }
 
-function buildNeutral(pair, reason, tier, extra = {}) {
+function buildNeutral(pair, reason, tier, currentPrice, extra = {}) {
   return {
     pair,
     timestamp: Math.floor(Date.now() / 1000),
@@ -87,13 +111,14 @@ function buildNeutral(pair, reason, tier, extra = {}) {
     alignmentScore: extra.alignmentScore || 0,
     confidence: 'LOW',
     reason,
+    currentPrice,
     tradeBlocked: false,
     tradeBlockReason: '',
     ...extra,
   };
 }
 
-function buildSignal({ pair, direction, alignment, scorecard, poi, sl, tps, rr, confidence, htfTrend, ltfTrend, htfAMD, kzResult, fvgs, obs, bbs, sweeps, sizeMultiplier }) {
+function buildSignal({ pair, direction, alignment, scorecard, poi, sl, tps, rr, confidence, htfTrend, ltfTrend, htfAMD, kzResult, fvgs, obs, bbs, sweeps, sizeMultiplier, currentPrice, mss, bos, displacements }) {
   const entry = poi.price;
   return {
     pair,
@@ -128,10 +153,14 @@ function buildSignal({ pair, direction, alignment, scorecard, poi, sl, tps, rr, 
       confluence: [],
     },
     levels: { fvgs, obs, bbs, sweeps },
+    mss:          mss          || [],
+    bos:          bos          || [],
+    displacements: displacements || [],
     invalidation: {
       price:  sl,
       reason: direction === 'LONG' ? 'Close below SL' : 'Close above SL',
     },
+    currentPrice,
     tradeBlocked: false,
     tradeBlockReason: '',
   };
@@ -205,16 +234,28 @@ function analyzeICT(params) {
 
   const alignment = calculateAlignmentScore(htfAnalysis, ltfAnalysis);
 
+  // MSS/BOS origin tags + displacements (shared across all paths)
+  const taggedMSS = [
+    ...htfMSS.map(e => ({ ...e, origin: 'HTF' })),
+    ...ltfMSS.map(e => ({ ...e, origin: 'LTF' })),
+  ];
+  const taggedBOS = [
+    ...htfBOS.map(e => ({ ...e, origin: 'HTF' })),
+    ...ltfBOS.map(e => ({ ...e, origin: 'LTF' })),
+  ];
+  const displacements = scanDisplacements(ltfCandles, cfg);
+
   // Tier ≥ 4 → NEUTRAL 조기 반환
   if (alignment.tier >= 4) {
-    return buildNeutral(params.pair, `Tier ${alignment.tier}: 정렬 불충분`, alignment.tier,
-      { alignmentScore: alignment.score });
+    return buildNeutral(params.pair, `Tier ${alignment.tier}: 정렬 불충분`, alignment.tier, currentPrice,
+      { alignmentScore: alignment.score, mss: taggedMSS, bos: taggedBOS, displacements });
   }
 
   // [19] 최적 POI 선택
-  const poi = selectBestPOI(ltfFVGs, ltfOBs, htfBBs, alignment.htfBias);
+  const poi = selectBestPOI(ltfFVGs, ltfOBs, htfBBs, alignment.htfBias, currentPrice, ltfSwings);
   if (!poi) {
-    return buildNeutral(params.pair, 'POI 없음', alignment.tier, { alignmentScore: alignment.score });
+    return buildNeutral(params.pair, 'POI 없음', alignment.tier, currentPrice,
+      { alignmentScore: alignment.score, mss: taggedMSS, bos: taggedBOS, displacements });
   }
 
   // [20] 킬존
@@ -245,8 +286,8 @@ function analyzeICT(params) {
 
   // [22] 진입 결정
   if (scorecard.action !== 'ENTER') {
-    return buildNeutral(params.pair, `Scorecard: ${scorecard.action}`, alignment.tier,
-      { alignmentScore: alignment.score, scorecard });
+    return buildNeutral(params.pair, `Scorecard: ${scorecard.action}`, alignment.tier, currentPrice,
+      { alignmentScore: alignment.score, scorecard, mss: taggedMSS, bos: taggedBOS, displacements });
   }
 
   // [23-25] SL / TP / R:R
@@ -256,8 +297,8 @@ function analyzeICT(params) {
 
   // R:R 2:1 미만 → NEUTRAL (Appendix B §4)
   if (rr < cfg.signal.minRR) {
-    return buildNeutral(params.pair, `R:R 미달 (${rr.toFixed(2)})`, alignment.tier,
-      { alignmentScore: alignment.score });
+    return buildNeutral(params.pair, `R:R 미달 (${rr.toFixed(2)})`, alignment.tier, currentPrice,
+      { alignmentScore: alignment.score, mss: taggedMSS, bos: taggedBOS, displacements });
   }
 
   // [26] 신뢰도
@@ -275,10 +316,12 @@ function analyzeICT(params) {
     bbs:    htfBBs,
     sweeps: [...htfSweeps, ...ltfSweeps],
     sizeMultiplier: scorecard.sizeMultiplier,
+    currentPrice,
+    mss: taggedMSS, bos: taggedBOS, displacements,
   });
 }
 
-module.exports = { analyzeICT };
+module.exports = { analyzeICT, _selectBestPOI: selectBestPOI };
 
 // ── CLI 진입점 ────────────────────────────────────────────────────────────────
 

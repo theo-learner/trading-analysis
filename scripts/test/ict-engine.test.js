@@ -2,7 +2,7 @@
 
 const { test } = require('node:test');
 const assert   = require('node:assert/strict');
-const { analyzeICT } = require('../ict-engine');
+const { analyzeICT, _selectBestPOI } = require('../ict-engine');
 
 // 합성 캔들 생성 헬퍼 — 단조증가 HTF (bull trend 유도)
 function makeBullCandles(n, basePrice = 50000, step = 100) {
@@ -73,4 +73,71 @@ test('analyzeICT: aligned bull scenario returns non-NEUTRAL with ENTER or SKIP',
   } else {
     assert.ok(['LONG', 'SHORT'].includes(signal.direction));
   }
+});
+
+// ── selectBestPOI 스윙 범위 필터링 ─────────────────────────────────────────────
+
+function makePOI(low, high, type = 'FVG') {
+  return { low, high, status: 'active', retestStatus: 'pending', poiType: type };
+}
+
+function makeSwing(price, type, index = 0) {
+  return { index, time: index * 900, price, type };
+}
+
+test('selectBestPOI: 현재가 스윙 범위 내 POI만 선택된다', () => {
+  // 스윙 범위: low=49000, high=51000 / 현재가=50000
+  const ltfSwings = [
+    makeSwing(49000, 'low',  0),
+    makeSwing(51000, 'high', 5),
+  ];
+  const currentPrice = 50000;
+
+  // 범위 내 FVG (49500~49800)
+  const inRangeFVG  = makePOI(49500, 49800);
+  // 범위 밖 FVG (48000~48500 — swingLow 아래)
+  const outRangeFVG = makePOI(48000, 48500);
+
+  const result = _selectBestPOI([inRangeFVG, outRangeFVG], [], [], 'bull', currentPrice, ltfSwings);
+  assert.ok(result !== null, 'POI를 찾아야 한다');
+  assert.ok(result.low >= 49000 && result.high <= 51000, `POI(${result.low}~${result.high})가 스윙 범위(49000~51000) 밖`);
+});
+
+test('selectBestPOI: 모든 POI가 스윙 범위 밖이면 null 반환', () => {
+  const ltfSwings = [
+    makeSwing(49000, 'low',  0),
+    makeSwing(51000, 'high', 5),
+  ];
+  const currentPrice = 50000;
+
+  const outRangeFVG = makePOI(48000, 48500);  // 범위 밖
+
+  const result = _selectBestPOI([outRangeFVG], [], [], 'bull', currentPrice, ltfSwings);
+  assert.equal(result, null, '범위 밖 POI만 있으면 null이어야 한다');
+});
+
+test('analyzeICT exposes mss, bos, displacements arrays with origin tags', () => {
+  const signal = analyzeICT({
+    pair: 'TESTUSDT',
+    htfCandles: makeBullCandles(150),
+    ltfCandles: makeBearCandles(100),
+  });
+  assert.ok(Array.isArray(signal.mss), 'mss array missing');
+  assert.ok(Array.isArray(signal.bos), 'bos array missing');
+  assert.ok(Array.isArray(signal.displacements), 'displacements array missing');
+  if (signal.mss.length > 0) {
+    assert.ok(['HTF', 'LTF'].includes(signal.mss[0].origin), 'mss origin tag missing');
+  }
+  if (signal.bos.length > 0) {
+    assert.ok(['HTF', 'LTF'].includes(signal.bos[0].origin), 'bos origin tag missing');
+  }
+});
+
+test('selectBestPOI: 스윙 포인트 없으면 기존처럼 모든 POI 허용', () => {
+  const ltfSwings = [];  // 스윙 없음
+  const currentPrice = 50000;
+
+  const anyFVG = makePOI(47000, 47500);
+  const result = _selectBestPOI([anyFVG], [], [], 'bull', currentPrice, ltfSwings);
+  assert.ok(result !== null, '스윙 없으면 POI를 필터 없이 선택해야 한다');
 });
