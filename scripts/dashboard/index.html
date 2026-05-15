@@ -354,6 +354,7 @@ let state = {
   series:    {},   // 차트 시리즈 참조
   overlayData: { fvgs: [], obs: [], bbs: [], sweeps: [], bos: null, entry: null, sl: null, tp1: null, tp2: null },
   candleRange: null,
+  candles:     null,
 };
 window.state = state;
 
@@ -377,6 +378,119 @@ const candleSeries = chart.addCandlestickSeries({
 // ── Zone Overlay Primitive (OB / FVG / BB boxes) ───────────────────────────
 // TODO remove zone-line fallback after 2026-05-22
 
+// ── Inline detection helpers (browser-compatible, no require/module.exports) ──
+function _bodySize(c) { return Math.abs(c.close - c.open); }
+function _totalRange(c) { return c.high - c.low; }
+function _rollingAvgBody(candles, win, endIdx) {
+  const start = Math.max(0, endIdx - win);
+  const slice = candles.slice(start, endIdx);
+  if (!slice.length) return 0;
+  return slice.reduce((s, c) => s + _bodySize(c), 0) / slice.length;
+}
+function _isDisplacement(candle, candles, endIdx, cfg) {
+  const { rollingWindow, bodyMultiplier, maxWickRatio, closeAtExtremeRatio } = cfg;
+  const avgBody = _rollingAvgBody(candles, rollingWindow, endIdx);
+  if (avgBody === 0) return false;
+  const body = _bodySize(candle);
+  if (body < avgBody * bodyMultiplier) return false;
+  const range = _totalRange(candle);
+  if (range === 0) return false;
+  const isBull = candle.close > candle.open;
+  const oppositeWick = isBull ? candle.open - candle.low : candle.high - candle.open;
+  if (oppositeWick / range > maxWickRatio) return false;
+  const closePos = isBull ? (candle.close - candle.low) / range : (candle.high - candle.close) / range;
+  return closePos >= closeAtExtremeRatio;
+}
+function _detectFVG(candles, { minGapPct }) {
+  const fvgs = [];
+  for (let i = 2; i < candles.length; i++) {
+    const c1 = candles[i - 2], c2 = candles[i - 1], c3 = candles[i];
+    if (c3.low > c1.high) {
+      const gap = c3.low - c1.high;
+      if (gap / c1.high >= minGapPct) fvgs.push({ index: i - 1, time: c2.time, high: c3.low, low: c1.high, direction: 'bull', status: 'active' });
+    }
+    if (c1.low > c3.high) {
+      const gap = c1.low - c3.high;
+      if (gap / c1.low >= minGapPct) fvgs.push({ index: i - 1, time: c2.time, high: c1.low, low: c3.high, direction: 'bear', status: 'active' });
+    }
+  }
+  for (const fvg of fvgs) {
+    for (let i = fvg.index + 2; i < candles.length; i++) {
+      const { high, low, close } = candles[i];
+      if (low > fvg.high || high < fvg.low) continue;
+      if (fvg.direction === 'bull' && close < fvg.low) { fvg.status = 'mitigated'; break; }
+      if (fvg.direction === 'bear' && close > fvg.high) { fvg.status = 'mitigated'; break; }
+      fvg.status = 'tested';
+    }
+  }
+  return fvgs;
+}
+function _detectOrderBlocks(candles, isDispFn) {
+  const obs = [];
+  for (let i = 0; i < candles.length - 1; i++) {
+    const curr = candles[i], next = candles[i + 1];
+    if (curr.close < curr.open && next.close > curr.high && isDispFn(next, candles, i + 1))
+      obs.push({ index: i, time: curr.time, high: Math.max(curr.open, curr.close), low: Math.min(curr.open, curr.close), direction: 'bull', status: 'active' });
+    if (curr.close > curr.open && next.close < curr.low && isDispFn(next, candles, i + 1))
+      obs.push({ index: i, time: curr.time, high: Math.max(curr.open, curr.close), low: Math.min(curr.open, curr.close), direction: 'bear', status: 'active' });
+  }
+  for (const ob of obs) {
+    for (let i = ob.index + 2; i < candles.length; i++) {
+      const close = candles[i].close;
+      if (ob.direction === 'bull' && close < ob.low) { ob.status = 'invalidated'; break; }
+      if (ob.direction === 'bear' && close > ob.high) { ob.status = 'invalidated'; break; }
+    }
+  }
+  return obs;
+}
+function _detectBreakerBlocks(candles, obs, cfg) {
+  const { retestMinCandles, retestMaxCandles, immediateReverseCandles } = cfg;
+  const bbs = [];
+  for (const ob of obs) {
+    if (ob.status !== 'invalidated') continue;
+    let breakIdx = -1;
+    for (let i = ob.index + 1; i < candles.length; i++) {
+      if (ob.direction === 'bull' && candles[i].close < ob.low)  { breakIdx = i; break; }
+      if (ob.direction === 'bear' && candles[i].close > ob.high) { breakIdx = i; break; }
+    }
+    if (breakIdx === -1) continue;
+    let immediateReverse = false;
+    const checkEnd = Math.min(breakIdx + immediateReverseCandles, candles.length);
+    for (let i = breakIdx + 1; i < checkEnd; i++) {
+      if (ob.direction === 'bull' && candles[i].close > ob.low)  { immediateReverse = true; break; }
+      if (ob.direction === 'bear' && candles[i].close < ob.high) { immediateReverse = true; break; }
+    }
+    if (immediateReverse) continue;
+    const retestStart = breakIdx + retestMinCandles;
+    const retestEnd   = Math.min(breakIdx + retestMaxCandles, candles.length - 1);
+    for (let i = retestStart; i <= retestEnd; i++) {
+      const c = candles[i];
+      if (c.low <= ob.high && c.high >= ob.low) {
+        bbs.push({ index: ob.index, time: ob.time, high: ob.high, low: ob.low, direction: ob.direction === 'bull' ? 'bear' : 'bull', retestStatus: 'pending', retestIndex: i });
+        break;
+      }
+    }
+  }
+  return bbs;
+}
+
+const ICT_CFG = {
+  fvg:          { minGapPct: 0.001 },
+  displacement: { rollingWindow: 10, bodyMultiplier: 1.5, maxWickRatio: 0.3, closeAtExtremeRatio: 0.6 },
+  breakerBlock: { retestMinCandles: 5, retestMaxCandles: 20, immediateReverseCandles: 3 },
+};
+
+function loadAutoLevels(candles) {
+  if (!candles || candles.length < 3) return;
+  state.candles = candles;
+  const isDispFn = (c, cs, idx) => _isDisplacement(c, cs, idx, ICT_CFG.displacement);
+  const fvgs = _detectFVG(candles, ICT_CFG.fvg);
+  const obs  = _detectOrderBlocks(candles, isDispFn);
+  const bbs  = _detectBreakerBlocks(candles, obs, ICT_CFG.breakerBlock);
+  const currentPrice = candles[candles.length - 1].close;
+  zonePrimitive.setZones(normalizeZones({ fvgs, obs, bbs }, currentPrice, state.overlays));
+}
+
 function tsToUnix(t) {
   if (typeof t === 'number') return t;
   if (typeof t === 'string') { const n = Number(t); return isNaN(n) ? Math.floor(new Date(t).getTime() / 1000) : n; }
@@ -390,17 +504,19 @@ function mapBBStatus(s) {
 function normalizeZones(levels, entryPrice, overlays) {
   const out = [];
   if (overlays.fvg) {
-    for (const f of (levels.fvgs ?? []).slice(0, 5)) {
+    for (const f of (levels.fvgs ?? [])) {
+      if (f.status === 'mitigated') continue;
       out.push({ kind: 'fvg', time: tsToUnix(f.time), high: f.high, low: f.low, direction: f.direction, status: f.status ?? 'active' });
     }
   }
   if (overlays.ob) {
-    for (const ob of (levels.obs ?? []).slice(0, 5)) {
+    for (const ob of (levels.obs ?? [])) {
+      if (ob.status === 'invalidated') continue;
       out.push({ kind: 'ob', time: tsToUnix(ob.time), high: ob.high, low: ob.low, direction: ob.direction, status: ob.status ?? 'active' });
     }
   }
   if (overlays.bb) {
-    for (const bb of (levels.bbs ?? []).slice(0, 3)) {
+    for (const bb of (levels.bbs ?? [])) {
       out.push({ kind: 'bb', time: tsToUnix(bb.time), high: bb.high, low: bb.low, direction: bb.direction, status: mapBBStatus(bb.retestStatus) });
     }
   }
@@ -475,7 +591,7 @@ class ZoneRenderer {
         ctx.setLineDash([]);
 
         if (showLabels) {
-          const abbr  = { active: '', tested: '·t', mitigated: '·m', invalidated: '·x' };
+          const abbr  = { active: '', tested: '', mitigated: '·m', invalidated: '·x' };
           const label = z.kind.toUpperCase() + (abbr[z.status] ?? '');
           const fs    = 11 * vpr;
           ctx.font    = `600 ${fs}px Inter, sans-serif`;
@@ -587,6 +703,7 @@ async function loadCandles() {
       }));
     }
 
+    chart.priceScale('right').applyOptions({ autoScale: true });
     candleSeries.setData(candles);
     if (candles.length) {
       state.candleRange = { from: candles[0].time, to: candles[candles.length - 1].time };
@@ -594,6 +711,7 @@ async function loadCandles() {
     chart.timeScale().applyOptions({ barSpacing: TF_BAR_SPACING[tf] || 6 });
     chart.timeScale().scrollToRealTime();
     updatePriceDisplay(candles[candles.length - 1]);
+    loadAutoLevels(candles);
 
   } catch (e) {
     showToast(`캔들 데이터 로드 실패 (${exch}): ${e.message}`, 'error');
@@ -614,7 +732,13 @@ function updatePriceDisplay(candle) {
 // ── WebSocket: 실시간 틱 ───────────────────────────────────────────────────
 let ws = null;
 function connectWS() {
-  if (ws) { try { ws.close(); } catch (_) {} }
+  if (ws) {
+    ws.onclose = null;
+    ws.onerror = null;
+    ws.onmessage = null;
+    try { ws.close(); } catch (_) {}
+    ws = null;
+  }
 
   const { pair, tf } = state;
   const exch = getExchange(pair);
@@ -1162,6 +1286,7 @@ async function loadLatestSignal() {
       renderSignal(signal);
       renderAMD(signal.structure?.amdPhase);
       renderSignalOverlays(signal);
+      if (signal.direction === 'NEUTRAL' && state.candles) loadAutoLevels(state.candles);
       if (!state.useBoxOverlays) {
         if (signal.levels?.fvgs) renderFVGBands(signal.levels.fvgs);
         if (signal.levels?.obs)  renderOBLines(signal.levels.obs);
@@ -1272,12 +1397,15 @@ document.getElementById('tfPills').addEventListener('click', (e) => {
     if (state.signal) {
       clearOverlayLines();
       renderSignalOverlays(state.signal);
+      if (state.signal.direction === 'NEUTRAL' && state.candles && name !== 'Sweep') loadAutoLevels(state.candles);
       if (!state.useBoxOverlays) {
         const lvl = state.signal.levels;
         if (lvl?.fvgs) renderFVGBands(lvl.fvgs);
         if (lvl?.obs)  renderOBLines(lvl.obs);
         if (lvl?.bbs)  renderBBLines(lvl.bbs);
       }
+    } else if (state.candles && name !== 'Sweep') {
+      loadAutoLevels(state.candles);
     }
   });
 });
