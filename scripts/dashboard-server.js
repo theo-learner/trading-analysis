@@ -21,9 +21,14 @@ const fs      = require('fs');
 const path    = require('path');
 const { spawn, execSync } = require('child_process');
 
-const PORT    = 3210;
-const ROOT    = path.resolve(__dirname, '..');
-const DASH_DIR = path.join(__dirname, 'dashboard');
+const { analyzeICT }     = require('./ict-engine');
+const { fetchCandleSet } = require('./utils/binance');
+const { buildDiary }     = require('./modules/diary');
+
+const PORT      = process.env.PORT ? parseInt(process.env.PORT, 10) : 3210;
+const ROOT      = path.resolve(__dirname, '..');
+const DASH_DIR  = path.join(__dirname, 'dashboard');
+const DIARY_DIR = path.join(ROOT, 'diary');
 
 // ── MIME 타입 ────────────────────────────────────────────────────────────────
 const MIME = {
@@ -34,6 +39,11 @@ const MIME = {
   '.png':  'image/png',
   '.svg':  'image/svg+xml',
 };
+
+fs.mkdirSync(DIARY_DIR, { recursive: true });
+
+// ── 다이어리 동시 요청 직렬화 (페어별) ──────────────────────────────────────
+const diaryProcs = new Map();
 
 // ── SSE 클라이언트 목록 ──────────────────────────────────────────────────────
 const sseClients = new Set();
@@ -224,6 +234,41 @@ async function handleRequest(req, res) {
     }
   }
 
+  // ── POST /api/diary ───────────────────────────────────────────────────────
+  if (req.method === 'POST' && pathname === '/api/diary') {
+    const body = await readBody(req);
+    const pair = body.pair;
+    if (!pair) return jsonResponse(res, { ok: false, message: 'pair 누락' }, 400);
+
+    const existing = diaryProcs.get(pair);
+    if (existing) {
+      const result = await existing;
+      return jsonResponse(res, result);
+    }
+
+    const promise = buildDiaryEntry(pair, { fetchCandleSet, analyzeICT, buildDiary, diaryDir: DIARY_DIR })
+      .finally(() => diaryProcs.delete(pair));
+    diaryProcs.set(pair, promise);
+
+    const result = await promise;
+    return jsonResponse(res, result);
+  }
+
+  // ── GET /api/latest-diary ─────────────────────────────────────────────────
+  if (req.method === 'GET' && pathname === '/api/latest-diary') {
+    const pair = url.searchParams.get('pair') || 'BTCUSDT';
+    try {
+      const files = fs.readdirSync(DIARY_DIR)
+        .filter(f => f.startsWith(`${pair}_15m_`) && f.endsWith('.md'))
+        .sort().reverse();
+      if (!files.length) return jsonResponse(res, { ok: false, diary: null });
+      const diary = fs.readFileSync(path.join(DIARY_DIR, files[0]), 'utf8');
+      return jsonResponse(res, { ok: true, diary, filename: `diary/${files[0]}` });
+    } catch (_) {
+      return jsonResponse(res, { ok: false, diary: null });
+    }
+  }
+
   // ── 정적 파일 서빙 ────────────────────────────────────────────────────────
   let filePath;
   if (pathname === '/' || pathname === '') {
@@ -240,12 +285,39 @@ async function handleRequest(req, res) {
   try {
     const data = fs.readFileSync(filePath);
     const ext  = path.extname(filePath);
-    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
+    res.writeHead(200, {
+      'Content-Type': MIME[ext] || 'application/octet-stream',
+      'Cache-Control': 'no-store',
+    });
     return res.end(data);
   } catch (_) {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     return res.end('Not found');
   }
+}
+
+// ── buildDiaryEntry — 테스트 가능한 순수 로직 ────────────────────────────────
+async function buildDiaryEntry(pair, deps) {
+  const { fetchCandleSet: fetchFn, analyzeICT: analyzeFn, buildDiary: buildFn, diaryDir } = deps;
+  const candles = await fetchFn(pair);
+  const signal  = await analyzeFn({ htfCandles: candles.htf, ltfCandles: candles.ltf, d1Candles: candles.d1, pair });
+  const diary   = buildFn(signal);
+
+  fs.mkdirSync(diaryDir, { recursive: true });
+  const isoSafe  = new Date().toISOString().replace(/[:.]/g, '-');
+  const basename = `${pair}_15m_${isoSafe}.md`;
+  const filepath = path.join(diaryDir, basename);
+  const frontmatter = [
+    '---',
+    `pair: ${pair}`,
+    `generatedAt: ${new Date().toISOString()}`,
+    `scorecardGrade: ${signal.scorecard?.grade || 'SKIP'}`,
+    '---',
+    '',
+  ].join('\n');
+  fs.writeFileSync(filepath, frontmatter + diary);
+
+  return { ok: true, diary, filename: `diary/${basename}`, signal };
 }
 
 // ── 서버 시작 ─────────────────────────────────────────────────────────────────
@@ -256,19 +328,22 @@ const server = http.createServer((req, res) => {
   });
 });
 
-server.listen(PORT, '127.0.0.1', () => {
-  console.log(`\n🚀 ICT 트레이딩 대시보드 시작됨`);
-  console.log(`   URL: http://localhost:${PORT}`);
-  console.log(`   종료: Ctrl+C\n`);
-  // macOS에서 자동으로 브라우저 열기
-  try { execSync(`open http://localhost:${PORT}`); } catch (_) {}
-});
+if (require.main === module) {
+  server.listen(PORT, '127.0.0.1', () => {
+    console.log(`\n🚀 ICT 트레이딩 대시보드 시작됨`);
+    console.log(`   URL: http://localhost:${PORT}`);
+    console.log(`   종료: Ctrl+C\n`);
+    try { execSync(`open http://localhost:${PORT}`); } catch (_) {}
+  });
 
-server.on('error', err => {
-  if (err.code === 'EADDRINUSE') {
-    console.error(`포트 ${PORT}가 이미 사용 중입니다. 기존 프로세스를 종료하거나 PORT 환경변수를 변경하세요.`);
-  } else {
-    console.error('서버 오류:', err);
-  }
-  process.exit(1);
-});
+  server.on('error', err => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`포트 ${PORT}가 이미 사용 중입니다. 기존 프로세스를 종료하거나 PORT 환경변수를 변경하세요.`);
+    } else {
+      console.error('서버 오류:', err);
+    }
+    process.exit(1);
+  });
+}
+
+module.exports = { buildDiaryEntry };
