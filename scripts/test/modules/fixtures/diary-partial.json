@@ -1,0 +1,56 @@
+{
+  "pair": "ETHUSDT",
+  "timestamp": 1747319200,
+  "analysisDate": "2026-05-15",
+  "direction": "LONG",
+  "tier": 2,
+  "alignmentScore": 70,
+  "confidence": "MEDIUM",
+  "scorecard": {
+    "total": 3.2,
+    "grade": "B",
+    "breakdown": {},
+    "oteZone": "DEEP",
+    "action": "ENTER",
+    "sizeMultiplier": 0.75
+  },
+  "entry": {
+    "price": 3815,
+    "basis": "FVG_RETEST",
+    "killzone": false
+  },
+  "sl": 3780,
+  "slBasis": "BELOW_OB",
+  "tp": [3885, 3920, 3955],
+  "tpBasis": ["TP1", "TP2", "TP3"],
+  "rr": 2.0,
+  "structure": {
+    "htfTrend": "bull",
+    "ltfTrend": "bull",
+    "amdPhase": "MANIPULATION",
+    "confluence": []
+  },
+  "levels": {
+    "fvgs": [
+      { "low": 3810, "high": 3825, "ce": 3817.5, "direction": "bull", "status": "active", "time": 1747315800 }
+    ],
+    "obs": [],
+    "bbs": [],
+    "sweeps": [
+      { "type": "SSL", "price": 3780, "time": 1747313400, "confirmed": true, "origin": "LTF" }
+    ]
+  },
+  "mss": [
+    { "direction": "bull", "time": 1747316400, "price": 3825, "origin": "LTF" }
+  ],
+  "bos": [
+    { "direction": "bull", "time": 1747292400, "price": 3760, "origin": "HTF" }
+  ],
+  "displacements": [
+    { "index": 30, "time": 1747315500, "direction": "bull", "bodyPct": 0.95 }
+  ],
+  "invalidation": { "price": 3780, "reason": "Close below SL" },
+  "currentPrice": 3822.5,
+  "tradeBlocked": false,
+  "tradeBlockReason": ""
+}

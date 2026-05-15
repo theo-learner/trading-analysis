@@ -1,0 +1,34 @@
+{
+  "pair": "HYPEUSDT",
+  "timestamp": 1747319100,
+  "analysisDate": "2026-05-15",
+  "direction": "NEUTRAL",
+  "tier": 4,
+  "alignmentScore": 35,
+  "confidence": "LOW",
+  "reason": "Tier 4: 정렬 불충분",
+  "currentPrice": 24.85,
+  "tradeBlocked": false,
+  "tradeBlockReason": "",
+  "structure": {
+    "htfTrend": "ranging",
+    "ltfTrend": "bear",
+    "amdPhase": "ACCUMULATION",
+    "confluence": []
+  },
+  "levels": {
+    "fvgs": [
+      { "low": 24.3, "high": 24.55, "ce": 24.425, "direction": "bear", "status": "active", "time": 1747310400 }
+    ],
+    "obs": [],
+    "bbs": [],
+    "sweeps": [
+      { "type": "SSL", "price": 24.62, "time": 1747313100, "confirmed": false, "origin": "LTF" }
+    ]
+  },
+  "mss": [],
+  "bos": [
+    { "direction": "bear", "time": 1747310400, "price": 25.1, "origin": "LTF" }
+  ],
+  "displacements": []
+}

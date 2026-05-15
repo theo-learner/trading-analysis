@@ -1,0 +1,60 @@
+{
+  "pair": "BTCUSDT",
+  "timestamp": 1747318991,
+  "analysisDate": "2026-05-15",
+  "direction": "LONG",
+  "tier": 1,
+  "alignmentScore": 85,
+  "confidence": "HIGH",
+  "scorecard": {
+    "total": 4.0,
+    "grade": "A",
+    "breakdown": {},
+    "oteZone": "OTE",
+    "action": "ENTER",
+    "sizeMultiplier": 1.0
+  },
+  "entry": {
+    "price": 103090,
+    "basis": "FVG_RETEST",
+    "killzone": true
+  },
+  "sl": 102840,
+  "slBasis": "BELOW_OB",
+  "tp": [103510, 103760, 104010],
+  "tpBasis": ["TP1", "TP2", "TP3"],
+  "rr": 1.7,
+  "structure": {
+    "htfTrend": "bull",
+    "ltfTrend": "bull",
+    "amdPhase": "DISTRIBUTION",
+    "confluence": []
+  },
+  "levels": {
+    "fvgs": [
+      { "low": 103020, "high": 103180, "ce": 103100, "direction": "bull", "status": "active", "time": 1747317600 },
+      { "low": 102950, "high": 103020, "ce": 102985, "direction": "bull", "status": "tested", "time": 1747314000 }
+    ],
+    "obs": [],
+    "bbs": [
+      { "low": 103030, "high": 103150, "retestStatus": "pending", "direction": "bull", "time": 1747316700 }
+    ],
+    "sweeps": [
+      { "type": "SSL", "price": 102840, "time": 1747316100, "confirmed": true, "origin": "LTF" },
+      { "type": "BSL", "price": 103510, "time": 1747308600, "confirmed": false, "origin": "LTF" }
+    ]
+  },
+  "mss": [
+    { "direction": "bull", "time": 1747317300, "price": 103180, "origin": "LTF" }
+  ],
+  "bos": [
+    { "direction": "bull", "time": 1747288800, "price": 102500, "origin": "HTF" }
+  ],
+  "displacements": [
+    { "index": 45, "time": 1747317000, "direction": "bull", "bodyPct": 1.42 }
+  ],
+  "invalidation": { "price": 102840, "reason": "Close below SL" },
+  "currentPrice": 103247.5,
+  "tradeBlocked": false,
+  "tradeBlockReason": ""
+}
