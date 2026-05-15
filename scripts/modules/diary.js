@@ -73,6 +73,29 @@ function deriveERLIRL(signal) {
   return { erlLow, erlHigh, irlZone, activeFVGs, activeOBs };
 }
 
+function getSwingRange(signal) {
+  const sweeps = (signal.levels && signal.levels.sweeps) || [];
+  const cp     = signal.currentPrice || 0;
+
+  if (signal.direction === 'LONG') {
+    const confirmedSSL = sweeps.filter(s => s.type === 'SSL' && s.confirmed).slice(-1)[0];
+    const pendingBSL   = sweeps.filter(s => s.type === 'BSL' && !s.confirmed)[0];
+    return {
+      low:  confirmedSSL ? confirmedSSL.price : cp * 0.97,
+      high: pendingBSL   ? pendingBSL.price   : cp * 1.05,
+    };
+  }
+  if (signal.direction === 'SHORT') {
+    const confirmedBSL = sweeps.filter(s => s.type === 'BSL' && s.confirmed).slice(-1)[0];
+    const pendingSSL   = sweeps.filter(s => s.type === 'SSL' && !s.confirmed)[0];
+    return {
+      low:  pendingSSL   ? pendingSSL.price   : cp * 0.95,
+      high: confirmedBSL ? confirmedBSL.price : cp * 1.03,
+    };
+  }
+  return { low: cp * 0.97, high: cp * 1.03 };
+}
+
 // ── 6단계 렌더러 ──────────────────────────────────────────────────────────────
 
 function renderStep1(signal) {
@@ -136,23 +159,37 @@ function renderStep3(signal) {
 }
 
 function renderStep4(signal, gradedFVGs) {
-  const disps = signal.displacements || [];
-  const fmtDisp = disps.length > 0
-    ? disps.map(d => `- **Displacement 캔들**: LTF ${fmtTime(d.time)}, body ${d.direction === 'bull' ? '+' : '-'}${d.bodyPct}% (임계 통과)`).join('\n')
+  const disps      = signal.displacements || [];
+  const swingRange = getSwingRange(signal);
+
+  // most recent displacement only
+  const latestDisp = disps.slice(-1)[0];
+  const fmtDisp    = latestDisp
+    ? `- **Displacement 캔들**: LTF ${fmtTime(latestDisp.time)}, body ${latestDisp.direction === 'bull' ? '+' : '-'}${latestDisp.bodyPct}% (임계 통과)`
     : '- **Displacement**: 감지되지 않음';
 
-  const activeFVGs = gradedFVGs.filter(f => f.status === 'active');
-  const fvgHeader  = signal.structure && signal.structure.ltfTrend === 'bear' ? 'bear' : 'bull';
+  // active FVGs within current swing range only (max 3)
+  const gradeOrder = { 'A+': 0, 'A': 1, 'B': 2 };
+  const inRangeFVGs = gradedFVGs
+    .filter(f => f.status === 'active' && f.high >= swingRange.low && f.low <= swingRange.high)
+    .sort((a, b) => (gradeOrder[a.grade] ?? 2) - (gradeOrder[b.grade] ?? 2))
+    .slice(0, 3);
+
+  const totalActive = gradedFVGs.filter(f => f.status === 'active').length;
+  const omitted     = totalActive - inRangeFVGs.length;
+
+  const fvgHeader = signal.structure && signal.structure.ltfTrend === 'bear' ? 'bear' : 'bull';
   let fvgText = '';
-  if (activeFVGs.length > 0) {
-    fvgText = `\n**Active FVG** (LTF, ${fvgHeader}):\n` +
-      activeFVGs.map((f, i) => {
+  if (inRangeFVGs.length > 0) {
+    const suffix = omitted > 0 ? ` *(외 ${omitted}개 범위 외 생략)*` : '';
+    fvgText = `\n**Active FVG** (LTF, ${fvgHeader})${suffix}:\n` +
+      inRangeFVGs.map((f, i) => {
         const ce       = f.ce !== undefined ? f.ce : (f.low + f.high) / 2;
         const gradeTag = f.grade === 'A+' ? ` · **${f.grade}** (MSS 직후 + OTE 구간)` : ` · ${f.grade || 'B'}`;
         return `  - FVG #${i + 1}: ${fmtPrice(f.low)} ~ ${fmtPrice(f.high)} · CE ${fmtPrice(ce)} · status: ${f.status}${gradeTag}`;
       }).join('\n');
   } else {
-    fvgText = '\n**Active FVG**: 없음';
+    fvgText = '\n**Active FVG**: 없음 (스윙 범위 내)';
   }
   return [
     `## 4단계 · 핵심 증거 (Displacement + FVG)`,
@@ -242,10 +279,12 @@ function renderAdvanced1(signal, erlIrl) {
   ].join('\n');
 }
 
-function renderAdvanced2(gradedFVGs, mssArr) {
-  const fvgsToShow = gradedFVGs.filter(f => f.status === 'active' || f.status === 'tested');
+function renderAdvanced2(gradedFVGs, mssArr, swingRange) {
+  const fvgsToShow = gradedFVGs
+    .filter(f => (f.status === 'active' || f.status === 'tested') &&
+                 f.high >= swingRange.low && f.low <= swingRange.high);
   if (fvgsToShow.length === 0) {
-    return `## 심화 2 · FVG 등급 + 결과 추적\n감지된 FVG 없음\n\n`;
+    return `## 심화 2 · FVG 등급 + 결과 추적\n감지된 FVG 없음 (스윙 범위 내)\n\n`;
   }
   const rows = fvgsToShow.map((f, i) => {
     const ce      = f.ce !== undefined ? f.ce : (f.low + f.high) / 2;
@@ -353,7 +392,7 @@ function buildDiary(signal, opts = {}) {
     `---`,
     ``,
     renderAdvanced1(signal, erlIrl),
-    renderAdvanced2(gradedFVGs, mssArr),
+    renderAdvanced2(gradedFVGs, mssArr, getSwingRange(signal)),
     renderAdvanced3(signal, unicorn),
     `---`,
     ``,

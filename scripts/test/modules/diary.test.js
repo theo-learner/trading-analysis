@@ -69,4 +69,45 @@ describe('buildDiary', () => {
     const md = buildDiary(fullSignal);
     assert.match(md, /MSS/);
   });
+
+  it('step 4 filters out FVGs outside swing range', () => {
+    const signalWithManyFVGs = {
+      ...fullSignal,
+      currentPrice: 103247.5,
+      direction: 'LONG',
+      levels: {
+        ...fullSignal.levels,
+        fvgs: [
+          { low: 101000, high: 101500, direction: 'bull', status: 'active', time: 1747300000 }, // below SSL 102840 → out
+          { low: 103020, high: 103180, direction: 'bull', status: 'active', time: 1747317600 }, // in range → keep
+          { low: 103200, high: 103350, direction: 'bull', status: 'active', time: 1747318000 }, // in range → keep
+          { low: 104000, high: 104500, direction: 'bull', status: 'active', time: 1747319000 }, // above BSL 103510 → out
+        ],
+        sweeps: [
+          { type: 'SSL', price: 102840, time: 1747316100, confirmed: true,  origin: 'LTF' },
+          { type: 'BSL', price: 103510, time: 1747308600, confirmed: false, origin: 'LTF' },
+        ],
+      },
+    };
+    const md = buildDiary(signalWithManyFVGs);
+    assert.match(md,    /\$103,020/);   // in-range FVG appears
+    assert.match(md,    /\$103,200/);   // in-range FVG appears
+    assert.doesNotMatch(md, /\$101,000/); // out-of-range FVG omitted
+    assert.doesNotMatch(md, /\$104,000/); // out-of-range FVG omitted
+  });
+
+  it('step 4 shows only the most recent displacement', () => {
+    const signalWithManyDisps = {
+      ...fullSignal,
+      displacements: [
+        { time: 1747300000, direction: 'bull', bodyPct: '1.20' },
+        { time: 1747310000, direction: 'bull', bodyPct: '1.50' },
+        { time: 1747320000, direction: 'bull', bodyPct: '0.95' }, // most recent
+      ],
+    };
+    const md = buildDiary(signalWithManyDisps);
+    const step4 = md.split('## 4단계')[1].split('## 5단계')[0];
+    const dispMatches = [...step4.matchAll(/Displacement 캔들/g)];
+    assert.strictEqual(dispMatches.length, 1, 'Only one displacement should appear');
+  });
 });
