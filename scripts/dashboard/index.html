@@ -67,6 +67,11 @@
   #analyze-btn:disabled { opacity: .4; cursor: not-allowed; }
   #analyze-btn .spinner { display: none; width: 14px; height: 14px; border: 2px solid rgba(0,0,0,.2); border-top-color: #000; border-radius: 50%; animation: spin 0.7s linear infinite; }
   #analyze-btn.loading .spinner { display: block; }
+  #diary-btn { padding: 7px 12px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--text); font-size: 13px; cursor: pointer; white-space: nowrap; transition: background .15s; }
+  #diary-btn:hover { background: var(--panel); }
+  #diary-btn:disabled { opacity: .4; cursor: not-allowed; }
+  .diary-body { font-size: 12px; line-height: 1.55; max-height: 380px; overflow-y: auto; }
+  .diary-content { white-space: pre-wrap; word-break: break-word; color: var(--text); font-family: var(--mono); }
   #analyze-btn.loading .btn-icon { display: none; }
   @keyframes spin { to { transform: rotate(360deg); } }
   #chart-container { flex: 1; min-height: 0; position: relative; }
@@ -86,12 +91,17 @@
   .side-section-title { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; }
 
   /* 스코어카드 */
-  .scorecard-items { display: flex; flex-direction: column; gap: 6px; }
+  .scorecard-items { display: flex; flex-direction: column; gap: 2px; }
+  .sc-item-wrap { margin-bottom: 4px; }
   .sc-item { display: flex; align-items: center; gap: 8px; }
   .sc-label { color: var(--muted); font-size: 12px; flex: 1; }
   .sc-score { font-family: var(--mono); font-size: 12px; font-weight: 700; width: 28px; text-align: right; }
   .sc-bar { flex: 1; height: 4px; border-radius: 2px; background: var(--border); overflow: hidden; }
   .sc-bar-fill { height: 100%; border-radius: 2px; transition: width .4s; }
+  .sc-reason { font-size: 10px; color: var(--muted); margin-top: 3px; padding-left: 2px; line-height: 1.3; }
+  .sc-reason.pass { color: #0ECB81; }
+  .sc-reason.fail { color: #F6465D; }
+  .sc-reason.warn { color: #F0B90B; }
   .scorecard-total { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
   .sc-total-label { font-size: 12px; color: var(--muted); }
   .sc-total-val { font-family: var(--mono); font-size: 18px; font-weight: 700; }
@@ -102,6 +112,7 @@
   .grade-C { background: rgba(132,142,156,.1); color: var(--muted); border: 1px solid var(--border); }
   .grade-X { background: rgba(246,70,93,.12); color: var(--bear); border: 1px solid rgba(246,70,93,.3); }
   .sc-placeholder { color: var(--muted); font-size: 12px; text-align: center; padding: 16px 0; }
+  .sc-size-badge { display: inline-block; padding: 2px 7px; border-radius: 3px; font-size: 10px; font-weight: 700; font-family: var(--mono); background: rgba(252,213,53,.1); color: var(--primary); border: 1px solid rgba(252,213,53,.3); }
 
   /* 시그널 */
   .signal-card { background: var(--card); border-radius: 6px; padding: 12px; }
@@ -183,10 +194,8 @@
   </div>
   <div class="toolbar-sep"></div>
   <div class="tf-pills" id="tfPills">
-    <button class="tf-pill" data-tf="15m">15M</button>
-    <button class="tf-pill active" data-tf="1h">1H</button>
+    <button class="tf-pill active" data-tf="15m">15M</button>
     <button class="tf-pill" data-tf="4h">4H</button>
-    <button class="tf-pill" data-tf="1d">1D</button>
   </div>
   <div class="header-spacer"></div>
   <div class="kz-badge inactive" id="kzBadge">킬존 대기</div>
@@ -207,6 +216,7 @@
         <button class="overlay-btn ob on"  id="btnOB">OB</button>
         <button class="overlay-btn bb on"  id="btnBB">BB</button>
         <button class="overlay-btn sweep on" id="btnSweep">Sweep</button>
+        <button id="diary-btn" title="구조 다이어리 작성">📓 구조 확인</button>
         <button id="analyze-btn">
           <span class="btn-icon">🔍</span>
           <div class="spinner"></div>
@@ -237,6 +247,14 @@
           <div class="amd-stage" data-stage="MANIPULATION">조작</div>
           <div class="amd-stage" data-stage="DISTRIBUTION">분배</div>
           <div class="amd-stage" data-stage="RESET">리셋</div>
+        </div>
+      </div>
+
+      <!-- 구조 일지 -->
+      <div class="side-section">
+        <div class="side-section-title">📓 구조 일지</div>
+        <div id="diary-body" class="diary-body">
+          <div class="sc-placeholder">구조 확인 대기 중</div>
         </div>
       </div>
 
@@ -303,23 +321,27 @@ const BYBIT_PAIRS = new Set(['HYPEUSDT']);
 const getExchange = (pair) => BYBIT_PAIRS.has(pair) ? 'bybit' : 'binance';
 
 // Bybit interval 코드 매핑 (Binance tf → Bybit interval)
-const BYBIT_TF = { '15m': '15', '1h': '60', '4h': '240', '1d': 'D' };
+const BYBIT_TF = { '15m': '15', '4h': '240' };
 
-const TF_MAP   = { '15m': '15m', '1h': '1h', '4h': '4h', '1d': '1d' };
-const TF_LABEL = { '15m': '15M', '1h': '1H', '4h': '4H', '1d': '1D' };
-const TF_LIMIT = { '15m': 200, '1h': 200, '4h': 150, '1d': 100 };
+const TF_MAP       = { '15m': '15m', '4h': '4h' };
+const TF_LABEL     = { '15m': '15M', '4h': '4H' };
+const TF_LIMIT     = { '15m': 1000, '4h': 500 };
+const TF_BAR_SPACING = { '15m': 6, '4h': 8 };
 
 // ── 상태 ───────────────────────────────────────────────────────────────────
 let state = {
   pair: 'BTCUSDT',
-  tf:   '1h',
+  tf:   '15m',
   overlays: { fvg: true, ob: true, bb: true, sweep: true },
-  signal:   null,
-  analyzing: false,
+  signal:       null,
+  analyzing:    false,
+  diaryLoading: false,
   trades:    [],
   series:    {},   // 차트 시리즈 참조
   overlayData: { fvgs: [], obs: [], bbs: [], sweeps: [], bos: null, entry: null, sl: null, tp1: null, tp2: null },
+  candleRange: null,
 };
+window.state = state;
 
 // ── 차트 초기화 ────────────────────────────────────────────────────────────
 const chartEl = document.getElementById('chart');
@@ -328,7 +350,7 @@ const chart = LightweightCharts.createChart(chartEl, {
   grid:       { vertLines: { color: '#1E2026' }, horzLines: { color: '#1E2026' } },
   crosshair:  { mode: LightweightCharts.CrosshairMode.Normal },
   rightPriceScale: { borderColor: '#2B2F36' },
-  timeScale:  { borderColor: '#2B2F36', timeVisible: true, secondsVisible: false },
+  timeScale:  { borderColor: '#2B2F36', timeVisible: true, secondsVisible: false, rightOffset: 5, lockVisibleTimeRangeOnResize: false },
   watermark:  { visible: true, fontSize: 11, text: 'ICT Engine — DRY RUN', color: 'rgba(132,142,156,0.2)' },
 });
 
@@ -400,7 +422,11 @@ async function loadCandles() {
     }
 
     candleSeries.setData(candles);
-    chart.timeScale().fitContent();
+    if (candles.length) {
+      state.candleRange = { from: candles[0].time, to: candles[candles.length - 1].time };
+    }
+    chart.timeScale().applyOptions({ barSpacing: TF_BAR_SPACING[tf] || 6 });
+    chart.timeScale().scrollToRealTime();
     updatePriceDisplay(candles[candles.length - 1]);
 
   } catch (e) {
@@ -504,6 +530,31 @@ function updateKillzoneBadge() {
 }
 
 // ── 오버레이 렌더링 ────────────────────────────────────────────────────────
+const overlayLines = [];
+
+function clearAllPriceLines() {
+  overlayLines.forEach(s => { try { chart.removeSeries(s); } catch (_) {} });
+  overlayLines.length = 0;
+}
+
+function addPriceLine({ price, color, lineWidth = 1, lineStyle = 0, axisLabelVisible = false, title = '' }) {
+  const seriesOpts = {
+    color, lineWidth, lineStyle,
+    lastValueVisible: axisLabelVisible,
+    priceLineVisible: false,
+    crosshairMarkerVisible: false,
+  };
+  if (axisLabelVisible && title) {
+    seriesOpts.priceFormat = { type: 'custom', formatter: () => title };
+  }
+  const s = chart.addLineSeries(seriesOpts);
+  const from = state.candleRange?.from || 1577836800;
+  const to   = state.candleRange?.to   || Math.floor(Date.now() / 1000);
+  s.setData([{ time: from, value: price }, { time: to, value: price }]);
+  overlayLines.push(s);
+  return s;
+}
+
 function clearOverlayLines() {
   ['entry', 'sl', 'tp1', 'tp2', 'bos'].forEach(k => {
     if (lineSeriesCache[k]) {
@@ -511,7 +562,7 @@ function clearOverlayLines() {
       delete lineSeriesCache[k];
     }
   });
-  // FVG/OB/BB 배경 마킹은 priceLine으로
+  clearAllPriceLines();
   candleSeries.setMarkers([]);
 }
 
@@ -519,41 +570,39 @@ function renderSignalOverlays(signal) {
   if (!signal || signal.direction === 'NEUTRAL') return;
 
   const now = Math.floor(Date.now() / 1000);
-  const future = now + 3600 * 20; // 20시간 앞
 
   // 진입 라인 (황금색 실선)
   const entryPrice = signal.entry?.price ?? signal.entry;
   if (entryPrice) {
-    candleSeries.createPriceLine({ price: entryPrice, color: '#FCD535', lineWidth: 1, lineStyle: 0, axisLabelVisible: true, title: `진입 ${formatPrice(entryPrice)}` });
+    addPriceLine({ price: entryPrice, color: '#FCD535', lineWidth: 1, lineStyle: 0, axisLabelVisible: true, title: `진입 ${formatPrice(entryPrice)}` });
   }
   // SL 라인 (빨간색 점선)
   if (signal.sl) {
-    candleSeries.createPriceLine({ price: signal.sl, color: '#F6465D', lineWidth: 1, lineStyle: 1, axisLabelVisible: true, title: `SL ${formatPrice(signal.sl)}` });
+    addPriceLine({ price: signal.sl, color: '#F6465D', lineWidth: 1, lineStyle: 1, axisLabelVisible: true, title: `SL ${formatPrice(signal.sl)}` });
   }
   // TP1 (녹색 점선)
   if (signal.tp && signal.tp[0]) {
-    candleSeries.createPriceLine({ price: signal.tp[0], color: '#0ECB81', lineWidth: 1, lineStyle: 1, axisLabelVisible: true, title: `TP1 ${formatPrice(signal.tp[0])}` });
+    addPriceLine({ price: signal.tp[0], color: '#0ECB81', lineWidth: 1, lineStyle: 1, axisLabelVisible: true, title: `TP1 ${formatPrice(signal.tp[0])}` });
   }
   // TP2 (녹색 점선, 얇게)
   if (signal.tp && signal.tp[1]) {
-    candleSeries.createPriceLine({ price: signal.tp[1], color: '#0ECB81', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: `TP2 ${formatPrice(signal.tp[1])}` });
+    addPriceLine({ price: signal.tp[1], color: '#0ECB81', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: `TP2 ${formatPrice(signal.tp[1])}` });
   }
 
-  // BOS 마커
+  // BOS + Sweep 마커를 단일 setMarkers 호출로 합산 (두 번 호출하면 덮어써짐)
+  const markers = [];
   if (signal.bos) {
-    candleSeries.setMarkers([{
+    markers.push({
       time: signal.bos.time || now,
       position: signal.direction === 'LONG' ? 'belowBar' : 'aboveBar',
       color: signal.direction === 'LONG' ? '#0ECB81' : '#F6465D',
       shape: 'arrowUp',
       text: 'BOS',
       size: 1,
-    }]);
+    });
   }
-
-  // Sweep 마커
   if (signal.sweep && state.overlays.sweep) {
-    const markers = (signal.sweep.sweepEvents || []).map(s => ({
+    (signal.sweep.sweepEvents || []).forEach(s => markers.push({
       time: s.time,
       position: s.type === 'BSL' ? 'aboveBar' : 'belowBar',
       color: '#FCD535',
@@ -561,41 +610,110 @@ function renderSignalOverlays(signal) {
       text: s.type,
       size: 0.5,
     }));
-    if (markers.length) candleSeries.setMarkers(markers);
   }
+  if (markers.length) {
+    markers.sort((a, b) => a.time - b.time);
+    candleSeries.setMarkers(markers);
+  }
+}
+
+// Sort levels by proximity to entry price, keeping entry-containing level first
+function sortByProximity(levels, entryPrice, limit) {
+  if (!entryPrice || !levels || !levels.length) return levels.slice(0, limit);
+  const dist = (l) => {
+    if (l.low <= entryPrice && entryPrice <= l.high) return -1; // entry inside this level → highest priority
+    return Math.min(Math.abs(l.high - entryPrice), Math.abs(l.low - entryPrice));
+  };
+  return [...levels].sort((a, b) => dist(a) - dist(b)).slice(0, limit);
 }
 
 function renderFVGBands(fvgs) {
   if (!state.overlays.fvg || !fvgs || !fvgs.length) return;
-  // FVG는 priceLine 쌍으로 표현 (lightweight-charts v4에서 배경 박스 미지원)
-  fvgs.slice(0, 5).forEach((fvg, i) => {
-    candleSeries.createPriceLine({ price: fvg.high, color: 'rgba(34,211,238,0.4)', lineWidth: 1, lineStyle: 2, title: i === 0 ? 'FVG↑' : '' });
-    candleSeries.createPriceLine({ price: fvg.low,  color: 'rgba(34,211,238,0.4)', lineWidth: 1, lineStyle: 2, title: i === 0 ? 'FVG↓' : '' });
+  const entryPrice = state.signal?.entry?.price ?? state.signal?.entry;
+  const toRender = sortByProximity(fvgs, entryPrice, 5);
+  toRender.forEach((fvg, i) => {
+    addPriceLine({ price: fvg.high, color: 'rgba(34,211,238,0.4)', lineWidth: 1, lineStyle: 2, title: i === 0 ? 'FVG↑' : '' });
+    addPriceLine({ price: fvg.low,  color: 'rgba(34,211,238,0.4)', lineWidth: 1, lineStyle: 2, title: i === 0 ? 'FVG↓' : '' });
   });
 }
 
 function renderOBLines(obs) {
   if (!state.overlays.ob || !obs || !obs.length) return;
-  obs.slice(0, 3).forEach((ob, i) => {
-    candleSeries.createPriceLine({ price: ob.high, color: 'rgba(167,139,250,0.5)', lineWidth: 1, lineStyle: 2, title: i === 0 ? 'OB↑' : '' });
-    candleSeries.createPriceLine({ price: ob.low,  color: 'rgba(167,139,250,0.5)', lineWidth: 1, lineStyle: 2, title: i === 0 ? 'OB↓' : '' });
+  const entryPrice = state.signal?.entry?.price ?? state.signal?.entry;
+  const toRender = sortByProximity(obs, entryPrice, 5);
+  toRender.forEach((ob, i) => {
+    // entry OB (index 0 when it contains entry price) gets full opacity highlight
+    const isEntryOB = entryPrice && ob.low <= entryPrice && entryPrice <= ob.high;
+    const color = isEntryOB ? 'rgba(167,139,250,0.9)' : 'rgba(167,139,250,0.5)';
+    const lw    = isEntryOB ? 2 : 1;
+    addPriceLine({ price: ob.high, color, lineWidth: lw, lineStyle: 2, title: isEntryOB ? 'OB(진입)↑' : (i === 0 ? 'OB↑' : '') });
+    addPriceLine({ price: ob.low,  color, lineWidth: lw, lineStyle: 2, title: isEntryOB ? 'OB(진입)↓' : (i === 0 ? 'OB↓' : '') });
+  });
+}
+
+function renderBBLines(bbs) {
+  if (!state.overlays.bb || !bbs || !bbs.length) return;
+  const entryPrice = state.signal?.entry?.price ?? state.signal?.entry;
+  const toRender = sortByProximity(bbs, entryPrice, 3);
+  toRender.forEach((bb, i) => {
+    addPriceLine({ price: bb.high, color: 'rgba(251,146,60,0.5)', lineWidth: 1, lineStyle: 2, title: i === 0 ? 'BB↑' : '' });
+    addPriceLine({ price: bb.low,  color: 'rgba(251,146,60,0.5)', lineWidth: 1, lineStyle: 2, title: i === 0 ? 'BB↓' : '' });
   });
 }
 
 // ── 스코어카드 렌더링 ──────────────────────────────────────────────────────
-function renderScorecard(sc) {
+function renderScorecard(sc, signal) {
   const body = document.getElementById('scorecard-body');
   if (!sc) {
-    body.innerHTML = '<div class="sc-placeholder">분석 대기 중</div>';
+    if (signal) {
+      const reason = signal.reason || (signal.tier ? `Tier ${signal.tier} — 정렬 불충분` : '진입 조건 미충족');
+      body.innerHTML = `<div class="sc-placeholder">중립 — ${reason}</div>`;
+    } else {
+      body.innerHTML = '<div class="sc-placeholder">분석 대기 중</div>';
+    }
     return;
   }
+
+  const dir      = signal?.direction;
+  const htfTrend = signal?.structure?.htfTrend;
+
+  function structureReason(score) {
+    const match = (htfTrend === 'bull' && dir === 'LONG') || (htfTrend === 'bear' && dir === 'SHORT');
+    const trendLabel = htfTrend === 'bull' ? '상승' : htfTrend === 'bear' ? '하락' : htfTrend || '?';
+    return { cls: score > 0 ? 'pass' : 'fail', text: `HTF ${trendLabel} 추세 — 방향 ${match ? '일치' : '역행'}` };
+  }
+  function timeReason(score) {
+    return score > 0
+      ? { cls: 'pass', text: '킬존 진입 확인' }
+      : { cls: 'warn', text: '킬존 외 시간대' };
+  }
+  function priceReason(score, oteZone) {
+    if (!oteZone) return { cls: 'warn', text: '가격 구간 미확인' };
+    if (oteZone === 'OTE')     return { cls: 'pass', text: 'OTE 구간 (62~79%)' };
+    if (oteZone === 'SHALLOW') return { cls: 'warn', text: '얕은 되돌림 (50~62%)' };
+    if (oteZone === 'DEEP')    return { cls: 'fail', text: '깊은 되돌림 (79%+)' };
+    if (oteZone === 'PREMIUM') return { cls: 'fail', text: 'PREMIUM 구간 (<50%)' };
+    return { cls: 'warn', text: oteZone };
+  }
+  function pdArrayReason(score) {
+    if (score >= 2) return { cls: 'pass', text: '복수 POI 중첩 확인' };
+    if (score >= 1) return { cls: 'warn', text: '단일 POI 확인' };
+    return { cls: 'fail', text: 'POI 없음' };
+  }
+  function liquidityReason(score) {
+    return score > 0
+      ? { cls: 'pass', text: '유동성 스윕 확인' }
+      : { cls: 'warn', text: '스윕 미확인' };
+  }
+
   const items = [
-    { label: '1. 구조 (Structure)',   score: sc.breakdown?.structure ?? '—', max: 1 },
-    { label: '2. 시간 (Killzone)',    score: sc.breakdown?.time      ?? '—', max: 1 },
-    { label: '3. 가격 (OTE)',         score: sc.breakdown?.price     ?? '—', max: 1 },
-    { label: '4. PD Array',           score: sc.breakdown?.pdArray   ?? '—', max: 2 },
-    { label: '5. 유동성 (Liquidity)', score: sc.breakdown?.liquidity ?? '—', max: 1 },
+    { label: '1. 구조 (Structure)',   score: sc.breakdown?.structure ?? '—', max: 1, reason: () => structureReason(sc.breakdown?.structure) },
+    { label: '2. 시간 (Killzone)',    score: sc.breakdown?.time      ?? '—', max: 1, reason: () => timeReason(sc.breakdown?.time) },
+    { label: '3. 가격 (OTE)',         score: sc.breakdown?.price     ?? '—', max: 1, reason: () => priceReason(sc.breakdown?.price, sc.oteZone) },
+    { label: '4. PD Array',           score: sc.breakdown?.pdArray   ?? '—', max: 2, reason: () => pdArrayReason(sc.breakdown?.pdArray) },
+    { label: '5. 유동성 (Liquidity)', score: sc.breakdown?.liquidity ?? '—', max: 1, reason: () => liquidityReason(sc.breakdown?.liquidity) },
   ];
+
   const gradeClass = `grade-${sc.grade || 'C'}`;
   const totalColor = sc.grade === 'S' ? '#FCD535' : sc.grade === 'A' ? '#0ECB81' : sc.grade === 'B' ? '#F0B90B' : '#848E9C';
 
@@ -605,11 +723,15 @@ function renderScorecard(sc) {
         const num = typeof it.score === 'number' ? it.score : 0;
         const pct = it.max > 0 ? Math.max(0, Math.min(100, (num / it.max) * 100)) : 0;
         const color = num > 0 ? (num >= it.max ? '#0ECB81' : '#F0B90B') : num < 0 ? '#F6465D' : '#2B2F36';
+        const r = typeof it.score === 'number' ? it.reason() : null;
         return `
-          <div class="sc-item">
-            <span class="sc-label">${it.label}</span>
-            <span class="sc-score" style="color:${color}">${it.score}</span>
-            <div class="sc-bar"><div class="sc-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+          <div class="sc-item-wrap">
+            <div class="sc-item">
+              <span class="sc-label">${it.label}</span>
+              <span class="sc-score" style="color:${color}">${it.score}</span>
+              <div class="sc-bar"><div class="sc-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+            </div>
+            ${r ? `<div class="sc-reason ${r.cls}">${r.text}</div>` : ''}
           </div>`;
       }).join('')}
     </div>
@@ -623,7 +745,7 @@ function renderScorecard(sc) {
         <div class="sc-grade-badge ${gradeClass}">${sc.grade || '—'}</div>
       </div>
     </div>
-    ${sc.oteZone ? `<div style="margin-top:8px;font-size:11px;color:var(--muted)">OTE 구간: <span style="color:${sc.oteZone==='OTE'?'#0ECB81':sc.oteZone==='PREMIUM'?'#F6465D':'#F0B90B'}">${sc.oteZone}</span></div>` : ''}
+    ${sc.sizeMultiplier != null ? `<div style="margin-top:8px;display:flex;align-items:center;gap:8px"><span style="font-size:11px;color:var(--muted)">포지션 배율</span><span class="sc-size-badge">×${sc.sizeMultiplier.toFixed(1)}</span></div>` : ''}
   `;
 }
 
@@ -631,7 +753,8 @@ function renderScorecard(sc) {
 function renderSignal(signal) {
   const body = document.getElementById('signal-body');
   if (!signal || signal.direction === 'NEUTRAL') {
-    body.innerHTML = `<div class="signal-placeholder">${signal ? '중립 — 진입 조건 미충족' : '분석을 실행하면<br>시그널이 여기에 표시됩니다'}</div>`;
+    const priceInfo = (signal?.currentPrice) ? `<div style="margin-top:8px;font-size:12px;color:var(--muted)">기준가 ${formatPrice(signal.currentPrice)}</div>` : '';
+    body.innerHTML = `<div class="signal-placeholder">${signal ? '중립 — 진입 조건 미충족' : '분석을 실행하면<br>시그널이 여기에 표시됩니다'}${priceInfo}</div>`;
     return;
   }
 
@@ -642,14 +765,22 @@ function renderSignal(signal) {
   const execBtnClass = isLong ? 'long' : 'short';
   const execBtnText = isLong ? '▲ LONG 진입 (DRY-RUN)' : '▼ SHORT 진입 (DRY-RUN)';
 
+  const basisMap  = { OB_RETEST: 'OB 재진입', FVG_RETEST: 'FVG 재진입', BB_RETEST: 'BB 재진입', POI_RETEST: 'POI 재진입' };
+  const slBasisMap = { BELOW_OB: 'OB 하단', ABOVE_OB: 'OB 상단' };
+  const entryBasis = basisMap[signal.entry?.basis] || signal.entry?.basis || '—';
+  const slBasis    = slBasisMap[signal.slBasis] || signal.slBasis || '—';
+
   body.innerHTML = `
     <div class="signal-card">
       <div class="signal-direction ${isLong ? 'long' : 'short'}">
         ${isLong ? '▲ LONG' : '▼ SHORT'}
         <span style="font-size:12px;font-weight:400;color:var(--muted);margin-left:6px">${state.pair} ${TF_LABEL[state.tf]}</span>
       </div>
+      <div class="signal-kv"><span class="sk">분석 기준가</span><span class="sv" style="color:var(--muted)">${signal.currentPrice ? formatPrice(signal.currentPrice) : '—'}</span></div>
       <div class="signal-kv"><span class="sk">진입가</span><span class="sv primary">${formatPrice(signal.entry?.price ?? signal.entry)}</span></div>
+      <div class="signal-kv"><span class="sk">진입 근거</span><span class="sv" style="color:var(--muted)">${entryBasis}</span></div>
       <div class="signal-kv"><span class="sk">스탑로스</span><span class="sv bear">${formatPrice(signal.sl)}</span></div>
+      <div class="signal-kv"><span class="sk">SL 근거</span><span class="sv" style="color:var(--muted)">${slBasis}</span></div>
       <div class="signal-kv"><span class="sk">TP1</span><span class="sv bull">${signal.tp?.[0] ? formatPrice(signal.tp[0]) : '—'}</span></div>
       <div class="signal-kv"><span class="sk">TP2</span><span class="sv bull">${signal.tp?.[1] ? formatPrice(signal.tp[1]) : '—'}</span></div>
       <div class="signal-kv"><span class="sk">R:R</span><span class="sv" style="color:var(--primary)">${rr}</span></div>
@@ -769,6 +900,58 @@ function resetAnalyzeBtn() {
   btn.classList.remove('loading');
 }
 
+// ── 구조 다이어리 ─────────────────────────────────────────────────────────
+async function runDiary() {
+  if (state.diaryLoading) return;
+  state.diaryLoading = true;
+
+  const btn = document.getElementById('diary-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ 분석 중…';
+
+  try {
+    const resp = await fetch(`${API}/api/diary`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pair: state.pair }),
+    });
+    const data = await resp.json();
+    if (resp.ok && data.ok) {
+      renderDiary(data.diary);
+      showToast('구조 다이어리 작성 완료', 'success');
+    } else {
+      showToast(data.message || '다이어리 생성 실패', 'error');
+    }
+  } catch (e) {
+    showToast('서버 연결 실패: ' + e.message, 'error');
+  } finally {
+    state.diaryLoading = false;
+    btn.disabled = false;
+    btn.textContent = '📓 구조 확인';
+  }
+}
+
+function renderDiary(md) {
+  const el = document.getElementById('diary-body');
+  if (!md) {
+    el.innerHTML = '<div class="sc-placeholder">구조 확인 대기 중</div>';
+    return;
+  }
+  const pre = document.createElement('pre');
+  pre.className = 'diary-content';
+  pre.textContent = md;
+  el.innerHTML = '';
+  el.appendChild(pre);
+}
+
+async function loadLatestDiary() {
+  try {
+    const resp = await fetch(`${API}/api/latest-diary?pair=${state.pair}`);
+    const data = await resp.json();
+    if (data.ok && data.diary) renderDiary(data.diary);
+  } catch (_) {}
+}
+
 function appendLog(line) {
   const logPanel = document.getElementById('log-panel');
   const level = line.match(/\[(INFO|DEBUG|WARN|ERROR)\]/)?.[1] || 'INFO';
@@ -796,12 +979,19 @@ async function loadLatestSignal() {
     const signal = await resp.json();
     if (signal) {
       state.signal = signal;
-      renderScorecard(signal.scorecard);
+      state.lastSignal = signal;
+      state.overlayData.fvgs = signal.levels?.fvgs ?? [];
+      state.overlayData.obs  = signal.levels?.obs  ?? [];
+      state.overlayData.bbs  = signal.levels?.bbs  ?? [];
+      state.overlayData.sweeps = signal.levels?.sweeps ?? [];
+      clearOverlayLines();
+      renderScorecard(signal.scorecard, signal);
       renderSignal(signal);
       renderAMD(signal.structure?.amdPhase);
       renderSignalOverlays(signal);
       if (signal.levels?.fvgs) renderFVGBands(signal.levels.fvgs);
       if (signal.levels?.obs)  renderOBLines(signal.levels.obs);
+      if (signal.levels?.bbs)  renderBBLines(signal.levels.bbs);
     }
   } catch (_) {}
 }
@@ -833,6 +1023,7 @@ function connectSSE() {
       if (code === 0) {
         showToast(`분석 완료: ${pair} ${tf}`, 'success');
         loadLatestSignal();
+        loadLatestDiary();
         loadTrades();
       } else {
         showToast(`분석 종료 (code ${code}) — 로그 확인`, 'error');
@@ -873,15 +1064,15 @@ document.getElementById('pairTabs').addEventListener('click', (e) => {
   btn.classList.add('active');
   state.pair = btn.dataset.pair;
   state.signal = null;
-  candleSeries.setMarkers([]);
-  // priceLine들 제거
-  try { candleSeries.dataByIndex && candleSeries.setPriceLine && candleSeries.applyOptions({}); } catch (_) {}
+  clearOverlayLines();
   renderScorecard(null);
   renderSignal(null);
   renderAMD(null);
+  renderDiary(null);
   loadCandles();
   connectWS();
   loadLatestSignal();
+  loadLatestDiary();
 });
 
 // TF 탭
@@ -891,6 +1082,7 @@ document.getElementById('tfPills').addEventListener('click', (e) => {
   document.querySelectorAll('.tf-pill').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   state.tf = btn.dataset.tf;
+  clearOverlayLines();
   loadCandles();
   connectWS();
   loadLatestSignal();
@@ -902,14 +1094,19 @@ document.getElementById('tfPills').addEventListener('click', (e) => {
   document.getElementById(`btn${name}`).addEventListener('click', (e) => {
     state.overlays[key] = !state.overlays[key];
     e.currentTarget.classList.toggle('on', state.overlays[key]);
-    // 다시 렌더
     if (state.signal) {
+      clearOverlayLines();
       renderSignalOverlays(state.signal);
-      if (state.signal.fvgs) renderFVGBands(state.signal.fvgs);
-      if (state.signal.obs)  renderOBLines(state.signal.obs);
+      const lvl = state.signal.levels;
+      if (lvl?.fvgs) renderFVGBands(lvl.fvgs);
+      if (lvl?.obs)  renderOBLines(lvl.obs);
+      if (lvl?.bbs)  renderBBLines(lvl.bbs);
     }
   });
 });
+
+// 다이어리 버튼
+document.getElementById('diary-btn').addEventListener('click', runDiary);
 
 // 분석 버튼
 document.getElementById('analyze-btn').addEventListener('click', runAnalysis);
@@ -923,6 +1120,7 @@ async function init() {
   connectSSE();
   await loadTrades();
   await loadLatestSignal();
+  await loadLatestDiary();
   setInterval(loadTrades, 10_000);
 }
 
