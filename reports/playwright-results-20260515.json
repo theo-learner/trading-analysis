@@ -1,0 +1,252 @@
+{
+  "summary": {
+    "runAt": "2026-05-15T14:59:20.787Z",
+    "total": 43,
+    "pass": 39,
+    "fail": 4,
+    "passRate": "90.7%",
+    "issues": [
+      {
+        "test": "헤더 — 4개 TF 필 존재 (15M/1H/4H/1D)",
+        "error": "필 수: 2"
+      },
+      {
+        "test": "TF 필 — 1H 기본 활성화",
+        "error": "active tf: 15m"
+      },
+      {
+        "test": "TF 필 — 1D 클릭 시 활성화",
+        "error": "locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.tf-pill[data-tf=\"1d\"]')\u001b[22m\n"
+      },
+      {
+        "test": "TF 필 — 1H 복귀",
+        "error": "locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.tf-pill[data-tf=\"1h\"]')\u001b[22m\n"
+      }
+    ]
+  },
+  "results": [
+    {
+      "name": "GET /api/config — 200, 객체 반환",
+      "status": "PASS",
+      "duration": 7
+    },
+    {
+      "name": "GET /api/trades — 200, 배열 반환",
+      "status": "PASS",
+      "duration": 2
+    },
+    {
+      "name": "GET /api/signals — 200, 배열 반환",
+      "status": "PASS",
+      "duration": 14
+    },
+    {
+      "name": "GET /api/analyze-log — 200, {running, log} 구조",
+      "status": "PASS",
+      "duration": 2
+    },
+    {
+      "name": "GET /api/latest-signal?pair=BTCUSDT — 200",
+      "status": "PASS",
+      "duration": 1
+    },
+    {
+      "name": "POST /api/trades — dry-run 거래 저장",
+      "status": "PASS",
+      "duration": 3
+    },
+    {
+      "name": "POST /api/trades — 시그널 누락 시 400",
+      "status": "PASS",
+      "duration": 1
+    },
+    {
+      "name": "POST /api/analyze 중복 실행 방지 (409 or 200)",
+      "status": "PASS",
+      "duration": 3
+    },
+    {
+      "name": "GET /api/events — SSE 연결 수립",
+      "status": "PASS",
+      "duration": 9
+    },
+    {
+      "name": "CORS preflight (OPTIONS) — 204",
+      "status": "PASS",
+      "duration": 1
+    },
+    {
+      "name": "존재하지 않는 경로 — 404",
+      "status": "PASS",
+      "duration": 1
+    },
+    {
+      "name": "페이지 로드 — HTTP 200, 타이틀 포함",
+      "status": "PASS",
+      "duration": 156
+    },
+    {
+      "name": "헤더 — 로고 \"ICT Engine\" 존재",
+      "status": "PASS",
+      "duration": 15
+    },
+    {
+      "name": "헤더 — 4개 페어 탭 존재 (BTC/ETH/SOL/HYPE)",
+      "status": "PASS",
+      "duration": 4
+    },
+    {
+      "name": "헤더 — 4개 TF 필 존재 (15M/1H/4H/1D)",
+      "status": "FAIL",
+      "duration": 1,
+      "error": "필 수: 2",
+      "screenshot": "/Users/theo/workspace_tokamak/trading-analysis/reports/pw-fail-1778857088831.png"
+    },
+    {
+      "name": "헤더 — 킬존 배지 & DRY-RUN 배지 존재",
+      "status": "PASS",
+      "duration": 6
+    },
+    {
+      "name": "헤더 — 상태 닷(status dot) 존재",
+      "status": "PASS",
+      "duration": 1
+    },
+    {
+      "name": "페어 탭 — BTC 기본 활성화",
+      "status": "PASS",
+      "duration": 2
+    },
+    {
+      "name": "페어 탭 — ETH 클릭 시 활성화",
+      "status": "PASS",
+      "duration": 369
+    },
+    {
+      "name": "페어 탭 — SOL 클릭 시 활성화",
+      "status": "PASS",
+      "duration": 325
+    },
+    {
+      "name": "페어 탭 — HYPE 클릭 시 활성화",
+      "status": "PASS",
+      "duration": 330
+    },
+    {
+      "name": "페어 탭 — BTC 복귀",
+      "status": "PASS",
+      "duration": 322
+    },
+    {
+      "name": "TF 필 — 1H 기본 활성화",
+      "status": "FAIL",
+      "duration": 1,
+      "error": "active tf: 15m",
+      "screenshot": "/Users/theo/workspace_tokamak/trading-analysis/reports/pw-fail-1778857090212.png"
+    },
+    {
+      "name": "TF 필 — 4H 클릭 시 활성화",
+      "status": "PASS",
+      "duration": 330
+    },
+    {
+      "name": "TF 필 — 1D 클릭 시 활성화",
+      "status": "FAIL",
+      "duration": 30003,
+      "error": "locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.tf-pill[data-tf=\"1d\"]')\u001b[22m\n",
+      "screenshot": "/Users/theo/workspace_tokamak/trading-analysis/reports/pw-fail-1778857120598.png"
+    },
+    {
+      "name": "TF 필 — 15M 클릭 시 활성화",
+      "status": "PASS",
+      "duration": 321
+    },
+    {
+      "name": "TF 필 — 1H 복귀",
+      "status": "FAIL",
+      "duration": 30001,
+      "error": "locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.tf-pill[data-tf=\"1h\"]')\u001b[22m\n",
+      "screenshot": "/Users/theo/workspace_tokamak/trading-analysis/reports/pw-fail-1778857150964.png"
+    },
+    {
+      "name": "오버레이 — FVG/OB/BB/Sweep 버튼 초기 활성(on) 상태",
+      "status": "PASS",
+      "duration": 21
+    },
+    {
+      "name": "오버레이 — FVG 버튼 토글 (on → off → on)",
+      "status": "PASS",
+      "duration": 450
+    },
+    {
+      "name": "오버레이 — OB 버튼 토글",
+      "status": "PASS",
+      "duration": 350
+    },
+    {
+      "name": "차트 — #chart 컨테이너 존재",
+      "status": "PASS",
+      "duration": 7
+    },
+    {
+      "name": "차트 — 캔들 데이터 로드 후 canvas 렌더링",
+      "status": "PASS",
+      "duration": 3003
+    },
+    {
+      "name": "차트 — 가격 표시 업데이트 (—가 아닌 값)",
+      "status": "PASS",
+      "duration": 4004
+    },
+    {
+      "name": "ICT 분석 버튼 — 존재하고 클릭 가능",
+      "status": "PASS",
+      "duration": 5
+    },
+    {
+      "name": "ICT 분석 버튼 — 클릭 시 로딩 스피너 표시",
+      "status": "PASS",
+      "duration": 341
+    },
+    {
+      "name": "로그 패널 — 분석 실행 후 표시",
+      "status": "PASS",
+      "duration": 12
+    },
+    {
+      "name": "스코어카드 — 섹션 타이틀 존재",
+      "status": "PASS",
+      "duration": 6
+    },
+    {
+      "name": "AMD 사이클 — 4개 스테이지 존재",
+      "status": "PASS",
+      "duration": 2
+    },
+    {
+      "name": "AMD 사이클 — 스테이지 텍스트 확인 (축적/조작/분배/리셋)",
+      "status": "PASS",
+      "duration": 1
+    },
+    {
+      "name": "시그널 섹션 — 초기 플레이스홀더 또는 분석 후 시그널 카드",
+      "status": "PASS",
+      "duration": 3
+    },
+    {
+      "name": "트레이딩 이력 — 헤더 존재",
+      "status": "PASS",
+      "duration": 2
+    },
+    {
+      "name": "트레이딩 이력 — POST 후 거래 건수 증가",
+      "status": "PASS",
+      "duration": 1509
+    },
+    {
+      "name": "콘솔 오류 없음 (JavaScript 런타임 오류)",
+      "status": "PASS",
+      "duration": 0
+    }
+  ]
+}
