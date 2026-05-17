@@ -9,14 +9,19 @@ async function fetchKlines(pair, interval, limit, fetchFn) {
   const resp = await fn(url);
   if (!resp.ok) throw new Error(`Binance API error: ${resp.status} for ${pair}/${interval}`);
   const raw = await resp.json();
-  return raw.map(b => ({
-    time: Math.floor(Number(b[0]) / 1000),
-    open: parseFloat(b[1]),
-    high: parseFloat(b[2]),
-    low: parseFloat(b[3]),
-    close: parseFloat(b[4]),
-    volume: parseFloat(b[5]),
-  }));
+  const cutoff = Date.now();
+  return raw
+    .map(b => ({
+      time:      Math.floor(Number(b[0]) / 1000),
+      open:      parseFloat(b[1]),
+      high:      parseFloat(b[2]),
+      low:       parseFloat(b[3]),
+      close:     parseFloat(b[4]),
+      volume:    parseFloat(b[5]),
+      closeTime: Number(b[6]),
+    }))
+    .filter(r => r.closeTime <= cutoff)
+    .map(({ closeTime, ...rest }) => rest);
 }
 
 async function fetchCandleSet(pair, fetchFn) {

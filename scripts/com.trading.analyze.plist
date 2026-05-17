@@ -76,6 +76,8 @@
     <string>/Users/theo</string>
     <key>NVM_DIR</key>
     <string>/Users/theo/.nvm</string>
+    <key>TELEGRAM_NOTIFY</key>
+    <string>1</string>
   </dict>
 
   <!-- 로그 -->

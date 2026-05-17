@@ -48,6 +48,25 @@ test('analyzeICT: validates LTF candle count minimum', () => {
   );
 });
 
+test('analyzeICT: analysisDate uses KST (UTC+9), not UTC', () => {
+  // Simulate UTC 23:30 on 2026-05-16 = KST 08:30 on 2026-05-17
+  const utcMidnightPlus23h30m = new Date('2026-05-16T23:30:00Z').getTime();
+  const origDateNow = Date.now;
+  Date.now = () => utcMidnightPlus23h30m;
+
+  try {
+    const signal = analyzeICT({
+      pair: 'TESTUSDT',
+      htfCandles: makeBullCandles(150),
+      ltfCandles: makeBearCandles(100),
+    });
+    // KST date should be 2026-05-17, NOT 2026-05-16 (UTC)
+    assert.equal(signal.analysisDate, '2026-05-17');
+  } finally {
+    Date.now = origDateNow;
+  }
+});
+
 test('analyzeICT returns required signal fields', () => {
   const signal = analyzeICT({
     pair: 'TESTUSDT',
@@ -140,4 +159,77 @@ test('selectBestPOI: 스윙 포인트 없으면 기존처럼 모든 POI 허용',
   const anyFVG = makePOI(47000, 47500);
   const result = _selectBestPOI([anyFVG], [], [], 'bull', currentPrice, ltfSwings);
   assert.ok(result !== null, '스윙 없으면 POI를 필터 없이 선택해야 한다');
+});
+
+test('analyzeICT: entry.killzone is never a boolean', () => {
+  const signal = analyzeICT({
+    pair: 'TESTUSDT',
+    htfCandles: makeBullCandles(150),
+    ltfCandles: makeBullCandles(100, 60000, 5),
+  });
+  if (signal.entry) {
+    assert.notStrictEqual(typeof signal.entry.killzone, 'boolean',
+      'entry.killzone must be string or null, never boolean');
+  }
+});
+
+test('analyzeICT: entry.killzone is name string when inside killzone window', () => {
+  // UTC 13:00 → new_york killzone (12-14)
+  const inKillzone = new Date('2026-01-01T13:00:00Z').getTime();
+  const orig = Date.now;
+  Date.now = () => inKillzone;
+  try {
+    const signal = analyzeICT({
+      pair: 'TESTUSDT',
+      htfCandles: makeBullCandles(150),
+      ltfCandles: makeBullCandles(100, 60000, 5),
+    });
+    if (signal.entry) {
+      assert.equal(typeof signal.entry.killzone, 'string');
+      assert.ok(signal.entry.killzone.length > 0, 'killzone name must be non-empty');
+    }
+  } finally {
+    Date.now = orig;
+  }
+});
+
+test('analyzeICT: entry.killzone is null when outside killzone window', () => {
+  // UTC 05:00 → no killzone
+  const outKillzone = new Date('2026-01-01T05:00:00Z').getTime();
+  const orig = Date.now;
+  Date.now = () => outKillzone;
+  try {
+    const signal = analyzeICT({
+      pair: 'TESTUSDT',
+      htfCandles: makeBullCandles(150),
+      ltfCandles: makeBullCandles(100, 60000, 5),
+    });
+    if (signal.entry) {
+      assert.equal(signal.entry.killzone, null);
+    }
+  } finally {
+    Date.now = orig;
+  }
+});
+
+test('analyzeICT: signal.swingRanges에 htf/ltf 범위가 포함된다', () => {
+  const signal = analyzeICT({
+    pair: 'TESTUSDT',
+    htfCandles: makeBullCandles(150),
+    ltfCandles: makeBearCandles(100),
+  });
+  assert.ok('swingRanges' in signal, 'swingRanges 필드 없음');
+  assert.ok(signal.swingRanges !== null && typeof signal.swingRanges === 'object');
+  assert.ok('htf' in signal.swingRanges, 'swingRanges.htf 없음');
+  assert.ok('ltf' in signal.swingRanges, 'swingRanges.ltf 없음');
+  if (signal.swingRanges.htf !== null) {
+    assert.ok(typeof signal.swingRanges.htf.low  === 'number', 'htf.low 숫자 아님');
+    assert.ok(typeof signal.swingRanges.htf.high === 'number', 'htf.high 숫자 아님');
+    assert.ok(signal.swingRanges.htf.low <= signal.swingRanges.htf.high, 'htf.low > htf.high');
+  }
+  if (signal.swingRanges.ltf !== null) {
+    assert.ok(typeof signal.swingRanges.ltf.low  === 'number', 'ltf.low 숫자 아님');
+    assert.ok(typeof signal.swingRanges.ltf.high === 'number', 'ltf.high 숫자 아님');
+    assert.ok(signal.swingRanges.ltf.low <= signal.swingRanges.ltf.high, 'ltf.low > ltf.high');
+  }
 });

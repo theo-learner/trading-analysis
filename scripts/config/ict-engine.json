@@ -1,0 +1,56 @@
+{
+  "_comment": "ICT Engine 알고리즘 파라미터 — ict-engine-spec.md §18 기준 (v0.2.0)",
+  "swingPoint": {
+    "htf": { "leftBars": 5, "rightBars": 5 },
+    "ltf": { "leftBars": 3, "rightBars": 3 }
+  },
+  "fvg": {
+    "minGapPct": 0.001
+  },
+  "displacement": {
+    "rollingWindow": 10,
+    "bodyMultiplier": 1.5,
+    "maxWickRatio": 0.3,
+    "closeAtExtremeRatio": 0.6
+  },
+  "breakerBlock": {
+    "retestMinCandles": 5,
+    "retestMaxCandles": 20,
+    "immediateReverseCandles": 3
+  },
+  "sweep": {
+    "followThroughLookforward": 3
+  },
+  "equalLevel": {
+    "tolerancePct": 0.001
+  },
+  "scorecard": {
+    "ote": {
+      "start": 0.62,
+      "end": 0.79,
+      "shallowStart": 0.50
+    },
+    "liquidity": {
+      "lookbackCandles": 20
+    },
+    "minGrade": "A",
+    "gradeThresholds": { "S": 5, "A": 3, "B": 2, "C": 0 }
+  },
+  "signal": {
+    "minRR": 2.0,
+    "minAlignmentScore": 60,
+    "maxTier": 3
+  },
+  "killzone": {
+    "utc": [
+      { "name": "asia",     "start": 0,  "end": 2  },
+      { "name": "london",   "start": 7,  "end": 9  },
+      { "name": "new_york", "start": 12, "end": 14 },
+      { "name": "ny_pm",    "start": 18, "end": 20 }
+    ]
+  },
+  "amd": {
+    "accumulationRangeMultiplier": 3,
+    "manipulationLookback": 10
+  }
+}

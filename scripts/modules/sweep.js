@@ -12,7 +12,7 @@ function detectLiquiditySweeps(candles, swings, { followThroughLookforward }) {
       if (swing.index >= i) continue;
       if (c.high > swing.price && c.close < swing.price) {
         const confirmed = checkFollowThrough(candles, i, 'BSL', followThroughLookforward);
-        sweeps.push({ index: i, time: c.time, price: swing.price, type: 'BSL', confirmed });
+        sweeps.push({ index: i, time: c.time, price: swing.price, close: c.close, type: 'BSL', confirmed });
         break;
       }
     }
@@ -21,7 +21,7 @@ function detectLiquiditySweeps(candles, swings, { followThroughLookforward }) {
       if (swing.index >= i) continue;
       if (c.low < swing.price && c.close > swing.price) {
         const confirmed = checkFollowThrough(candles, i, 'SSL', followThroughLookforward);
-        sweeps.push({ index: i, time: c.time, price: swing.price, type: 'SSL', confirmed });
+        sweeps.push({ index: i, time: c.time, price: swing.price, close: c.close, type: 'SSL', confirmed });
         break;
       }
     }

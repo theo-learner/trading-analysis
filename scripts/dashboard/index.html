@@ -505,19 +505,21 @@ function normalizeZones(levels, entryPrice, overlays) {
   const out = [];
   if (overlays.fvg) {
     for (const f of (levels.fvgs ?? [])) {
-      if (f.status === 'mitigated') continue;
-      out.push({ kind: 'fvg', time: tsToUnix(f.time), high: f.high, low: f.low, direction: f.direction, status: f.status ?? 'active' });
+      if ((f.status ?? 'active') !== 'active') continue;
+      out.push({ kind: 'fvg', time: tsToUnix(f.time), high: f.high, low: f.low, direction: f.direction, status: 'active' });
     }
   }
   if (overlays.ob) {
     for (const ob of (levels.obs ?? [])) {
-      if (ob.status === 'invalidated') continue;
-      out.push({ kind: 'ob', time: tsToUnix(ob.time), high: ob.high, low: ob.low, direction: ob.direction, status: ob.status ?? 'active' });
+      if ((ob.status ?? 'active') !== 'active') continue;
+      out.push({ kind: 'ob', time: tsToUnix(ob.time), high: ob.high, low: ob.low, direction: ob.direction, status: 'active' });
     }
   }
   if (overlays.bb) {
     for (const bb of (levels.bbs ?? [])) {
-      out.push({ kind: 'bb', time: tsToUnix(bb.time), high: bb.high, low: bb.low, direction: bb.direction, status: mapBBStatus(bb.retestStatus) });
+      const st = mapBBStatus(bb.retestStatus);
+      if (st !== 'active') continue;
+      out.push({ kind: 'bb', time: tsToUnix(bb.time), high: bb.high, low: bb.low, direction: bb.direction, status: 'active' });
     }
   }
   return sortByProximity(out, entryPrice, 13);
@@ -880,18 +882,22 @@ function renderSignalOverlays(signal) {
     addPriceLine({ price: signal.tp[1], color: '#0ECB81', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: `TP2 ${formatPrice(signal.tp[1])}` });
   }
 
-  // BOS + Sweep 마커를 단일 setMarkers 호출로 합산 (두 번 호출하면 덮어써짐)
+  // BOS + MSS + Sweep 마커를 단일 setMarkers 호출로 합산 (두 번 호출하면 덮어써짐)
   const markers = [];
-  if (signal.bos) {
+  const pushStructureMarker = (e, label) => {
+    const isBull = e.direction === 'bull';
+    const originSuffix = e.origin ? ` (${e.origin === 'HTF' ? 'H' : 'L'})` : '';
     markers.push({
-      time: signal.bos.time || now,
-      position: signal.direction === 'LONG' ? 'belowBar' : 'aboveBar',
-      color: signal.direction === 'LONG' ? '#0ECB81' : '#F6465D',
-      shape: 'arrowUp',
-      text: 'BOS',
+      time: e.time,
+      position: isBull ? 'belowBar' : 'aboveBar',
+      color: isBull ? '#0ECB81' : '#F6465D',
+      shape: isBull ? 'arrowUp' : 'arrowDown',
+      text: `${label}${originSuffix}`,
       size: 1,
     });
-  }
+  };
+  (signal.bos || []).forEach(e => pushStructureMarker(e, 'BOS'));
+  (signal.mss || []).forEach(e => pushStructureMarker(e, 'MSS'));
   if (signal.sweep && state.overlays.sweep) {
     (signal.sweep.sweepEvents || []).forEach(s => markers.push({
       time: s.time,

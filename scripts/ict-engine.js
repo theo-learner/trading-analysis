@@ -9,7 +9,7 @@ const { fetchCandleSet }          = require('./utils/binance');
 const { isInKillzone, killzoneBonus } = require('./utils/time-utils');
 
 const { detectSwingPoints }       = require('./modules/swing-points');
-const { detectBOS, detectMSS, getCurrentTrend } = require('./modules/market-structure');
+const { detectBOS, detectMSS, getCurrentTrend, filterByRecentSwings } = require('./modules/market-structure');
 const { detectFVG }               = require('./modules/fvg');
 const { detectOrderBlocks }       = require('./modules/order-block');
 const { detectBreakerBlocks }     = require('./modules/breaker-block');
@@ -85,6 +85,7 @@ function scanDisplacements(candles, cfg) {
         time:  c.time,
         direction: c.close > c.open ? 'bull' : 'bear',
         bodyPct: +bodyPct.toFixed(2),
+        close: c.close,
       });
     }
   }
@@ -101,11 +102,23 @@ function calculateConfidence(alignmentScore, kzBonus, sweepConfirmed, amdPhase) 
   return 'LOW';
 }
 
+function computeSwingRange(swings, lookback) {
+  const recent = swings.slice(-lookback);
+  const highs  = recent.filter(s => s.type === 'high');
+  const lows   = recent.filter(s => s.type === 'low');
+  if (highs.length === 0 || lows.length === 0) return null;
+  const high    = Math.max(...highs.map(s => s.price));
+  const low     = Math.min(...lows.map(s => s.price));
+  const highSw  = highs.find(s => s.price === high);
+  const lowSw   = lows.find(s => s.price === low);
+  return { low, high, lowTime: lowSw.time, highTime: highSw.time, count: recent.length };
+}
+
 function buildNeutral(pair, reason, tier, currentPrice, extra = {}) {
   return {
     pair,
     timestamp: Math.floor(Date.now() / 1000),
-    analysisDate: new Date().toISOString().slice(0, 10),
+    analysisDate: new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10),
     direction: 'NEUTRAL',
     tier,
     alignmentScore: extra.alignmentScore || 0,
@@ -118,12 +131,12 @@ function buildNeutral(pair, reason, tier, currentPrice, extra = {}) {
   };
 }
 
-function buildSignal({ pair, direction, alignment, scorecard, poi, sl, tps, rr, confidence, htfTrend, ltfTrend, htfAMD, kzResult, fvgs, obs, bbs, sweeps, sizeMultiplier, currentPrice, mss, bos, displacements }) {
+function buildSignal({ pair, direction, alignment, scorecard, poi, sl, tps, rr, confidence, htfTrend, ltfTrend, htfAMD, kzResult, fvgs, obs, bbs, sweeps, sizeMultiplier, currentPrice, mss, bos, displacements, swingRanges }) {
   const entry = poi.price;
   return {
     pair,
     timestamp: Math.floor(Date.now() / 1000),
-    analysisDate: new Date().toISOString().slice(0, 10),
+    analysisDate: new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10),
     direction,
     tier: alignment.tier,
     alignmentScore: alignment.score,
@@ -139,7 +152,7 @@ function buildSignal({ pair, direction, alignment, scorecard, poi, sl, tps, rr, 
     entry: {
       price:    entry,
       basis:    poi.poiType ? `${poi.poiType}_RETEST` : 'POI_RETEST',
-      killzone: kzResult.inKillzone,
+      killzone: kzResult.inKillzone ? (kzResult.name || 'UNKNOWN') : null,
     },
     sl,
     slBasis: direction === 'LONG' ? 'BELOW_OB' : 'ABOVE_OB',
@@ -161,6 +174,7 @@ function buildSignal({ pair, direction, alignment, scorecard, poi, sl, tps, rr, 
       reason: direction === 'LONG' ? 'Close below SL' : 'Close above SL',
     },
     currentPrice,
+    swingRanges: swingRanges || null,
     tradeBlocked: false,
     tradeBlockReason: '',
   };
@@ -235,27 +249,35 @@ function analyzeICT(params) {
   const alignment = calculateAlignmentScore(htfAnalysis, ltfAnalysis);
 
   // MSS/BOS origin tags + displacements (shared across all paths)
+  // Filter to recent 4 swings per origin to reduce chart marker density
+  const SWING_LOOKBACK = cfg.signal?.recentSwingLookback ?? 4;
   const taggedMSS = [
-    ...htfMSS.map(e => ({ ...e, origin: 'HTF' })),
-    ...ltfMSS.map(e => ({ ...e, origin: 'LTF' })),
+    ...filterByRecentSwings(htfMSS, htfSwings, SWING_LOOKBACK).map(e => ({ ...e, origin: 'HTF' })),
+    ...filterByRecentSwings(ltfMSS, ltfSwings, SWING_LOOKBACK).map(e => ({ ...e, origin: 'LTF' })),
   ];
   const taggedBOS = [
-    ...htfBOS.map(e => ({ ...e, origin: 'HTF' })),
-    ...ltfBOS.map(e => ({ ...e, origin: 'LTF' })),
+    ...filterByRecentSwings(htfBOS, htfSwings, SWING_LOOKBACK).map(e => ({ ...e, origin: 'HTF' })),
+    ...filterByRecentSwings(ltfBOS, ltfSwings, SWING_LOOKBACK).map(e => ({ ...e, origin: 'LTF' })),
   ];
   const displacements = scanDisplacements(ltfCandles, cfg);
+
+  // 스윙 범위 — 최근 N개 스윙의 min/max (다이어리 헤더용)
+  const swingRanges = {
+    htf: computeSwingRange(htfSwings, SWING_LOOKBACK),
+    ltf: computeSwingRange(ltfSwings, SWING_LOOKBACK),
+  };
 
   // Tier ≥ 4 → NEUTRAL 조기 반환
   if (alignment.tier >= 4) {
     return buildNeutral(params.pair, `Tier ${alignment.tier}: 정렬 불충분`, alignment.tier, currentPrice,
-      { alignmentScore: alignment.score, mss: taggedMSS, bos: taggedBOS, displacements });
+      { alignmentScore: alignment.score, mss: taggedMSS, bos: taggedBOS, displacements, swingRanges });
   }
 
   // [19] 최적 POI 선택
   const poi = selectBestPOI(ltfFVGs, ltfOBs, htfBBs, alignment.htfBias, currentPrice, ltfSwings);
   if (!poi) {
     return buildNeutral(params.pair, 'POI 없음', alignment.tier, currentPrice,
-      { alignmentScore: alignment.score, mss: taggedMSS, bos: taggedBOS, displacements });
+      { alignmentScore: alignment.score, mss: taggedMSS, bos: taggedBOS, displacements, swingRanges });
   }
 
   // [20] 킬존
@@ -287,7 +309,7 @@ function analyzeICT(params) {
   // [22] 진입 결정
   if (scorecard.action !== 'ENTER') {
     return buildNeutral(params.pair, `Scorecard: ${scorecard.action}`, alignment.tier, currentPrice,
-      { alignmentScore: alignment.score, scorecard, mss: taggedMSS, bos: taggedBOS, displacements });
+      { alignmentScore: alignment.score, scorecard, mss: taggedMSS, bos: taggedBOS, displacements, swingRanges });
   }
 
   // [23-25] SL / TP / R:R
@@ -298,7 +320,7 @@ function analyzeICT(params) {
   // R:R 2:1 미만 → NEUTRAL (Appendix B §4)
   if (rr < cfg.signal.minRR) {
     return buildNeutral(params.pair, `R:R 미달 (${rr.toFixed(2)})`, alignment.tier, currentPrice,
-      { alignmentScore: alignment.score, mss: taggedMSS, bos: taggedBOS, displacements });
+      { alignmentScore: alignment.score, mss: taggedMSS, bos: taggedBOS, displacements, swingRanges });
   }
 
   // [26] 신뢰도
@@ -318,6 +340,7 @@ function analyzeICT(params) {
     sizeMultiplier: scorecard.sizeMultiplier,
     currentPrice,
     mss: taggedMSS, bos: taggedBOS, displacements,
+    swingRanges,
   });
 }
 
@@ -337,13 +360,26 @@ if (require.main === module) {
 
   fetchCandleSet(pair)
     .then(({ htf, ltf, d1 }) => analyzeICT({ htfCandles: htf, ltfCandles: ltf, d1Candles: d1, pair }))
-    .then((signal) => {
+    .then(async (signal) => {
       const isoSafe = new Date().toISOString().replace(/[:.]/g, '-');
       const filename = `${pair}_15m_${isoSafe}.json`;
       const outPath = path.join(signalsDir, filename);
       fs.writeFileSync(outPath, JSON.stringify(signal, null, 2));
       console.log(`[ict-engine] 신호 저장: ${outPath}`);
       console.log(`[ict-engine] direction=${signal.direction}, tier=${signal.tier}, confidence=${signal.confidence}`);
+
+      try {
+        const traderConfig = require('./config/trader.json');
+        const { notifySignal } = require('./notify');
+        const result = await notifySignal(signal, traderConfig);
+        if (result.sent) {
+          console.log('[ict-engine] telegram notification sent');
+        } else {
+          console.log(`[ict-engine] telegram skipped: ${result.skipped}`);
+        }
+      } catch (e) {
+        console.error('[ict-engine] notify error (swallowed):', e.message);
+      }
     })
     .catch((err) => {
       console.error('[ict-engine] 오류:', err.message);

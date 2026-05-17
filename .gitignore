@@ -8,14 +8,19 @@ scripts/config/clean-layout.json
 .superpowers/
 .worktrees/
 
-# ICT 엔진 — 거래 기록 (dry-run은 추적, live는 제외)
+# ICT 엔진 — 거래 기록
 trades/live/
+trades/dry-run/
 
-# 신호 출력 (선택적 추적)
-# signals/  ← 주석 해제 시 신호 파일 gitignore
+# 신호 출력 (런타임 데이터)
+signals/
 
 # 설정 오버라이드 (API 키 등 민감 정보)
 scripts/config/trader.local.json
 
 # 구조 다이어리 (개인 학습 데이터 — 커밋 제외)
 diary/
+
+# 도구 임시 파일
+.playwright-mcp/
+.serena/

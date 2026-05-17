@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  com.trading.watcher.plist — 실시간 ICT 진입 알람 (매 1분 폴링)
+  ================================================================
+  설치:
+    cp scripts/com.trading.watcher.plist ~/Library/LaunchAgents/
+    launchctl bootstrap gui/$UID ~/Library/LaunchAgents/com.trading.watcher.plist
+
+  일시 중지:
+    launchctl bootout gui/$UID/com.trading.watcher
+
+  재시작:
+    launchctl bootout gui/$UID/com.trading.watcher
+    launchctl bootstrap gui/$UID ~/Library/LaunchAgents/com.trading.watcher.plist
+
+  즉시 1회 실행:
+    launchctl kickstart gui/$UID/com.trading.watcher
+
+  상태 확인:
+    launchctl print gui/$UID/com.trading.watcher | grep -E '(state|last exit|runs)'
+
+  로그 확인:
+    tail -f logs/launchd_watcher.log logs/launchd_watcher.err.log
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.trading.watcher</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/opt/homebrew/bin/node</string>
+    <string>/Users/theo/workspace_tokamak/trading-analysis/scripts/watcher.js</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/theo/workspace_tokamak/trading-analysis</string>
+
+  <key>StartInterval</key>
+  <integer>60</integer>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>/Users/theo/workspace_tokamak/trading-analysis/logs/launchd_watcher.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/theo/workspace_tokamak/trading-analysis/logs/launchd_watcher.err.log</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>TELEGRAM_NOTIFY</key>
+    <string>1</string>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+</dict>
+</plist>

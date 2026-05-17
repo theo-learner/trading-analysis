@@ -40,18 +40,18 @@
       { "low": 103030, "high": 103150, "retestStatus": "pending", "direction": "bull", "time": 1747316700 }
     ],
     "sweeps": [
-      { "type": "SSL", "price": 102840, "time": 1747316100, "confirmed": true, "origin": "LTF" },
-      { "type": "BSL", "price": 103510, "time": 1747308600, "confirmed": false, "origin": "LTF" }
+      { "type": "SSL", "price": 102840, "close": 102920, "time": 1747316100, "confirmed": true, "origin": "LTF" },
+      { "type": "BSL", "price": 103510, "close": 103440, "time": 1747308600, "confirmed": false, "origin": "LTF" }
     ]
   },
   "mss": [
-    { "direction": "bull", "time": 1747317300, "price": 103180, "origin": "LTF" }
+    { "direction": "bull", "time": 1747317300, "price": 103180, "close": 103215, "origin": "LTF" }
   ],
   "bos": [
-    { "direction": "bull", "time": 1747288800, "price": 102500, "origin": "HTF" }
+    { "direction": "bull", "time": 1747288800, "price": 102500, "close": 102565, "origin": "HTF" }
   ],
   "displacements": [
-    { "index": 45, "time": 1747317000, "direction": "bull", "bodyPct": 1.42 }
+    { "index": 45, "time": 1747317000, "direction": "bull", "bodyPct": 1.42, "close": 103180 }
   ],
   "invalidation": { "price": 102840, "reason": "Close below SL" },
   "currentPrice": 103247.5,

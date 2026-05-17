@@ -39,14 +39,16 @@ function detectFVG(candles, { minGapPct }) {
     }
   }
 
-  // Check mitigation: if a later candle closes inside the FVG
+  // Check mitigation (spec §6.3):
+  // - 'tested':   candle touches the zone but close doesn't cross the far side
+  // - 'mitigated': close crosses BELOW fvg.low (bull) or ABOVE fvg.high (bear)
   for (const fvg of fvgs) {
     for (let i = fvg.index + 2; i < candles.length; i++) {
-      const close = candles[i].close;
-      if (close >= fvg.low && close <= fvg.high) {
-        fvg.status = 'mitigated';
-        break;
-      }
+      const { high, low, close } = candles[i];
+      if (low > fvg.high || high < fvg.low) continue; // no touch
+      if (fvg.direction === 'bull' && close < fvg.low) { fvg.status = 'mitigated'; break; }
+      if (fvg.direction === 'bear' && close > fvg.high) { fvg.status = 'mitigated'; break; }
+      fvg.status = 'tested';
     }
   }
 

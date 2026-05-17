@@ -1,0 +1,51 @@
+{
+  "_comment": "trader.js 실행 설정 — 실제 API 키는 sessions/ 폴더에서 로드",
+  "mode": "dry-run",
+  "_modeOptions": ["dry-run", "live"],
+
+  "exchange": {
+    "default": "bybit",
+    "_options": ["bybit", "binance"],
+    "bybit": {
+      "baseUrl": "https://api.bybit.com",
+      "testnetUrl": "https://api-testnet.bybit.com",
+      "useTestnet": true
+    },
+    "binance": {
+      "baseUrl": "https://fapi.binance.com",
+      "testnetUrl": "https://testnet.binancefuture.com",
+      "useTestnet": true
+    }
+  },
+
+  "risk": {
+    "maxRiskPerTradePct": 1.0,
+    "maxTotalExposurePct": 5.0,
+    "maxDailyLossPct": 3.0,
+    "minRR": 2.0
+  },
+
+  "position": {
+    "leverage": 5,
+    "marginType": "isolated",
+    "_marginOptions": ["isolated", "cross"]
+  },
+
+  "pairs": ["BTCUSDT", "ETHUSDT", "SOLUSDT", "HYPEUSDT"],
+
+  "notifications": {
+    "telegram": {
+      "enabled": true,
+      "chatId": "1266746900",
+      "parseMode": "MarkdownV2",
+      "disableNotificationForNeutral": false
+    }
+  },
+
+  "signal": {
+    "minConfidence": "MEDIUM",
+    "_confidenceOptions": ["HIGH", "MEDIUM", "LOW"],
+    "maxTier": 2,
+    "requireKillzone": true
+  }
+}

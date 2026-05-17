@@ -28,7 +28,18 @@
     "run": "npm run capture && npm run analyze",
     "pipeline": "bash scripts/run-pipeline.sh",
     "pipeline:capture": "bash scripts/run-pipeline.sh --capture",
-    "pipeline:analyze": "bash scripts/run-pipeline.sh --analyze"
+    "pipeline:analyze": "bash scripts/run-pipeline.sh --analyze",
+
+    "signal": "node scripts/signal.js",
+    "ict": "node scripts/ict-engine.js",
+    "judge": "node scripts/signal-judge.js",
+    "trade:dry": "node scripts/trader.js",
+    "trade:live": "ICT_MODE=live node scripts/trader.js",
+    "dashboard": "node scripts/dashboard-server.js",
+    "test:dashboard": "node scripts/test/playwright-dashboard.js",
+    "test:functional": "node scripts/test/functional-dashboard.js",
+    "test:unit": "node --test --test-reporter=spec scripts/test/",
+    "test": "npm run test:unit && npm run test:dashboard"
   },
   "dependencies": {
     "playwright": "^1.50.0"

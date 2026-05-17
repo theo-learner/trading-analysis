@@ -37,17 +37,17 @@
     "obs": [],
     "bbs": [],
     "sweeps": [
-      { "type": "SSL", "price": 3780, "time": 1747313400, "confirmed": true, "origin": "LTF" }
+      { "type": "SSL", "price": 3780, "close": 3798, "time": 1747313400, "confirmed": true, "origin": "LTF" }
     ]
   },
   "mss": [
-    { "direction": "bull", "time": 1747316400, "price": 3825, "origin": "LTF" }
+    { "direction": "bull", "time": 1747316400, "price": 3825, "close": 3831, "origin": "LTF" }
   ],
   "bos": [
-    { "direction": "bull", "time": 1747292400, "price": 3760, "origin": "HTF" }
+    { "direction": "bull", "time": 1747292400, "price": 3760, "close": 3772, "origin": "HTF" }
   ],
   "displacements": [
-    { "index": 30, "time": 1747315500, "direction": "bull", "bodyPct": 0.95 }
+    { "index": 30, "time": 1747315500, "direction": "bull", "bodyPct": 0.95, "close": 3818 }
   ],
   "invalidation": { "price": 3780, "reason": "Close below SL" },
   "currentPrice": 3822.5,

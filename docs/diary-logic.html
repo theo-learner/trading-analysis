@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>구조 다이어리 — 단계별 분석 로직</title>
+  <style>
+    :root {
+      --bg:        #0B0E11;
+      --panel:     #1E2026;
+      --card:      #252930;
+      --border:    #2B3139;
+      --primary:   #FCD535;
+      --bull:      #0ECB81;
+      --bear:      #F6465D;
+      --neutral:   #F0B90B;
+      --purple:    #C99BFF;
+      --text:      #EAECEF;
+      --muted:     #848E9C;
+      --code-bg:   #181B20;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      line-height: 1.65;
+    }
+    a { color: var(--primary); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Layout ── */
+    .page { max-width: 1100px; margin: 0 auto; padding: 40px 24px 80px; }
+
+    /* ── Header ── */
+    .page-header { text-align: center; margin-bottom: 48px; }
+    .page-header h1 { font-size: 28px; font-weight: 700; color: var(--primary); letter-spacing: -0.5px; }
+    .page-header p { margin-top: 8px; color: var(--muted); font-size: 13px; }
+
+    /* ── TOC ── */
+    .toc {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 48px;
+    }
+    .toc h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 14px; }
+    .toc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 8px;
+    }
+    .toc-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      background: var(--card);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s;
+      text-decoration: none;
+      color: var(--text);
+      border: 1px solid transparent;
+    }
+    .toc-item:hover { background: #2e333a; border-color: var(--border); text-decoration: none; }
+    .toc-badge {
+      min-width: 24px; height: 24px;
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700;
+    }
+    .toc-item span { font-size: 12px; }
+
+    /* ── Step Section ── */
+    .step-section { margin-bottom: 48px; scroll-margin-top: 24px; }
+    .step-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .step-badge {
+      min-width: 48px; height: 48px;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; font-weight: 800;
+      flex-shrink: 0;
+    }
+    .step-title-block {}
+    .step-title-block h2 { font-size: 19px; font-weight: 700; line-height: 1.2; }
+    .step-title-block .step-sub { color: var(--muted); font-size: 12px; margin-top: 4px; }
+
+    /* ── Cards inside steps ── */
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 20px;
+      margin-bottom: 14px;
+    }
+    .card-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    /* ── Two-column grid ── */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+    @media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
+
+    /* ── Flow diagram ── */
+    .flow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      margin: 10px 0;
+    }
+    .flow-node {
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      background: var(--card);
+      border: 1px solid var(--border);
+    }
+    .flow-arrow { color: var(--muted); font-size: 16px; }
+
+    /* ── Code block ── */
+    pre, code {
+      font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 12px;
+    }
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      line-height: 1.6;
+      margin: 10px 0;
+    }
+    code.inline {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 6px;
+    }
+
+    /* ── Table ── */
+    table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    th {
+      background: var(--card);
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+      padding: 8px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    /* ── Tag chips ── */
+    .chip {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      margin: 2px 2px;
+    }
+    .chip-bull    { background: #0ECB8120; color: var(--bull); }
+    .chip-bear    { background: #F6465D20; color: var(--bear); }
+    .chip-neutral { background: #F0B90B20; color: var(--neutral); }
+    .chip-purple  { background: #C99BFF20; color: var(--purple); }
+    .chip-primary { background: #FCD53520; color: var(--primary); }
+    .chip-gray    { background: #2B3139;   color: var(--muted); }
+
+    /* ── Info / warn boxes ── */
+    .info-box {
+      padding: 12px 16px;
+      border-radius: 8px;
+      border-left: 3px solid;
+      font-size: 13px;
+      margin: 12px 0;
+      line-height: 1.5;
+    }
+    .info-box.primary { background: #FCD53510; border-color: var(--primary); }
+    .info-box.bull    { background: #0ECB8110; border-color: var(--bull); }
+    .info-box.bear    { background: #F6465D10; border-color: var(--bear); }
+    .info-box.purple  { background: #C99BFF10; border-color: var(--purple); }
+    .info-box.neutral { background: #F0B90B10; border-color: var(--neutral); }
+
+    /* ── Divider ── */
+    .divider { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+
+    /* ── Color-coded step badges ── */
+    .badge-1  { background: #1E3A5F; color: #5BA4F5; }
+    .badge-2  { background: #1E3A5F; color: #5BA4F5; }
+    .badge-3  { background: #2D1F0E; color: var(--neutral); }
+    .badge-4  { background: #0E2D1C; color: var(--bull); }
+    .badge-5  { background: #2D0E1C; color: var(--bear); }
+    .badge-6  { background: #2A1F40; color: var(--purple); }
+    .badge-a1 { background: #1C2030; color: #8BA7D4; }
+    .badge-a2 { background: #0E2D1C; color: var(--bull); }
+    .badge-a3 { background: #2A1F40; color: var(--purple); }
+
+    /* ── KV list ── */
+    .kv { list-style: none; }
+    .kv li { display: flex; gap: 12px; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .kv li:last-child { border-bottom: none; }
+    .kv .k { min-width: 150px; color: var(--muted); flex-shrink: 0; }
+    .kv .v { color: var(--text); }
+
+    /* ── Output example ── */
+    .output-example {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-size: 12.5px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+    }
+    .output-example .hdr  { color: var(--primary); font-weight: 700; }
+    .output-example .key  { color: #5BA4F5; }
+    .output-example .val  { color: var(--text); }
+    .output-example .bull { color: var(--bull); }
+    .output-example .bear { color: var(--bear); }
+    .output-example .muted{ color: var(--muted); }
+
+    /* ── Summary box at top ── */
+    .summary-pipeline {
+      display: flex;
+      overflow-x: auto;
+      gap: 0;
+      margin-bottom: 48px;
+      padding-bottom: 4px;
+    }
+    .pipeline-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 90px;
+      padding: 12px 8px;
+      text-align: center;
+      position: relative;
+    }
+    .pipeline-step:not(:last-child)::after {
+      content: '→';
+      position: absolute;
+      right: -6px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .pipeline-icon {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 800;
+      margin-bottom: 6px;
+    }
+    .pipeline-label {
+      font-size: 10px;
+      color: var(--muted);
+      line-height: 1.3;
+      white-space: nowrap;
+    }
+    .pipeline-step.adv .pipeline-icon {
+      border: 1px dashed var(--border);
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="page-header">
+    <h1>구조 다이어리 — 단계별 분석 로직</h1>
+    <p>ICT/SMC 기반 6단계 기본 분석 + 3단계 심화 분석 · <code class="inline">scripts/modules/diary.js</code></p>
+  </div>
+
+  <!-- Pipeline overview -->
+  <div class="summary-pipeline">
+    <div class="pipeline-step">
+      <div class="pipeline-icon badge-1">S1</div>
+      <div class="pipeline-label">차트 선정</div>
+    </div>
+    <div class="pipeline-step">
+      <div class="pipeline-icon badge-2">S2</div>
+      <div class="pipeline-label">구조 분석</div>
+    </div>
+    <div class="pipeline-step">
+      <div class="pipeline-icon badge-3">S3</div>
+      <div class="pipeline-label">유동성 식별</div>
+    </div>
+    <div class="pipeline-step">
+      <div class="pipeline-icon badge-4">S4</div>
+      <div class="pipeline-label">핵심 증거</div>
+    </div>
+    <div class="pipeline-step">
+      <div class="pipeline-icon badge-5">S5</div>
+      <div class="pipeline-label">구조 변화</div>
+    </div>
+    <div class="pipeline-step">
+      <div class="pipeline-icon badge-6">S6</div>
+      <div class="pipeline-label">스토리텔링</div>
+    </div>
+    <div class="pipeline-step adv">
+      <div class="pipeline-icon badge-a1">A1</div>
+      <div class="pipeline-label">ERL/IRL</div>
+    </div>
+    <div class="pipeline-step adv">
+      <div class="pipeline-icon badge-a2">A2</div>
+      <div class="pipeline-label">FVG 등급</div>
+    </div>
+    <div class="pipeline-step adv">
+      <div class="pipeline-icon badge-a3">A3</div>
+      <div class="pipeline-label">Unicorn</div>
+    </div>
+  </div>
+
+  <!-- TOC -->
+  <div class="toc">
+    <h2>목차</h2>
+    <div class="toc-grid">
+      <a class="toc-item" href="#step1"><div class="toc-badge badge-1">S1</div><span>차트 선정</span></a>
+      <a class="toc-item" href="#step2"><div class="toc-badge badge-2">S2</div><span>구조 분석 (HTF/LTF/AMD)</span></a>
+      <a class="toc-item" href="#step3"><div class="toc-badge badge-3">S3</div><span>유동성 식별 (SSL/BSL 스윕)</span></a>
+      <a class="toc-item" href="#step4"><div class="toc-badge badge-4">S4</div><span>핵심 증거 (Displacement + FVG)</span></a>
+      <a class="toc-item" href="#step5"><div class="toc-badge badge-5">S5</div><span>구조 변화 확인 (MSS/BOS)</span></a>
+      <a class="toc-item" href="#step6"><div class="toc-badge badge-6">S6</div><span>스토리텔링 (서술 조합)</span></a>
+      <a class="toc-item" href="#adv1"><div class="toc-badge badge-a1">A1</div><span>딜링 레인지 (ERL/IRL)</span></a>
+      <a class="toc-item" href="#adv2"><div class="toc-badge badge-a2">A2</div><span>FVG 등급 + 결과 추적</span></a>
+      <a class="toc-item" href="#adv3"><div class="toc-badge badge-a3">A3</div><span>Breaker Block + Unicorn</span></a>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ STEP 1 -->
+  <div class="step-section" id="step1">
+    <div class="step-header">
+      <div class="step-badge badge-1">S1</div>
+      <div class="step-title-block">
+        <h2>1단계 · 차트 선정</h2>
+        <div class="step-sub">renderStep1(signal) · 메타데이터 출력</div>
+      </div>
+    </div>
+
+    <div class="info-box primary">
+      분석 대상의 기본 정보를 확인하는 단계. 별도 계산 없이 <code class="inline">signal</code> 객체의 메타데이터를 포맷팅하여 출력한다.
+    </div>
+
+    <div class="card">
+      <div class="card-title">입력 필드 (signal 객체)</div>
+      <ul class="kv">
+        <li><span class="k">signal.pair</span><span class="v">페어명 (예: <code class="inline">BTCUSDT</code>)</span></li>
+        <li><span class="k">signal.timestamp</span><span class="v">분석 시각 Unix timestamp (없으면 <code class="inline">signal.analysisDate</code> 사용)</span></li>
+        <li><span class="k">signal.currentPrice</span><span class="v">현재가 (fmtPrice 함수로 포맷)</span></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title">출력 예시</div>
+      <div class="output-example"><span class="hdr">## 1단계 · 차트 선정</span>
+<span class="key">- 페어:</span><span class="val"> BTCUSDT</span>
+<span class="key">- 분석 TF:</span><span class="val"> HTF 4H / LTF 15M</span>
+<span class="key">- 분석 시각:</span><span class="val"> 2026-05-15 14:00:00Z</span>
+<span class="key">- 현재가:</span><span class="val"> $93,540.0</span></div>
+    </div>
+
+    <div class="info-box neutral">
+      <strong>fmtPrice 규칙:</strong> $1,000 이상이면 <code class="inline">$93,540.0</code>, 미만이면 소수점 4자리 후 trailing zero 제거 (예: <code class="inline">$0.0843</code>)
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- ═══════════════════════════════════════════════════════════ STEP 2 -->
+  <div class="step-section" id="step2">
+    <div class="step-header">
+      <div class="step-badge badge-2">S2</div>
+      <div class="step-title-block">
+        <h2>2단계 · 구조 분석</h2>
+        <div class="step-sub">renderStep2(signal) · HTF/LTF 추세 정렬 + AMD 단계 판단</div>
+      </div>
+    </div>
+
+    <div class="info-box primary">
+      멀티 타임프레임(HTF 4H / LTF 15M) 추세가 일치하는지 확인하고, 기관 주기(AMD)의 현재 단계를 출력한다. 이 단계에서 HTF ≠ LTF면 <strong>충돌 경고</strong>를 발생시켜 진입 트리거 부재를 명시한다.
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">추세 정렬 로직</div>
+        <pre>const aligned = htf === ltf ? 'HTF와 정렬' : 'HTF와 충돌';
+
+// htf !== ltf 이면 충돌 텍스트 추가:
+// "HTF 상승 추세 + LTF 하락 추세 → 진입 트리거 부재"</pre>
+        <p style="font-size:12px; color:var(--muted); margin-top:8px;">두 추세가 일치해야 진입 후보. 충돌 시 관망.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">AMD 단계 감지 로직 (amd.js)</div>
+        <table>
+          <thead><tr><th>단계</th><th>조건</th></tr></thead>
+          <tbody>
+            <tr><td><span class="chip chip-neutral">DISTRIBUTION</span></td><td>스윕 확정 + 이후 BOS 발생 (반대 방향)</td></tr>
+            <tr><td><span class="chip chip-neutral">MANIPULATION</span></td><td>최근 10봉 내 확정 스윕, BOS 없음</td></tr>
+            <tr><td><span class="chip chip-gray">ACCUMULATION</span></td><td>좁은 스윙 범위 + 스윕/BOS 없음</td></tr>
+            <tr><td><span class="chip chip-gray">RESET</span></td><td>위 조건 미해당 (기본값)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">AMD 판단 상세 (detectAMDPhase)</div>
+      <pre>// 1. 최근 20봉 평균 범위 계산 → avgRange
+// 2. 최근 스윙 10개의 고저 범위 → swingRange
+
+// DISTRIBUTION: 확정 스윕 + 스윕 이후 BOS + 반대 방향
+if (mostRecentSweep && mostRecentBOS && mostRecentBOS.index > mostRecentSweep.index) {
+  const oppositeDir =
+    (mostRecentSweep.type === 'SSL' && mostRecentBOS.direction === 'bull') ||
+    (mostRecentSweep.type === 'BSL' && mostRecentBOS.direction === 'bear');
+  if (oppositeDir) return 'DISTRIBUTION';
+}
+// MANIPULATION: 최근 10봉 내 스윕, 후속 BOS 없음
+if (mostRecentSweep && (lastIdx - mostRecentSweep.index) <= 10) return 'MANIPULATION';
+// ACCUMULATION: 타이트한 범위 + 이벤트 없음
+if (swingRange &lt; avgRange * 3 && !mostRecentSweep && !mostRecentBOS) return 'ACCUMULATION';
+// 기본
+return 'RESET';</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-title">출력 예시 (정렬 / 충돌)</div>
+      <div class="output-example"><span class="hdr">## 2단계 · 구조 분석</span>
+<span class="key">- HTF (4H):</span><span class="bull"> 상승 추세 (bull)</span>
+<span class="key">- LTF (15M):</span><span class="bull"> 상승 추세 (bull)</span><span class="muted"> — HTF와 정렬</span>
+<span class="key">- AMD 단계:</span><span class="val"> MANIPULATION (조작)</span>
+
+<span class="muted">─── 충돌 시 ───</span>
+<span class="key">- LTF (15M):</span><span class="bear"> 하락 추세 (bear)</span><span class="muted"> — HTF와 충돌</span>
+<span class="key">- 충돌:</span><span class="bear"> HTF 상승 추세 + LTF 하락 추세 → 진입 트리거 부재</span></div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- ═══════════════════════════════════════════════════════════ STEP 3 -->
+  <div class="step-section" id="step3">
+    <div class="step-header">
+      <div class="step-badge badge-3">S3</div>
+      <div class="step-title-block">
+        <h2>3단계 · 유동성 식별</h2>
+        <div class="step-sub">renderStep3(signal) · SSL/BSL 스윕 이벤트 필터링 및 서술</div>
+      </div>
+    </div>
+
+    <div class="info-box primary">
+      스윕(Sweep) 이벤트 목록에서 <strong>현재 스윙 범위 내</strong> 항목만 추려 방향에 맞게 정렬한 뒤 최대 3개를 출력한다. 범위 외 스윕은 생략 개수만 표기한다.
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">getSwingRange — 스윙 범위 산출</div>
+        <pre>// LONG 방향
+low  = 가장 최근 확정 SSL 가격 (없으면 현재가 × 0.97)
+high = 가장 최근 미확정 BSL 가격 (없으면 현재가 × 1.05)
+
+// SHORT 방향
+low  = 가장 최근 미확정 SSL 가격 (없으면 현재가 × 0.95)
+high = 가장 최근 확정 BSL 가격 (없으면 현재가 × 1.03)
+
+// NEUTRAL
+low = 현재가 × 0.97, high = 현재가 × 1.03</pre>
+      </div>
+
+      <div class="card">
+        <div class="card-title">정렬 우선순위</div>
+        <ol style="padding-left:18px; font-size:13px; line-height:2;">
+          <li>방향 관련성 우선 (LONG→SSL, SHORT→BSL)</li>
+          <li>시간 최신순 (time 내림차순)</li>
+          <li>최대 3개 출력, 나머지는 "외 N개 범위 외 생략"</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">스윕 확정 vs 미확정</div>
+      <table>
+        <thead><tr><th>상태</th><th>조건</th><th>의미</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="chip chip-bull">확정</span></td>
+            <td><code class="inline">sweep.confirmed === true</code></td>
+            <td>스윕 봉 이후 close로 유효성 확인 완료</td>
+          </tr>
+          <tr>
+            <td><span class="chip chip-neutral">미확정</span></td>
+            <td><code class="inline">sweep.confirmed === false</code></td>
+            <td>스윕 봉 발생했으나 아직 close 확인 대기</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title">자동 서술 생성 조건</div>
+      <div class="flow">
+        <div class="flow-node">confirmedSSL > 0</div>
+        <span class="flow-arrow">+</span>
+        <div class="flow-node">direction === LONG</div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-node chip-bull" style="background:#0ECB8120;color:var(--bull);padding:5px 12px;border-radius:20px;">"SSL 스윕 후 반등 → 매수측 유동성 회수 시나리오"</div>
+      </div>
+      <div class="flow">
+        <div class="flow-node">confirmedBSL > 0</div>
+        <span class="flow-arrow">+</span>
+        <div class="flow-node">direction === SHORT</div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-node chip-bear" style="background:#F6465D20;color:var(--bear);padding:5px 12px;border-radius:20px;">"BSL 스윕 후 하락 → 매도측 유동성 회수 시나리오"</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">출력 예시</div>
+      <div class="output-example"><span class="hdr">## 3단계 · 유동성 식별</span>
+<span class="key">최근 스윕 이벤트</span><span class="muted"> (스윙 범위 내, 최대 3개) *(외 2개 범위 외 생략)*:</span>
+<span class="bull">- SSL @ $91,200.0 (LTF, 2026-05-15 08:00:00Z) — 확정 (확인 close)</span>
+<span class="val">- BSL @ $95,400.0 (HTF, 2026-05-14 20:00:00Z) — 미확정 (대기)</span>
+<span class="bull">방향: SSL 스윕 후 반등 → 매수측 유동성 회수 시나리오</span></div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- ═══════════════════════════════════════════════════════════ STEP 4 -->
+  <div class="step-section" id="step4">
+    <div class="step-header">
+      <div class="step-badge badge-4">S4</div>
+      <div class="step-title-block">
+        <h2>4단계 · 핵심 증거</h2>
+        <div class="step-sub">renderStep4(signal, gradedFVGs) · Displacement 캔들 + FVG 등급별 출력</div>
+      </div>
+    </div>
+
+    <div class="info-box primary">
+      유동성 스윕 이후 기관의 의도를 증명하는 두 가지 증거: <strong>Displacement(급격한 이동)</strong>와 <strong>FVG(Fair Value Gap)</strong>을 제시한다. FVG는 스윙 범위 내 항목만, 등급 순으로 최대 3개 출력한다.
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Displacement 처리</div>
+        <pre>// signal.displacements 배열의 마지막 항목만 사용
+const latestDisp = disps.slice(-1)[0];
+
+// 출력: 방향, bodyPct, 발생 시각
+// 없으면: "감지되지 않음"</pre>
+        <p style="font-size:12px; color:var(--muted); margin-top:8px;">bodyPct: 캔들 바디가 ATR 대비 임계값 초과 여부로 결정</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">FVG 필터링 순서</div>
+        <ol style="padding-left:18px; font-size:13px; line-height:2.2;">
+          <li>status === 'active' 만 선택</li>
+          <li>스윙 범위 안에 겹치는 것만 (fvg.high ≥ range.low && fvg.low ≤ range.high)</li>
+          <li>등급 순 정렬: A+ → A → B</li>
+          <li>최대 3개, 나머지 생략</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">FVG 탐지 알고리즘 (fvg.js)</div>
+      <pre>// 3개 연속 캔들 c1, c2, c3 기준
+// Bull FVG: c3.low > c1.high  (상승 갭 — 아래가 비어있음)
+// Bear FVG: c1.low > c3.high  (하락 갭 — 위가 비어있음)
+
+// 최소 갭 크기: (c3.low - c1.high) / c1.high >= minGapPct
+
+// status 업데이트 (이후 캔들로 순회):
+// - 'tested':    가격이 FVG 범위에 닿았으나 close가 반대편을 넘지 않음
+// - 'mitigated': bull FVG에서 close < fvg.low, bear FVG에서 close > fvg.high</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-title">FVG 등급 산정 (gradeFVG 함수)</div>
+      <table>
+        <thead><tr><th>등급</th><th>조건</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="chip chip-primary">A+</span></td>
+            <td>OTE 구간 내 (<code class="inline">oteZone === 'OTE'</code>) <strong>AND</strong> MSS 직후 발생 (<code class="inline">fvg.time >= latestMSS.time</code>)</td>
+          </tr>
+          <tr>
+            <td><span class="chip chip-bull">A</span></td>
+            <td>OTE 구간 내 <strong>OR</strong> MSS 직후 발생 (둘 중 하나)</td>
+          </tr>
+          <tr>
+            <td><span class="chip chip-gray">B</span></td>
+            <td>위 조건 미해당 (기본값)</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="info-box neutral" style="margin-top:10px;">
+        <strong>OTE (Optimal Trade Entry):</strong> 스코어카드의 <code class="inline">oteZone === 'OTE'</code> 필드로 판단. 피보나치 62-79% 되돌림 구간.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">출력 예시</div>
+      <div class="output-example"><span class="hdr">## 4단계 · 핵심 증거 (Displacement + FVG)</span>
+<span class="key">- Displacement 캔들:</span><span class="val"> LTF 2026-05-15 09:00:00Z, body +3.2% (임계 통과)</span>
+<span class="key">Active FVG</span><span class="muted"> (LTF, bull) *(외 1개 범위 외 생략)*:</span>
+<span class="bull">  - FVG #1: $91,500.0 ~ $92,300.0 · CE $91,900.0 · status: active · **A+** (MSS 직후 + OTE 구간)</span>
+<span class="val">  - FVG #2: $90,800.0 ~ $91,200.0 · CE $91,000.0 · status: active · A</span></div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- ═══════════════════════════════════════════════════════════ STEP 5 -->
+  <div class="step-section" id="step5">
+    <div class="step-header">
+      <div class="step-badge badge-5">S5</div>
+      <div class="step-title-block">
+        <h2>5단계 · 구조 변화 확인</h2>
+        <div class="step-sub">renderStep5(signal) · MSS와 BOS 이벤트 필터링 및 분류</div>
+      </div>
+    </div>
+
+    <div class="info-box primary">
+      <strong>MSS(Market Structure Shift)</strong>와 <strong>BOS(Break of Structure)</strong>를 각각 스윙 범위 내 항목으로 필터링하여 출력한다. MSS는 추세 전환, BOS는 추세 연속성을 의미한다.
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">MSS 감지 알고리즘 (market-structure.js)</div>
+        <pre>// 현재 추세 = getCurrentTrend(swings):
+//   최근 스윙 4개의 HH/HL (bull) vs LH/LL (bear) 패턴
+
+// bear 추세에서 직전 LH를 상향 돌파 → bull MSS
+if (trend === 'bear' && candle.close > lastHigh.price)
+  → MSS(bull)
+
+// bull 추세에서 직전 HL을 하향 돌파 → bear MSS
+if (trend === 'bull' && candle.close < lastLow.price)
+  → MSS(bear)</pre>
+      </div>
+
+      <div class="card">
+        <div class="card-title">BOS 감지 알고리즘 (market-structure.js)</div>
+        <pre>// 추세 방향 무관, 직전 스윙 포인트 돌파면 BOS
+
+// 직전 swing high 상향 돌파
+if (candle.close > lastHigh.price) → BOS(bull)
+
+// 직전 swing low 하향 돌파
+if (candle.close < lastLow.price)  → BOS(bear)
+
+// 차이: BOS는 추세 연속, MSS는 추세 전환</pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">필터링 공통 로직 (pickTop 내부)</div>
+      <pre>// 1. 스윙 범위 내 항목만 (e.price >= swingRange.low && e.price <= swingRange.high)
+// 2. 방향 관련성 우선: LONG → bull MSS/BOS, SHORT → bear MSS/BOS
+// 3. 시간 최신순 정렬
+// 4. 최대 3개, 나머지 "외 N개 범위 외 생략"
+// 5. 스윙 범위 내 항목이 0이면 "감지 없음 (범위 외 생략)" 표시</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-title">MSS vs BOS 비교</div>
+      <table>
+        <thead><tr><th>구분</th><th>MSS</th><th>BOS</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>의미</td>
+            <td>추세 <strong>전환</strong> (반전 시그널)</td>
+            <td>추세 <strong>연속</strong> (방향 확인)</td>
+          </tr>
+          <tr>
+            <td>조건</td>
+            <td>현재 추세의 반대 구조 돌파</td>
+            <td>직전 스윙 포인트 돌파 (추세 불문)</td>
+          </tr>
+          <tr>
+            <td>다이어리 역할</td>
+            <td>A+ FVG 등급 기준, 스토리텔링 핵심</td>
+            <td>추세 방향성 재확인</td>
+          </tr>
+          <tr>
+            <td>origin 기본값</td>
+            <td>LTF</td>
+            <td>HTF</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title">출력 예시</div>
+      <div class="output-example"><span class="hdr">## 5단계 · 구조 변화 확인</span>
+<span class="key">- MSS</span><span class="muted"> (스윙 범위 내, 최대 3개):</span>
+<span class="bull">  - (LTF) 2026-05-15 08:30:00Z · $91,000.0에서 직전 LH 돌파 → bull MSS 확정</span>
+<span class="key">- BOS</span><span class="muted"> (스윙 범위 내, 최대 3개):</span>
+<span class="val">  - (HTF) 2026-05-14 16:00:00Z · $89,500.0 → 상승 추세 연속성 확인</span></div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- ═══════════════════════════════════════════════════════════ STEP 6 -->
+  <div class="step-section" id="step6">
+    <div class="step-header">
+      <div class="step-badge badge-6">S6</div>
+      <div class="step-title-block">
+        <h2>6단계 · 스토리텔링</h2>
+        <div class="step-sub">renderStep6(signal) · 1~5단계 증거를 자연어 서술로 조합</div>
+      </div>
+    </div>
+
+    <div class="info-box primary">
+      앞 단계에서 수집한 증거(스윕, 디스플레이스먼트, MSS, AMD, 잔존 유동성)를 하나의 자연어 문장으로 조합한다. NEUTRAL 시그널은 별도 분기로 처리한다.
+    </div>
+
+    <div class="card">
+      <div class="card-title">서술 조합 로직</div>
+      <pre>// NEUTRAL 분기: MSS, Displacement 모두 없으면 "관망 구간"
+if (signal.direction === 'NEUTRAL') {
+  return '... 관망 구간. 다이어리 학습 대상으로는 부적합 ...'
+}
+
+// 일반 분기 — 각 부분을 순서대로 연결:
+sweepText  = confirmedSweep 있으면  "LTF가 {SSL/BSL}({price})을 의도적으로 스윕한 직후, "
+dispText   = displacements 있으면  "{bodyPct}% 디스플레이스먼트와 함께 "
+mssText    = mss 있으면            "직전 LH/HL를 돌파하며 MSS를 만들었다."
+amdText    = DISTRIBUTION이면      " 기관은 분배 단계로 보이며,"
+             MANIPULATION이면      " 조작 단계에서 유동성 회수 후"
+targetText = pendingLiquidity 있으면 " 잔존 BSL/SSL({price})이 다음 목표."
+
+// 최종 문장: "HTF {추세} 상태에서 {sweepText}{dispText}{mssText}{amdText}{targetText}"</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-title">잔존 유동성 (targetText) 결정</div>
+      <pre>// pendingLiquidity = 미확정 스윕 중 가장 최신 것
+pendingLiquidity = sweeps.filter(s => !s.confirmed).slice(-1)[0]
+
+// BSL (매수 유동성) → "매수측 유동성"
+// SSL (매도 유동성) → "매도측 유동성"</pre>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">출력 예시 (LONG 시그널)</div>
+        <div class="output-example"><span class="hdr">## 6단계 · 스토리텔링</span>
+<span class="bull">HTF 상승 추세 (bull) 상태에서 LTF가 SSL($91,200)을 의도적으로 스윕한 직후, 3.2% 디스플레이스먼트와 함께 직전 LH를 돌파하며 MSS를 만들었다. 조작 단계에서 유동성 회수 후 잔존 매수측 유동성($95,400)이 다음 목표.</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">출력 예시 (NEUTRAL)</div>
+        <div class="output-example"><span class="hdr">## 6단계 · 스토리텔링</span>
+<span class="muted">HTF는 상승 추세 (bull)이고 LTF는 횡보 (ranging)이다. 의미 있는 스윕도, 디스플레이스먼트도, MSS도 부재한 "관망 구간". 다이어리 학습 대상으로는 부적합 — A+ 셋업이 형성되기까지 대기.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- ═══════════════════════════════════════════════════════════ ADV 1 -->
+  <div class="step-section" id="adv1">
+    <div class="step-header">
+      <div class="step-badge badge-a1">A1</div>
+      <div class="step-title-block">
+        <h2>심화 1 · 딜링 레인지 (ERL/IRL)</h2>
+        <div class="step-sub">renderAdvanced1(signal, erlIrl) + deriveERLIRL(signal)</div>
+      </div>
+    </div>
+
+    <div class="info-box purple">
+      NEUTRAL 시그널은 이 단계부터 심화 분석을 건너뛴다. ERL/IRL은 가격이 현재 "레인지의 어느 극단"에 있는지, 또는 "내부 유동성 구간"에 있는지를 판단한다.
+    </div>
+
+    <div class="card">
+      <div class="card-title">ERL / IRL 개념</div>
+      <table>
+        <thead><tr><th>구분</th><th>의미</th><th>구현</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="chip chip-primary">ERL 상단</span></td>
+            <td>External Range Liquidity (고점) — 매수 유동성 풀</td>
+            <td>미확정 BSL 최신 or 확정 BSL 최신</td>
+          </tr>
+          <tr>
+            <td><span class="chip chip-bear">ERL 하단</span></td>
+            <td>External Range Liquidity (저점) — 매도 유동성 풀</td>
+            <td>확정 SSL 최신 or 미확정 SSL 최신</td>
+          </tr>
+          <tr>
+            <td><span class="chip chip-purple">IRL</span></td>
+            <td>Internal Range Liquidity — 가격이 FVG/OB 내부에 있음</td>
+            <td>현재가가 activeFVG 또는 activeOB 범위 안에 있으면 해당 구간</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title">deriveERLIRL 로직</div>
+      <pre>// ERL 하단: 확정 SSL 가장 최신 (없으면 미확정 SSL)
+erlLow  = confirmedSSL.slice(-1)[0] ?? pendingSSL.slice(-1)[0]
+
+// ERL 상단: 미확정 BSL 가장 최신 (없으면 확정 BSL)
+erlHigh = pendingBSL.slice(-1)[0] ?? confirmedBSL.slice(-1)[0]
+
+// IRL: 현재가가 activeFVG 또는 activeOB 범위 내에 있는지
+irlZone = activeFVGs.find(f => cp >= f.low && cp <= f.high)
+       || activeOBs.find(o => cp >= o.low && cp <= o.high)</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-title">방향성 서술 조건</div>
+      <pre>// LONG + ERL 상단 있음 → "ERL 상단(BSL)을 향해 이동 중 — 연료 보충 후 재진행"
+// SHORT + ERL 하단 있음 → "ERL 하단(SSL)을 향해 이동 중"
+// 그 외                 → "방향 결정 중"</pre>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- ═══════════════════════════════════════════════════════════ ADV 2 -->
+  <div class="step-section" id="adv2">
+    <div class="step-header">
+      <div class="step-badge badge-a2">A2</div>
+      <div class="step-title-block">
+        <h2>심화 2 · FVG 등급 + 결과 추적</h2>
+        <div class="step-sub">renderAdvanced2(gradedFVGs, mssArr, swingRange) · 테이블 형태 출력</div>
+      </div>
+    </div>
+
+    <div class="info-box primary">
+      4단계에서 산출한 등급이 적용된 FVG 전체를 테이블로 보여준다. status가 <code class="inline">active</code> 또는 <code class="inline">tested</code>인 것만, 스윙 범위 내 항목만 포함한다.
+    </div>
+
+    <div class="card">
+      <div class="card-title">테이블 컬럼 설명</div>
+      <table>
+        <thead><tr><th>컬럼</th><th>계산 방법</th></tr></thead>
+        <tbody>
+          <tr><td>FVG</td><td>범위 (low ~ high), 순번 #N</td></tr>
+          <tr><td>CE (Consequent Encroachment)</td><td><code class="inline">fvg.ce</code> 있으면 사용, 없으면 <code class="inline">(low + high) / 2</code></td></tr>
+          <tr><td>MSS 유발</td><td>mssArr.length > 0이면 ✅, 아니면 ❌</td></tr>
+          <tr><td>OTE 위치</td><td>A+ or A 등급이면 "OTE (62-79%)", B이면 "DEEP"</td></tr>
+          <tr><td>등급</td><td>gradeFVG() 결과 (A+/A/B)</td></tr>
+          <tr><td>Outcome</td><td>FVG status 현재값 (active/tested/mitigated)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title">출력 예시</div>
+      <div class="output-example"><span class="hdr">## 심화 2 · FVG 등급 + 결과 추적</span>
+| FVG | CE | MSS 유발 | OTE 위치 | 등급 | Outcome |
+|-----|----|---------|---------|------|---------|
+| <span class="bull">#1 ($91,500-$92,300) | $91,900.0 | ✅ | OTE (62-79%) | **A+** | active</span> |
+| <span class="val">#2 ($90,800-$91,200) | $91,000.0 | ✅ | OTE (62-79%) | A | tested</span> |</div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- ═══════════════════════════════════════════════════════════ ADV 3 -->
+  <div class="step-section" id="adv3">
+    <div class="step-header">
+      <div class="step-badge badge-a3">A3</div>
+      <div class="step-title-block">
+        <h2>심화 3 · Breaker Block + Unicorn 셋업</h2>
+        <div class="step-sub">renderAdvanced3(signal, unicorn) + detectUnicorn(bbs, fvgs)</div>
+      </div>
+    </div>
+
+    <div class="info-box purple">
+      <strong>Unicorn Setup</strong>: Breaker Block(BB)과 FVG가 가격 구간상 중첩될 때 발생하는 고확률 셋업. BB는 MSS로 반전된 이전 OB다.
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Breaker Block (BB)</div>
+        <pre>// OB(Order Block)가 MSS 이후 반전되어
+// 이전 지지 → 저항 (또는 반대)으로 전환된 구간
+
+// signal.levels.bbs 배열에서 조회
+// retestStatus === 'pending' → 아직 되돌림 대기 중</pre>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Unicorn 감지 (detectUnicorn)</div>
+        <pre>// pending BB와 active FVG가 겹치면 Unicorn
+
+for (bb of pendingBBs) {
+  for (fvg of activeFVGs) {
+    if (bb.low < fvg.high && bb.high > fvg.low) {
+      // 겹침 구간:
+      overlapLow  = Math.max(bb.low,  fvg.low)
+      overlapHigh = Math.min(bb.high, fvg.high)
+      ce          = (overlapLow + overlapHigh) / 2
+      return { detected: true, bb, fvg, ce }
+    }
+  }
+}
+return { detected: false }</pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Unicorn 감지 시 진입 정보 출력 조건</div>
+      <div class="flow">
+        <div class="flow-node">unicorn.detected === true</div>
+        <span class="flow-arrow">+</span>
+        <div class="flow-node">signal.entry 있음</div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-node chip-purple" style="background:#C99BFF20;color:var(--purple);padding:5px 12px;border-radius:20px;">진입가(CE), SL, TP1, R:R 출력</div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">출력 예시 (Unicorn 감지)</div>
+        <div class="output-example"><span class="hdr">## 심화 3 · Breaker Block + Unicorn 셋업</span>
+<span class="val">- Breaker Block 발견: BB $91,200-$91,800 (이전 OB가 MSS로 반전)</span>
+<span class="purple">- FVG 중첩: BB($91,200-$91,800) ∩ FVG($91,500-$92,300) = **유니콘 셋업 감지** ✅
+- 결론: 진입가 $91,750 (BB+FVG CE 평균), SL $90,900, TP1 $94,200, R:R 2.7</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">출력 예시 (미감지)</div>
+        <div class="output-example"><span class="hdr">## 심화 3 · Breaker Block + Unicorn 셋업</span>
+<span class="muted">- Breaker Block: 없음
+- Unicorn 셋업: 미감지 (BB ∩ FVG 중첩 없음)</span></div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- ═══════════════════════════════════════════════════════════ Summary -->
+  <div class="step-section">
+    <div class="step-header">
+      <div class="step-badge" style="background:#1C2030;color:#8BA7D4;">Σ</div>
+      <div class="step-title-block">
+        <h2>전체 파이프라인 데이터 흐름</h2>
+        <div class="step-sub">buildDiary(signal, opts) 호출 시 내부 실행 순서</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">buildDiary() 실행 흐름</div>
+      <pre>buildDiary(signal, opts)
+  │
+  ├── gradedFVGs = rawFVGs.map(f => ({ ...f, grade: gradeFVG(f, mssArr, oteZone) }))
+  │     └── gradeFVG: OTE 구간 + MSS 발생 시점 기준으로 A+/A/B 부여
+  │
+  ├── unicorn = detectUnicorn(bbs, rawFVGs)
+  │     └── pendingBB ∩ activeFVG 겹침 여부 검사
+  │
+  ├── erlIrl  = deriveERLIRL(signal)
+  │     └── sweeps에서 ERL 상단/하단 추출, 현재가로 IRL 구간 확인
+  │
+  ├── [returnStruct=true] → { fvgs, unicorn, erlIrl } 반환 (테스트용)
+  │
+  ├── header 생성 (분석 시각 KST, 진입 등급, 스윙 범위)
+  │
+  ├── steps = renderStep1~6 순차 실행
+  │     └── 각 step은 signal 또는 사전 계산된 gradedFVGs 수신
+  │
+  └── NEUTRAL 분기
+        ├── YES → header + steps + "심화 단계 생략" 반환
+        └── NO  → header + steps + renderAdvanced1~3 반환</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-title">signal 객체 핵심 필드 참조</div>
+      <table>
+        <thead><tr><th>필드</th><th>타입</th><th>사용 단계</th></tr></thead>
+        <tbody>
+          <tr><td><code class="inline">pair</code></td><td>string</td><td>S1</td></tr>
+          <tr><td><code class="inline">currentPrice</code></td><td>number</td><td>S1, S3, A1</td></tr>
+          <tr><td><code class="inline">direction</code></td><td>'LONG'|'SHORT'|'NEUTRAL'</td><td>S3, S4, S5, S6, A1</td></tr>
+          <tr><td><code class="inline">structure.htfTrend / ltfTrend / amdPhase</code></td><td>string</td><td>S2, S6</td></tr>
+          <tr><td><code class="inline">levels.sweeps[]</code></td><td>Sweep[]</td><td>S3, S6, A1</td></tr>
+          <tr><td><code class="inline">levels.fvgs[]</code></td><td>FVG[]</td><td>S4, A1, A2, A3</td></tr>
+          <tr><td><code class="inline">levels.bbs[]</code></td><td>BB[]</td><td>A3</td></tr>
+          <tr><td><code class="inline">displacements[]</code></td><td>Displacement[]</td><td>S4, S6</td></tr>
+          <tr><td><code class="inline">mss[]</code></td><td>MSS[]</td><td>S5, A2</td></tr>
+          <tr><td><code class="inline">bos[]</code></td><td>BOS[]</td><td>S5</td></tr>
+          <tr><td><code class="inline">scorecard.grade / oteZone / sizeMultiplier</code></td><td>string/number</td><td>header, A2</td></tr>
+          <tr><td><code class="inline">swingRanges.htf / ltf</code></td><td>Range</td><td>header</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <p style="text-align:center; color:var(--muted); font-size:11px; margin-top:40px;">
+    trading-analysis · <code class="inline">scripts/modules/diary.js</code> · generated 2026-05-16
+  </p>
+</div>
+</body>
+</html>

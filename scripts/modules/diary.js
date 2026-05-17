@@ -28,6 +28,11 @@ function amdLabel(phase) {
   return (phase && map[phase]) || phase || '—';
 }
 
+function renderSwingRangeLine(label, range) {
+  if (!range) return `**스윙 범위 (${label})**: 데이터 부족`;
+  return `**스윙 범위 (${label})**: ${fmtPrice(range.low)} ~ ${fmtPrice(range.high)} (최근 ${range.count}개 스윙)`;
+}
+
 function gradeFVG(fvg, mssEvents, oteZone) {
   const inOTE     = oteZone === 'OTE';
   const recentMSS = mssEvents && mssEvents.length > 0 ? mssEvents[mssEvents.length - 1] : null;
@@ -137,21 +142,48 @@ function renderStep3(signal) {
       '',
     ].join('\n');
   }
-  const lines = sweeps.map(s => {
+
+  const swingRange = getSwingRange(signal);
+  const inRange = sweeps.filter(s => s.price >= swingRange.low && s.price <= swingRange.high);
+
+  if (inRange.length === 0) {
+    return [
+      `## 3단계 · 유동성 식별`,
+      `**최근 스윕**: 없음 (스윙 범위 ${fmtPrice(swingRange.low)}~${fmtPrice(swingRange.high)} 내 스윕 없음)`,
+      '',
+    ].join('\n');
+  }
+
+  const dir = signal.direction;
+  const isRelevant = s =>
+    (dir === 'LONG'  && s.type === 'SSL') ||
+    (dir === 'SHORT' && s.type === 'BSL');
+
+  const sorted = inRange.slice().sort((a, b) =>
+    (isRelevant(b) ? 1 : 0) - (isRelevant(a) ? 1 : 0) ||
+    ((b.time || 0) - (a.time || 0))
+  );
+  const top     = sorted.slice(0, 3);
+  const omitted = sweeps.length - top.length;
+  const suffix  = omitted > 0 ? ` *(외 ${omitted}개 범위 외 생략)*` : '';
+
+  const lines = top.map(s => {
     const st = s.confirmed ? '확정 (확인 close)' : '미확정 (대기)';
-    return `- ${s.type} @ ${fmtPrice(s.price)} (${s.origin || 'LTF'}, ${fmtTime(s.time)}) — ${st}`;
+    return `- ${s.type} @ ${fmtPrice(s.price)}, close ${fmtPrice(s.close)} (${s.origin || 'LTF'}, ${fmtTime(s.time)}) — ${st}`;
   });
-  const confirmedSSL = sweeps.filter(s => s.type === 'SSL' && s.confirmed);
-  const confirmedBSL = sweeps.filter(s => s.type === 'BSL' && s.confirmed);
+
+  const confirmedSSL = inRange.filter(s => s.type === 'SSL' && s.confirmed);
+  const confirmedBSL = inRange.filter(s => s.type === 'BSL' && s.confirmed);
   let narrative = '';
-  if (confirmedSSL.length > 0 && signal.direction === 'LONG') {
+  if (confirmedSSL.length > 0 && dir === 'LONG') {
     narrative = '\n방향: SSL 스윕 후 반등 → 매수측 유동성 회수 시나리오';
-  } else if (confirmedBSL.length > 0 && signal.direction === 'SHORT') {
+  } else if (confirmedBSL.length > 0 && dir === 'SHORT') {
     narrative = '\n방향: BSL 스윕 후 하락 → 매도측 유동성 회수 시나리오';
   }
+
   return [
     `## 3단계 · 유동성 식별`,
-    `**최근 스윕 이벤트** (LTF, 최근 50봉):`,
+    `**최근 스윕 이벤트** (스윙 범위 내, 최대 3개)${suffix}:`,
     ...lines,
     narrative,
     '',
@@ -165,7 +197,7 @@ function renderStep4(signal, gradedFVGs) {
   // most recent displacement only
   const latestDisp = disps.slice(-1)[0];
   const fmtDisp    = latestDisp
-    ? `- **Displacement 캔들**: LTF ${fmtTime(latestDisp.time)}, body ${latestDisp.direction === 'bull' ? '+' : '-'}${latestDisp.bodyPct}% (임계 통과)`
+    ? `- **Displacement 캔들**: LTF ${fmtTime(latestDisp.time)}, close ${fmtPrice(latestDisp.close)}, body ${latestDisp.direction === 'bull' ? '+' : '-'}${latestDisp.bodyPct}% (임계 통과)`
     : '- **Displacement**: 감지되지 않음';
 
   // active FVGs within current swing range only (max 3)
@@ -199,14 +231,65 @@ function renderStep4(signal, gradedFVGs) {
 }
 
 function renderStep5(signal) {
-  const mssArr = signal.mss || [];
-  const bosArr = signal.bos || [];
-  const mssLines = mssArr.length > 0
-    ? mssArr.map(m => `- **MSS (${m.origin || 'LTF'})**: ${fmtTime(m.time)} · ${fmtPrice(m.price)}에서 직전 ${m.direction === 'bull' ? 'LH' : 'HL'} 돌파 → ${m.direction} MSS 확정`)
-    : ['- **MSS**: 최근 100봉 내 없음'];
-  const bosLines = bosArr.length > 0
-    ? bosArr.map(b => `- **BOS (${b.origin || 'HTF'})**: ${fmtTime(b.time)} · ${fmtPrice(b.price)} → ${b.direction === 'bull' ? '상승' : '하락'} 추세 연속성 확인`)
-    : ['- **BOS**: 감지 없음'];
+  const mssArr    = signal.mss || [];
+  const bosArr    = signal.bos || [];
+  const swingRange = getSwingRange(signal);
+  const dir       = signal.direction;
+
+  const isRelevant = e =>
+    (dir === 'LONG'  && e.direction === 'bull') ||
+    (dir === 'SHORT' && e.direction === 'bear');
+
+  function pickTop(arr) {
+    const inRange = arr.filter(e => e.price >= swingRange.low && e.price <= swingRange.high);
+    const sorted  = inRange.slice().sort((a, b) =>
+      (isRelevant(b) ? 1 : 0) - (isRelevant(a) ? 1 : 0) ||
+      ((b.time || 0) - (a.time || 0))
+    );
+    const top     = sorted.slice(0, 3);
+    const omitted = arr.length - top.length;
+    const suffix  = omitted > 0 ? ` *(외 ${omitted}개 범위 외 생략)*` : '';
+    return { top, suffix, inRangeCount: inRange.length };
+  }
+
+  const rangeSuffix = `스윙 범위 ${fmtPrice(swingRange.low)}~${fmtPrice(swingRange.high)} 밖`;
+
+  let mssLines;
+  if (mssArr.length === 0) {
+    mssLines = ['- **MSS**: 최근 100봉 내 없음'];
+  } else {
+    const { top, suffix, inRangeCount } = pickTop(mssArr);
+    if (inRangeCount === 0) {
+      const omittedSuffix = mssArr.length > 0 ? ` *(외 ${mssArr.length}개 범위 외 생략)*` : '';
+      mssLines = [`- **MSS**: 최근 100봉 내 없음 (${rangeSuffix}${omittedSuffix})`];
+    } else {
+      mssLines = [
+        `- **MSS** (스윙 범위 내, 최대 3개)${suffix}:`,
+        ...top.map(m =>
+          `  - (${m.origin || 'LTF'}) ${fmtTime(m.time)} · ${fmtPrice(m.price)}에서 직전 ${m.direction === 'bull' ? 'LH' : 'HL'} 돌파 → ${m.direction} MSS 확정`
+        ),
+      ];
+    }
+  }
+
+  let bosLines;
+  if (bosArr.length === 0) {
+    bosLines = ['- **BOS**: 감지 없음'];
+  } else {
+    const { top, suffix, inRangeCount } = pickTop(bosArr);
+    if (inRangeCount === 0) {
+      const omittedSuffix = bosArr.length > 0 ? ` *(외 ${bosArr.length}개 범위 외 생략)*` : '';
+      bosLines = [`- **BOS**: 감지 없음 (${rangeSuffix}${omittedSuffix})`];
+    } else {
+      bosLines = [
+        `- **BOS** (스윙 범위 내, 최대 3개)${suffix}:`,
+        ...top.map(b =>
+          `  - (${b.origin || 'HTF'}) ${fmtTime(b.time)} · ${fmtPrice(b.price)} → ${b.direction === 'bull' ? '상승' : '하락'} 추세 연속성 확인`
+        ),
+      ];
+    }
+  }
+
   return [
     `## 5단계 · 구조 변화 확인`,
     ...mssLines,
@@ -359,11 +442,19 @@ function buildDiary(signal, opts = {}) {
   const actionLine = isNeutral ? '' : `\n**액션**: ENTER · ${signal.direction} · 사이즈 ${signal.scorecard && signal.scorecard.sizeMultiplier !== undefined ? signal.scorecard.sizeMultiplier + 'x' : '—'}`;
   const reasonLine = isNeutral && signal.reason ? `\n**사유**: ${signal.reason}` : '';
 
+  const swingRangeLines = signal.swingRanges != null
+    ? [
+        renderSwingRangeLine('HTF 4H',  signal.swingRanges.htf),
+        renderSwingRangeLine('LTF 15M', signal.swingRanges.ltf),
+      ]
+    : [];
+
   const header = [
     `# 구조 다이어리 — ${signal.pair} (HTF: 4H, LTF: 15M)`,
     ``,
     `**분석 시각**: ${kst} KST`,
     `**진입 등급**: ${gradeLabel}${reasonLine}${actionLine}`,
+    ...swingRangeLines,
     ``,
   ].join('\n');
 

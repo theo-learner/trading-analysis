@@ -1,7 +1,7 @@
 'use strict';
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
-const { detectBOS, detectMSS, getCurrentTrend } = require('../../modules/market-structure');
+const { detectBOS, detectMSS, getCurrentTrend, filterByRecentSwings } = require('../../modules/market-structure');
 
 function makeCandle(time, open, high, low, close) {
   return { time, open, high, low, close, volume: 1 };
@@ -66,6 +66,47 @@ describe('getCurrentTrend', () => {
       { type: 'low', price: 108 },  // HL
     ];
     assert.equal(getCurrentTrend(swings), 'bull');
+  });
+});
+
+describe('filterByRecentSwings', () => {
+  const events = [
+    { time: 100, price: 1 },
+    { time: 200, price: 2 },
+    { time: 300, price: 3 },
+    { time: 400, price: 4 },
+    { time: 500, price: 5 },
+  ];
+
+  it('returns all events when swings is empty', () => {
+    const result = filterByRecentSwings(events, []);
+    assert.deepEqual(result, events);
+  });
+
+  it('returns all events when swings length < swingCount', () => {
+    const swings = [{ time: 300 }, { time: 400 }];
+    const result = filterByRecentSwings(events, swings, 4);
+    assert.deepEqual(result, events);
+  });
+
+  it('filters out events before the 4th-most-recent swing cutoff time', () => {
+    const swings = [{ time: 100 }, { time: 200 }, { time: 300 }, { time: 400 }];
+    const result = filterByRecentSwings(events, swings, 4);
+    assert.deepEqual(result, [
+      { time: 100, price: 1 },
+      { time: 200, price: 2 },
+      { time: 300, price: 3 },
+      { time: 400, price: 4 },
+      { time: 500, price: 5 },
+    ]);
+  });
+
+  it('boundary: event at cutoffTime is included (>=)', () => {
+    const swings = [{ time: 100 }, { time: 200 }, { time: 300 }, { time: 400 }, { time: 500 }];
+    // 4th-most-recent = index 1, time=200
+    const result = filterByRecentSwings(events, swings, 4);
+    assert.ok(result.some(e => e.time === 200), 'cutoffTime boundary should be included');
+    assert.ok(!result.some(e => e.time === 100), 'events before cutoff should be excluded');
   });
 });
 

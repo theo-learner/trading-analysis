@@ -12,7 +12,7 @@ function detectBOS(candles, swings) {
     if (prevHighs.length > 0) {
       const lastHigh = prevHighs[prevHighs.length - 1];
       if (candle.close > lastHigh.price) {
-        bos.push({ index: i, time: candle.time, price: lastHigh.price, type: 'BOS', direction: 'bull' });
+        bos.push({ index: i, time: candle.time, price: lastHigh.price, close: candle.close, type: 'BOS', direction: 'bull' });
       }
     }
 
@@ -20,7 +20,7 @@ function detectBOS(candles, swings) {
     if (prevLows.length > 0) {
       const lastLow = prevLows[prevLows.length - 1];
       if (candle.close < lastLow.price) {
-        bos.push({ index: i, time: candle.time, price: lastLow.price, type: 'BOS', direction: 'bear' });
+        bos.push({ index: i, time: candle.time, price: lastLow.price, close: candle.close, type: 'BOS', direction: 'bear' });
       }
     }
   }
@@ -42,7 +42,7 @@ function detectMSS(candles, swings) {
       if (prevHighs.length > 0) {
         const lastHigh = prevHighs[prevHighs.length - 1];
         if (candle.close > lastHigh.price) {
-          mss.push({ index: i, time: candle.time, price: lastHigh.price, type: 'MSS', direction: 'bull' });
+          mss.push({ index: i, time: candle.time, price: lastHigh.price, close: candle.close, type: 'MSS', direction: 'bull' });
         }
       }
     }
@@ -52,7 +52,7 @@ function detectMSS(candles, swings) {
       if (prevLows.length > 0) {
         const lastLow = prevLows[prevLows.length - 1];
         if (candle.close < lastLow.price) {
-          mss.push({ index: i, time: candle.time, price: lastLow.price, type: 'MSS', direction: 'bear' });
+          mss.push({ index: i, time: candle.time, price: lastLow.price, close: candle.close, type: 'MSS', direction: 'bear' });
         }
       }
     }
@@ -71,4 +71,11 @@ function getCurrentTrend(swings) {
   return 'ranging';
 }
 
-module.exports = { detectBOS, detectMSS, getCurrentTrend };
+function filterByRecentSwings(events, swings, swingCount = 4) {
+  if (!Array.isArray(swings) || swings.length === 0) return events.slice();
+  if (swings.length < swingCount) return events.slice();
+  const cutoffTime = swings[swings.length - swingCount].time;
+  return events.filter(e => e.time >= cutoffTime);
+}
+
+module.exports = { detectBOS, detectMSS, getCurrentTrend, filterByRecentSwings };
