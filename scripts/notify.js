@@ -15,10 +15,17 @@ const { dedupKey, hasRecentNotification, recordNotification } = require('./utils
  */
 function formatMessage(signal, verdict) {
   const esc = escapeMarkdownV2;
-  const { pair, direction, tier, confidence, entry, sl, tp, rr } = signal;
+  const { pair, direction, tier, confidence, entry, sl, tp, rr, currentPrice } = signal;
 
   const dirEmoji = direction === 'LONG' ? '📈' : direction === 'SHORT' ? '📉' : '➡️';
   const ep = entry?.price ?? 0;
+
+  // 천 단위 쉼표, 불필요한 .0 제거
+  function fmt(n) {
+    if (!Number.isFinite(n)) return '?';
+    const s = Number.isInteger(n) ? n.toFixed(0) : n.toFixed(n < 10 ? 4 : n < 1000 ? 2 : 1);
+    return s.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
 
   function pct(target) {
     if (!ep || !target) return '';
@@ -26,24 +33,38 @@ function formatMessage(signal, verdict) {
     return ` (${d >= 0 ? '+' : ''}${d.toFixed(1)}%)`;
   }
 
+  // 현재가 → 진입가 방향 표시
+  function distToEntry() {
+    if (!currentPrice || !ep) return '';
+    const d = (ep - currentPrice) / currentPrice * 100;
+    const arrow = d >= 0 ? '↑' : '↓';
+    return `  ${arrow}${Math.abs(d).toFixed(1)}% 진입까지`;
+  }
+
   const tpLines = Array.isArray(tp)
-    ? tp.map((t, i) => `TP${i + 1}  \\$${esc(t.toFixed(1))}${esc(pct(t))}`).join('\n')
-    : `TP   \\$${esc(String(tp))}`;
+    ? tp.map((t, i) => `TP${i + 1}    \\$${esc(fmt(t))}${esc(pct(t))}`).join('\n')
+    : `TP      \\$${esc(fmt(tp))}`;
 
   const poi = entry?.poi ? esc(entry.poi) : '';
-  const kz  = entry?.killzone ? `  ·  ${esc(entry.killzone)}` : '';
+  const kz  = entry?.killzone
+    ? ` · ${esc(entry.killzone.charAt(0).toUpperCase() + entry.killzone.slice(1))}`
+    : '';
 
   const kst = new Date(Date.now() + 9 * 3_600_000);
   const pad = n => String(n).padStart(2, '0');
   const timeStr = `${pad(kst.getUTCMonth() + 1)}\\-${pad(kst.getUTCDate())} ${pad(kst.getUTCHours())}:${pad(kst.getUTCMinutes())} KST`;
 
+  const curLine = currentPrice
+    ? `현재가  \\$${esc(fmt(currentPrice))}${esc(distToEntry())}\n`
+    : '';
+
   return [
-    `${dirEmoji} *${direction}  ${esc(pair)}*`,
-    `Tier ${esc(String(tier))} · ${esc(confidence)} · R:R ${esc(rr?.toFixed(2) ?? '?')}`,
+    `${dirEmoji} *${direction}  ${esc(pair)}*  \\|  Tier ${esc(String(tier))} · ${esc(confidence)}`,
     '',
-    `진입   \\$${esc(ep.toFixed(1))}`,
-    `SL     \\$${esc((sl ?? 0).toFixed(1))}${esc(pct(sl))}`,
+    `${curLine}진입    \\$${esc(fmt(ep))}`,
+    `SL      \\$${esc(fmt(sl ?? 0))}${esc(pct(sl))}`,
     tpLines,
+    `R:R     ${esc(rr?.toFixed(2) ?? '?')}`,
     '',
     `🎯 ${poi}${kz}`,
     `🕐 ${timeStr}`,
