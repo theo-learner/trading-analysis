@@ -45,7 +45,7 @@
   "signal": {
     "minConfidence": "MEDIUM",
     "_confidenceOptions": ["HIGH", "MEDIUM", "LOW"],
-    "maxTier": 2,
+    "maxTier": 3,
     "requireKillzone": true
   }
 }
