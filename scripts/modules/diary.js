@@ -119,8 +119,14 @@ function renderSignalBlock(signal) {
   const basis    = signal.entry?.basis || '—';
 
   return [
-    `> **${dirArrow}** | 등급 **${grade}** (${total}/6) | 신뢰도 **${conf}** | 사이즈 **${size}**`,
-    `> 진입 **${fmtPrice(entry)}** (${basis}) · SL **${fmtPrice(sl)}** · TP1 **${fmtPrice(tp1)}**${tp2 ? ` · TP2 **${fmtPrice(tp2)}**` : ''} · R:R **${rr}**`,
+    `## 🎯 시그널`,
+    `- **방향**: ${dirArrow}`,
+    `- **진입**: ${fmtPrice(entry)} (${basis})`,
+    `- **SL**: ${fmtPrice(sl)}`,
+    `- **TP1**: ${fmtPrice(tp1)}${tp2 ? `  ·  **TP2**: ${fmtPrice(tp2)}` : ''}`,
+    `- **R:R**: ${rr}  ·  **등급**: ${grade} (${total}/6)  ·  **신뢰도**: ${conf}  ·  **사이즈**: ${size}`,
+    ``,
+    `---`,
     ``,
   ].join('\n');
 }
