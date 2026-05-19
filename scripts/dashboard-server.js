@@ -176,7 +176,7 @@ async function handleRequest(req, res) {
     analyzeLog = [];
     analyzeProc = spawn('node', [scriptPath, '--pair', pair, '--tf', tf], {
       cwd: ROOT,
-      env: { ...process.env, LOG_LEVEL: 'DEBUG' },
+      env: { ...process.env, LOG_LEVEL: 'DEBUG', TELEGRAM_NOTIFY: '1' },
     });
 
     analyzeProc.stdout.on('data', d => {
