@@ -23,7 +23,9 @@ async function run(deps = {}) {
           config:     ictConfig,
         });
         const result = await notifySignal(signal, traderConfig);
-        logger.log(`[watcher] ${pair}: ${result.sent ? 'sent' : 'skipped:' + result.skipped}`);
+        const sig = `${signal.direction} | Tier${signal.tier} | ${signal.confidence} | RR ${signal.rr?.toFixed(2) ?? '?'} | kz:${signal.entry?.killzone ?? 'none'}`;
+        const outcome = result.sent ? '✅ SENT' : `⏭ ${result.skipped}${result.reason ? ' — ' + result.reason : ''}`;
+        logger.log(`[watcher] ${pair}: ${sig} → ${outcome}`);
       } catch (err) {
         logger.warn(`[watcher] ${pair} failed: ${err.message}`);
       }

@@ -82,7 +82,7 @@ async function notifySignal(signal, traderConfig, opts = {}) {
     // 3. Signal quality gate
     const verdict = judgeFn(signal);
     if (!verdict.approved) {
-      return { sent: false, skipped: 'rejected' };
+      return { sent: false, skipped: 'rejected', reason: verdict.reason };
     }
 
     // 4. Dedup check
