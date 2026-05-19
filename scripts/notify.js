@@ -15,28 +15,39 @@ const { dedupKey, hasRecentNotification, recordNotification } = require('./utils
  */
 function formatMessage(signal, verdict) {
   const esc = escapeMarkdownV2;
-  const { pair, direction, tier, confidence, entry, sl, tp, analysisDate } = signal;
+  const { pair, direction, tier, confidence, entry, sl, tp, rr } = signal;
+
+  const dirEmoji = direction === 'LONG' ? '📈' : direction === 'SHORT' ? '📉' : '➡️';
+  const ep = entry?.price ?? 0;
+
+  function pct(target) {
+    if (!ep || !target) return '';
+    const d = (target - ep) / ep * 100;
+    return ` (${d >= 0 ? '+' : ''}${d.toFixed(1)}%)`;
+  }
 
   const tpLines = Array.isArray(tp)
-    ? tp.map((t, i) => `TP${i + 1}: ${esc(t.toFixed(1))}`).join('\n')
-    : `TP: ${esc(String(tp))}`;
+    ? tp.map((t, i) => `TP${i + 1}  \\$${esc(t.toFixed(1))}${esc(pct(t))}`).join('\n')
+    : `TP   \\$${esc(String(tp))}`;
 
-  const poiLabel = entry?.poi ? ` \\(${esc(entry.poi)}\\)` : '';
-  const killzone = entry?.killzone ? `\n세션: ${esc(entry.killzone)}` : '';
-  const rrStr = signal.rr ? `\nRR: ${esc(signal.rr.toFixed(2))}` : '';
+  const poi = entry?.poi ? esc(entry.poi) : '';
+  const kz  = entry?.killzone ? `  ·  ${esc(entry.killzone)}` : '';
+
+  const kst = new Date(Date.now() + 9 * 3_600_000);
+  const pad = n => String(n).padStart(2, '0');
+  const timeStr = `${pad(kst.getUTCMonth() + 1)}\\-${pad(kst.getUTCDate())} ${pad(kst.getUTCHours())}:${pad(kst.getUTCMinutes())} KST`;
 
   return [
-    `*ICT 진입 시그널* — ${esc(pair)}`,
+    `${dirEmoji} *${direction}  ${esc(pair)}*`,
+    `Tier ${esc(String(tier))} · ${esc(confidence)} · R:R ${esc(rr?.toFixed(2) ?? '?')}`,
     '',
-    `방향: ${esc(direction)}`,
-    `티어: Tier ${esc(String(tier))} \\(${esc(confidence)}\\)`,
-    `진입: ${esc(entry?.price?.toFixed(1) ?? '?')}${poiLabel}`,
-    `SL: ${esc(sl?.toFixed(1) ?? '?')}`,
+    `진입   \\$${esc(ep.toFixed(1))}`,
+    `SL     \\$${esc((sl ?? 0).toFixed(1))}${esc(pct(sl))}`,
     tpLines,
-    `${rrStr}`,
     '',
-    `분석일: ${esc(analysisDate)}${killzone}`,
-  ].join('\n').replace(/\n{3,}/g, '\n\n').trim();
+    `🎯 ${poi}${kz}`,
+    `🕐 ${timeStr}`,
+  ].join('\n');
 }
 
 /**
