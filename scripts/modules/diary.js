@@ -42,9 +42,10 @@ function gradeFVG(fvg, mssEvents, oteZone) {
   return 'B';
 }
 
-function detectUnicorn(bbs, fvgs) {
-  const activeFVGs = (fvgs || []).filter(f => f.status === 'active');
-  const pendingBBs = (bbs  || []).filter(b => b.retestStatus === 'pending');
+function detectUnicorn(bbs, fvgs, swingRange) {
+  const inRange = z => !swingRange || (z.high >= swingRange.low && z.low <= swingRange.high);
+  const activeFVGs = (fvgs || []).filter(f => f.status === 'active' && inRange(f));
+  const pendingBBs = (bbs  || []).filter(b => b.retestStatus === 'pending' && inRange(b));
   for (const bb of pendingBBs) {
     for (const fvg of activeFVGs) {
       if (bb.low < fvg.high && bb.high > fvg.low) {
@@ -99,6 +100,29 @@ function getSwingRange(signal) {
     };
   }
   return { low: cp * 0.97, high: cp * 1.03 };
+}
+
+// ── 시그널 요약 블록 (최상단) ─────────────────────────────────────────────────
+
+function renderSignalBlock(signal) {
+  const dir      = signal.direction;
+  const entry    = signal.entry?.price ?? signal.entry;
+  const sl       = signal.sl;
+  const tp1      = signal.tp?.[0];
+  const tp2      = signal.tp?.[1];
+  const rr       = signal.rr ? signal.rr.toFixed(1) : '—';
+  const conf     = signal.confidence || '—';
+  const grade    = signal.scorecard?.grade || '—';
+  const total    = signal.scorecard?.total ?? '—';
+  const size     = signal.scorecard?.sizeMultiplier != null ? `×${signal.scorecard.sizeMultiplier}` : '—';
+  const dirArrow = dir === 'LONG' ? '▲ LONG' : '▼ SHORT';
+  const basis    = signal.entry?.basis || '—';
+
+  return [
+    `> **${dirArrow}** | 등급 **${grade}** (${total}/6) | 신뢰도 **${conf}** | 사이즈 **${size}**`,
+    `> 진입 **${fmtPrice(entry)}** (${basis}) · SL **${fmtPrice(sl)}** · TP1 **${fmtPrice(tp1)}**${tp2 ? ` · TP2 **${fmtPrice(tp2)}**` : ''} · R:R **${rr}**`,
+    ``,
+  ].join('\n');
 }
 
 // ── 6단계 렌더러 ──────────────────────────────────────────────────────────────
@@ -385,10 +409,12 @@ function renderAdvanced2(gradedFVGs, mssArr, swingRange) {
 }
 
 function renderAdvanced3(signal, unicorn) {
-  const bbs = (signal.levels && signal.levels.bbs) || [];
+  const swingRange = getSwingRange(signal);
+  const allBBs = (signal.levels && signal.levels.bbs) || [];
+  const bbs = allBBs.filter(b => b.high >= swingRange.low && b.low <= swingRange.high);
   const bbText = bbs.length > 0
     ? bbs.map(b => `- **Breaker Block 발견**: BB ${fmtPrice(b.low)}-${fmtPrice(b.high)} (이전 OB가 MSS로 반전)`).join('\n')
-    : '- **Breaker Block**: 없음';
+    : `- **Breaker Block**: 없음 (스윙 범위 ${fmtPrice(swingRange.low)}~${fmtPrice(swingRange.high)} 내)`;
   const unicornText = unicorn.detected
     ? [
         `- **FVG 중첩**: BB(${fmtPrice(unicorn.bb.low)}-${fmtPrice(unicorn.bb.high)}) ∩ FVG(${fmtPrice(unicorn.fvg.low)}-${fmtPrice(unicorn.fvg.high)}) = **유니콘 셋업 감지** ✅`,
@@ -425,7 +451,7 @@ function buildDiary(signal, opts = {}) {
   const bbs       = (signal.levels && signal.levels.bbs)  || [];
 
   const gradedFVGs = rawFVGs.map(f => ({ ...f, grade: gradeFVG(f, mssArr, oteZone) }));
-  const unicorn    = detectUnicorn(bbs, rawFVGs);
+  const unicorn    = detectUnicorn(bbs, rawFVGs, getSwingRange(signal));
   const erlIrl     = deriveERLIRL(signal);
 
   if (returnStruct) {
@@ -448,6 +474,8 @@ function buildDiary(signal, opts = {}) {
         renderSwingRangeLine('LTF 15M', signal.swingRanges.ltf),
       ]
     : [];
+
+  const signalBlock = isNeutral ? '' : renderSignalBlock(signal);
 
   const header = [
     `# 구조 다이어리 — ${signal.pair} (HTF: 4H, LTF: 15M)`,
@@ -479,7 +507,7 @@ function buildDiary(signal, opts = {}) {
     ].join('\n');
   }
 
-  return header + steps + [
+  return signalBlock + header + steps + [
     `---`,
     ``,
     renderAdvanced1(signal, erlIrl),
