@@ -329,7 +329,7 @@ const server = http.createServer((req, res) => {
 });
 
 if (require.main === module) {
-  server.listen(PORT, '127.0.0.1', () => {
+  server.listen(PORT, '0.0.0.0', () => {
     console.log(`\n🚀 ICT 트레이딩 대시보드 시작됨`);
     console.log(`   URL: http://localhost:${PORT}`);
     console.log(`   종료: Ctrl+C\n`);

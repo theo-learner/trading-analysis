@@ -1,3 +1,4 @@
 {
-  "outputDirectory": "reports"
+  "outputDirectory": "reports",
+  "buildCommand": "cp scripts/dashboard/index.html reports/ict-engine.html"
 }

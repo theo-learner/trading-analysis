@@ -213,7 +213,21 @@
   <div class="header-spacer"></div>
   <div class="kz-badge inactive" id="kzBadge">킬존 대기</div>
   <div class="mode-badge">DRY-RUN</div>
-  <div class="status-dot"></div>
+  <div class="status-dot" id="statusDot"></div>
+  <button id="api-settings-btn" title="서버 URL 설정" style="padding:4px 8px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:12px;">⚙</button>
+</div>
+
+<!-- API 설정 모달 -->
+<div id="api-modal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;">
+  <div style="background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:20px;width:360px;max-width:90vw;">
+    <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;">⚙ 서버 URL 설정</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">ICT 분석 서버 주소를 입력하세요.<br>예: <code style="color:var(--fvg-bdr)">http://192.168.0.10:3210</code></div>
+    <input id="api-url-input" type="text" style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:4px;padding:8px 10px;color:var(--text);font-size:13px;font-family:var(--mono);outline:none;" placeholder="http://localhost:3210" />
+    <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end;">
+      <button id="api-cancel-btn" style="padding:7px 14px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:12px;">취소</button>
+      <button id="api-save-btn" style="padding:7px 14px;border-radius:5px;border:none;background:var(--primary);color:#000;font-weight:700;cursor:pointer;font-size:12px;">저장 및 새로고침</button>
+    </div>
+  </div>
 </div>
 
 <!-- 레이아웃 -->
@@ -319,7 +333,12 @@
 'use strict';
 
 // ── 상수 ───────────────────────────────────────────────────────────────────
-const API = 'http://localhost:3210';
+const API = (() => {
+  const p = new URLSearchParams(location.search).get('api');
+  if (p) { localStorage.setItem('ict_api', p); return p.replace(/\/$/, ''); }
+  const s = localStorage.getItem('ict_api');
+  return s ? s.replace(/\/$/, '') : 'http://100.98.195.6:3210';
+})();
 
 // Binance (BTC/ETH/SOL)
 const BINANCE_WS   = 'wss://stream.binance.com:9443/ws';
@@ -1422,10 +1441,53 @@ document.getElementById('diary-btn').addEventListener('click', runDiary);
 // 분석 버튼
 document.getElementById('analyze-btn').addEventListener('click', runAnalysis);
 
+// ── API 설정 모달 ─────────────────────────────────────────────────────────
+(function() {
+  const modal    = document.getElementById('api-modal');
+  const input    = document.getElementById('api-url-input');
+  const saveBtn  = document.getElementById('api-save-btn');
+  const cancelBtn= document.getElementById('api-cancel-btn');
+  const openBtn  = document.getElementById('api-settings-btn');
+
+  input.value = localStorage.getItem('ict_api') || 'http://localhost:3210';
+
+  openBtn.addEventListener('click', () => {
+    input.value = localStorage.getItem('ict_api') || 'http://localhost:3210';
+    modal.style.display = 'flex';
+    input.focus();
+    input.select();
+  });
+  cancelBtn.addEventListener('click', () => { modal.style.display = 'none'; });
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
+  saveBtn.addEventListener('click', () => {
+    const val = input.value.trim().replace(/\/$/, '');
+    if (val) {
+      localStorage.setItem('ict_api', val);
+      location.href = location.pathname + `?api=${encodeURIComponent(val)}`;
+    }
+  });
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveBtn.click(); });
+})();
+
+// ── 연결 상태 표시 ────────────────────────────────────────────────────────
+async function checkServerStatus() {
+  const dot = document.getElementById('statusDot');
+  try {
+    const r = await fetch(`${API}/api/config`, { signal: AbortSignal.timeout(3000) });
+    dot.style.background = r.ok ? 'var(--bull)' : 'var(--bear)';
+    dot.title = r.ok ? `서버 연결됨: ${API}` : '서버 오류';
+  } catch (_) {
+    dot.style.background = 'var(--bear)';
+    dot.title = `서버 미연결: ${API}`;
+  }
+}
+
 // ── 초기화 ────────────────────────────────────────────────────────────────
 async function init() {
   updateKillzoneBadge();
   setInterval(updateKillzoneBadge, 60_000);
+  checkServerStatus();
+  setInterval(checkServerStatus, 15_000);
   await loadCandles();
   connectWS();
   connectSSE();
