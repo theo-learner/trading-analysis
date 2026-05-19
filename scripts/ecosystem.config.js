@@ -5,8 +5,7 @@ module.exports = {
     {
       name: 'ict-watcher',
       script: 'scripts/watcher.js',
-      cron_restart: '*/1 * * * *',
-      autorestart: false,
+      autorestart: true,
       time: true,
       env: { TELEGRAM_NOTIFY: '1' },
     },

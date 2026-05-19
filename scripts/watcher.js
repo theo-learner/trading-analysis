@@ -47,10 +47,20 @@ async function run(deps = {}) {
 }
 
 if (require.main === module) {
-  run().catch((e) => {
-    console.error('[watcher] fatal:', e.message);
-    process.exit(1);
-  });
+  const INTERVAL_MS = 60_000;
+
+  (async function loop() {
+    while (true) {
+      const start = Date.now();
+      try {
+        await run();
+      } catch (e) {
+        console.error('[watcher] cycle error:', e.message);
+      }
+      const wait = Math.max(0, INTERVAL_MS - (Date.now() - start));
+      await new Promise(r => setTimeout(r, wait));
+    }
+  })();
 }
 
 module.exports = { run };
