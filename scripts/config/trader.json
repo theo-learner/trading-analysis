@@ -36,7 +36,7 @@
   "notifications": {
     "telegram": {
       "enabled": true,
-      "chatId": "1266746900",
+      "chatId": "",
       "parseMode": "MarkdownV2",
       "disableNotificationForNeutral": false
     }

@@ -24,9 +24,13 @@ function loadTelegramCredentials(traderConfig) {
     throw new Error('Telegram token file is empty');
   }
 
-  const chatId = traderConfig?.notifications?.telegram?.chatId;
+  const chatIdPath = path.join(SESSION_DIR, 'telegram-chat-id.txt');
+  if (!fs.existsSync(chatIdPath)) {
+    throw new Error(`Telegram chatId file not found: ${chatIdPath}`);
+  }
+  const chatId = fs.readFileSync(chatIdPath, 'utf-8').trim();
   if (!chatId) {
-    throw new Error('notifications.telegram.chatId not set in trader.json');
+    throw new Error('Telegram chatId file is empty');
   }
 
   return { token, chatId };
