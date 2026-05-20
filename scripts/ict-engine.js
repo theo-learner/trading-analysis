@@ -313,7 +313,7 @@ function analyzeICT(params) {
   }
 
   // [23-25] SL / TP / R:R
-  const sl  = calculateSL(poi, htfSwings, entryDirection);
+  const sl  = calculateSL(poi, htfSwings, alignment.htfBias);
   const tps = calculateTP(poi.price, sl, cfg.signal.minRR);
   const rr  = Math.abs(tps[0] - poi.price) / Math.abs(poi.price - sl);
 

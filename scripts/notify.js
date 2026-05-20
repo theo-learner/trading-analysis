@@ -15,7 +15,7 @@ const { dedupKey, hasRecentNotification, recordNotification } = require('./utils
  */
 function formatMessage(signal, verdict) {
   const esc = escapeMarkdownV2;
-  const { pair, direction, tier, confidence, entry, sl, tp, rr, currentPrice } = signal;
+  const { pair, direction, tier, confidence, entry, sl, tp, rr, currentPrice, scorecard, structure } = signal;
 
   const dirEmoji = direction === 'LONG' ? '📈' : direction === 'SHORT' ? '📉' : '➡️';
   const ep = entry?.price ?? 0;
@@ -41,6 +41,31 @@ function formatMessage(signal, verdict) {
     return `  ${arrow}${Math.abs(d).toFixed(1)}% 진입까지`;
   }
 
+  // Tier 설명
+  function tierLabel(t) {
+    if (t === 1) return 'HTF\\+LTF 정렬 \\+ BOS';
+    if (t === 2) return 'HTF\\+LTF 정렬';
+    if (t === 3) return 'LTF 횡보';
+    return `Tier ${t}`;
+  }
+
+  // 직관적 해석 한 줄 생성
+  function buildSummary() {
+    const htf = structure?.htfTrend ?? '?';
+    const ltf = structure?.ltfTrend ?? '?';
+    const ote = scorecard?.oteZone ?? '';
+    const bd  = scorecard?.breakdown ?? {};
+
+    const htfStr  = htf === 'bull' ? '상승추세' : htf === 'bear' ? '하락추세' : '횡보';
+    const ltfStr  = ltf === 'bull' ? '상승' : ltf === 'bear' ? '하락' : '횡보';
+    const oteStr  = ote === 'OTE' ? 'OTE 구간' : ote === 'SHALLOW' ? '얕은 되돌림' : ote === 'DEEP' ? '깊은 되돌림' : '';
+    const kzStr   = bd.time  ? '킬존 ✓' : '킬존 외';
+    const liqStr  = bd.liquidity ? '스윕 ✓' : '스윕 미확인';
+    const pdStr   = bd.pdArray >= 2 ? 'PD 복합' : bd.pdArray === 1 ? 'PD 단일' : 'PD 없음';
+
+    return esc(`HTF ${htfStr} / LTF ${ltfStr} / ${oteStr} / ${kzStr} / ${liqStr} / ${pdStr}`);
+  }
+
   const tpLines = Array.isArray(tp)
     ? tp.map((t, i) => `TP${i + 1}    \\$${esc(fmt(t))}${esc(pct(t))}`).join('\n')
     : `TP      \\$${esc(fmt(tp))}`;
@@ -49,6 +74,9 @@ function formatMessage(signal, verdict) {
   const kz  = entry?.killzone
     ? ` · ${esc(entry.killzone.charAt(0).toUpperCase() + entry.killzone.slice(1))}`
     : '';
+
+  const grade = scorecard?.grade ?? '?';
+  const size  = scorecard?.sizeMultiplier != null ? scorecard.sizeMultiplier : '?';
 
   const kst = new Date(Date.now() + 9 * 3_600_000);
   const pad = n => String(n).padStart(2, '0');
@@ -60,12 +88,14 @@ function formatMessage(signal, verdict) {
 
   return [
     `${dirEmoji} *${direction}  ${esc(pair)}*  \\|  Tier ${esc(String(tier))} · ${esc(confidence)}`,
+    `_${tierLabel(tier)}_  \\|  Grade *${esc(grade)}*  \\|  Size ${esc(String(size))}x`,
     '',
     `${curLine}진입    \\$${esc(fmt(ep))}`,
     `SL      \\$${esc(fmt(sl ?? 0))}${esc(pct(sl))}`,
     tpLines,
     `R:R     ${esc(rr?.toFixed(2) ?? '?')}`,
     '',
+    `💡 ${buildSummary()}`,
     `🎯 ${poi}${kz}`,
     `🕐 ${timeStr}`,
   ].join('\n');

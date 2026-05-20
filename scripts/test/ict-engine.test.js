@@ -233,3 +233,28 @@ test('analyzeICT: signal.swingRanges에 htf/ltf 범위가 포함된다', () => {
     assert.ok(signal.swingRanges.ltf.low <= signal.swingRanges.ltf.high, 'ltf.low > ltf.high');
   }
 });
+
+test('analyzeICT: LONG 시그널이면 SL < 진입가, SHORT 시그널이면 SL > 진입가', () => {
+  // bull 캔들 구조로 LONG 시그널 유도 시도
+  const signal = analyzeICT({
+    pair: 'TESTUSDT',
+    htfCandles: makeBullCandles(150),
+    ltfCandles: makeBullCandles(100, 60000, 5),
+  });
+  if (signal.direction === 'LONG') {
+    assert.ok(signal.sl < signal.entry.price,
+      `LONG: SL(${signal.sl})이 진입가(${signal.entry.price}) 아래여야 한다`);
+    signal.tp.forEach((t, i) => {
+      assert.ok(t > signal.entry.price,
+        `LONG: TP${i + 1}(${t})이 진입가(${signal.entry.price}) 위여야 한다`);
+    });
+  } else if (signal.direction === 'SHORT') {
+    assert.ok(signal.sl > signal.entry.price,
+      `SHORT: SL(${signal.sl})이 진입가(${signal.entry.price}) 위여야 한다`);
+    signal.tp.forEach((t, i) => {
+      assert.ok(t < signal.entry.price,
+        `SHORT: TP${i + 1}(${t})이 진입가(${signal.entry.price}) 아래여야 한다`);
+    });
+  }
+  // NEUTRAL이면 SL/TP 검증 불필요
+});

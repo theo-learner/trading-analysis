@@ -74,6 +74,6 @@ describe('watcher.run()', () => {
       logger: { log: (msg) => logs.push(msg), warn: () => {} },
     });
     await run(deps);
-    assert.ok(logs.some(l => l.includes('sent')));
+    assert.ok(logs.some(l => l.includes('SENT')));
   });
 });

@@ -237,12 +237,7 @@ run_analyze() {
     return 1
   fi
 
-  # 캡처 폴더 날짜 = 대시보드 날짜 (capture.js가 KST 기준으로 오늘 날짜 사용)
   local report_file="$PROJECT_ROOT/reports/${latest_date}_dashboard.html"
-  if [ -f "$report_file" ]; then
-    log "ℹ 이미 대시보드 존재: reports/${latest_date}_dashboard.html — 분석 건너뜀"
-    return 0
-  fi
 
   log "📅 분석 대상: screenshots/${latest_date}/"
 

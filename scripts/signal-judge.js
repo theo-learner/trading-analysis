@@ -47,7 +47,10 @@ function judgeSignal(signal) {
 
   // ── 킬존 필터 ──────────────────────────────────────────────────────────
   if (traderConfig.signal.requireKillzone && !signal.entry.killzone) {
-    return { approved: false, reason: '킬존 외부 — 진입 보류' };
+    const isTopGrade = signal.tier === 1 && signal.scorecard?.grade === 'S';
+    if (!isTopGrade) {
+      return { approved: false, reason: '킬존 외부 — 진입 보류' };
+    }
   }
 
   // ── 포지션 사이즈 계산 (TODO: 실제 계좌 잔고 조회 필요) ─────────────────
