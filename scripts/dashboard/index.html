@@ -337,7 +337,7 @@ const API = (() => {
   const p = new URLSearchParams(location.search).get('api');
   if (p) { localStorage.setItem('ict_api', p); return p.replace(/\/$/, ''); }
   const s = localStorage.getItem('ict_api');
-  return s ? s.replace(/\/$/, '') : 'http://localhost:3210';
+  return s ? s.replace(/\/$/, '') : (location.hostname === 'localhost' ? 'http://localhost:3210' : '');
 })();
 
 // Binance (BTC/ETH/SOL)
@@ -1203,13 +1203,22 @@ async function runAnalysis() {
     });
     const data = await resp.json();
     if (!resp.ok) {
-      showToast(data.message || '분석 실패', 'error');
+      showToast(data.message || data.error || '분석 실패', 'error');
       resetAnalyzeBtn();
       return;
     }
-    showToast('분석 시작됨 — 로그 패널을 확인하세요', 'info');
+    if (data.direction !== undefined) {
+      // Vercel: analyze 엔드포인트가 신호를 직접 반환
+      applySignal(data);
+      resetAnalyzeBtn();
+      showToast(`분석 완료: ${data.pair} — ${data.direction}`, 'success');
+      loadLatestDiary();
+      loadTrades();
+    } else {
+      showToast('분석 시작됨 — 로그 패널을 확인하세요', 'info');
+    }
   } catch (e) {
-    showToast('서버 연결 실패. npm run dashboard 실행 확인', 'error');
+    showToast('서버 연결 실패: ' + e.message, 'error');
     resetAnalyzeBtn();
   }
 }
@@ -1294,35 +1303,39 @@ async function loadTrades() {
   } catch (_) {}
 }
 
+function applySignal(signal) {
+  if (!signal) return;
+  state.signal = signal;
+  state.lastSignal = signal;
+  state.overlayData.fvgs   = signal.levels?.fvgs   ?? [];
+  state.overlayData.obs    = signal.levels?.obs    ?? [];
+  state.overlayData.bbs    = signal.levels?.bbs    ?? [];
+  state.overlayData.sweeps = signal.levels?.sweeps ?? [];
+  clearOverlayLines();
+  renderScorecard(signal.scorecard, signal);
+  renderSignal(signal);
+  renderAMD(signal.structure?.amdPhase);
+  renderSignalOverlays(signal);
+  if (signal.direction === 'NEUTRAL' && state.candles) loadAutoLevels(state.candles);
+  if (!state.useBoxOverlays) {
+    if (signal.levels?.fvgs) renderFVGBands(signal.levels.fvgs);
+    if (signal.levels?.obs)  renderOBLines(signal.levels.obs);
+    if (signal.levels?.bbs)  renderBBLines(signal.levels.bbs);
+  }
+}
+
 async function loadLatestSignal() {
   try {
     const resp = await fetch(`${API}/api/latest-signal?pair=${state.pair}`);
     if (!resp.ok) return;
     const signal = await resp.json();
-    if (signal) {
-      state.signal = signal;
-      state.lastSignal = signal;
-      state.overlayData.fvgs = signal.levels?.fvgs ?? [];
-      state.overlayData.obs  = signal.levels?.obs  ?? [];
-      state.overlayData.bbs  = signal.levels?.bbs  ?? [];
-      state.overlayData.sweeps = signal.levels?.sweeps ?? [];
-      clearOverlayLines();
-      renderScorecard(signal.scorecard, signal);
-      renderSignal(signal);
-      renderAMD(signal.structure?.amdPhase);
-      renderSignalOverlays(signal);
-      if (signal.direction === 'NEUTRAL' && state.candles) loadAutoLevels(state.candles);
-      if (!state.useBoxOverlays) {
-        if (signal.levels?.fvgs) renderFVGBands(signal.levels.fvgs);
-        if (signal.levels?.obs)  renderOBLines(signal.levels.obs);
-        if (signal.levels?.bbs)  renderBBLines(signal.levels.bbs);
-      }
-    }
+    applySignal(signal);
   } catch (_) {}
 }
 
-// ── SSE 연결 ──────────────────────────────────────────────────────────────
+// ── SSE 연결 (로컬 서버 전용) ─────────────────────────────────────────────
 function connectSSE() {
+  if (!API) return; // Vercel: SSE 엔드포인트 없음
   const evtSource = new EventSource(`${API}/api/events`);
 
   evtSource.addEventListener('trade', (e) => {

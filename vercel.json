@@ -1,4 +1,4 @@
 {
   "outputDirectory": "reports",
-  "buildCommand": "cp scripts/dashboard/index.html reports/ict-engine.html"
+  "buildCommand": "mkdir -p reports && cp scripts/dashboard/index.html reports/index.html && cp scripts/dashboard/index.html reports/ict-engine.html"
 }
