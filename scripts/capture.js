@@ -441,9 +441,8 @@ async function captureCoinglass(_browser) {
     log('💡', '  → npm run import-cookies:coinglass 으로 세션 저장 후 재실행');
   }
 
-  // Cloudflare + 로그인 우회: 실제 Chrome 브라우저 + 봇 감지 우회 플래그
+  // Cloudflare + 로그인 우회: 봇 감지 우회 플래그 (xvfb-run으로 가상 디스플레이 제공)
   const chromeBrowser = await chromium.launch({
-    channel: 'chrome',
     headless: false,
     args: [
       '--window-size=1920,1080',
@@ -526,11 +525,10 @@ async function captureCoinalyze(_browser) {
   }
   log('🔑', 'Coinalyze 세션 로드 완료');
 
-  // Cloudflare 우회: 실제 Chrome 브라우저로 별도 실행
+  // Cloudflare 우회: 봇 감지 우회 플래그 (xvfb-run으로 가상 디스플레이 제공)
   const chromeBrowser = await chromium.launch({
-    channel: 'chrome',
     headless: false,
-    args: ['--window-size=1920,1080', '--no-sandbox'],
+    args: ['--window-size=1920,1080', '--no-sandbox', '--disable-blink-features=AutomationControlled'],
   });
 
   const context = await chromeBrowser.newContext({
@@ -953,7 +951,6 @@ async function captureChange24h(_browser) {
     let caBrowser = null;
     try {
       caBrowser = await chromium.launch({
-        channel: 'chrome',
         headless: false,
         args: stealthChromeArgs(),
       });

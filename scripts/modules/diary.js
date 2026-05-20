@@ -102,35 +102,6 @@ function getSwingRange(signal) {
   return { low: cp * 0.97, high: cp * 1.03 };
 }
 
-// ── 시그널 요약 블록 (최상단) ─────────────────────────────────────────────────
-
-function renderSignalBlock(signal) {
-  const dir      = signal.direction;
-  const entry    = signal.entry?.price ?? signal.entry;
-  const sl       = signal.sl;
-  const tp1      = signal.tp?.[0];
-  const tp2      = signal.tp?.[1];
-  const rr       = signal.rr ? signal.rr.toFixed(1) : '—';
-  const conf     = signal.confidence || '—';
-  const grade    = signal.scorecard?.grade || '—';
-  const total    = signal.scorecard?.total ?? '—';
-  const size     = signal.scorecard?.sizeMultiplier != null ? `×${signal.scorecard.sizeMultiplier}` : '—';
-  const dirArrow = dir === 'LONG' ? '▲ LONG' : '▼ SHORT';
-  const basis    = signal.entry?.basis || '—';
-
-  return [
-    `## 🎯 시그널`,
-    `- **방향**: ${dirArrow}`,
-    `- **진입**: ${fmtPrice(entry)} (${basis})`,
-    `- **SL**: ${fmtPrice(sl)}`,
-    `- **TP1**: ${fmtPrice(tp1)}${tp2 ? `  ·  **TP2**: ${fmtPrice(tp2)}` : ''}`,
-    `- **R:R**: ${rr}  ·  **등급**: ${grade} (${total}/6)  ·  **신뢰도**: ${conf}  ·  **사이즈**: ${size}`,
-    ``,
-    `---`,
-    ``,
-  ].join('\n');
-}
-
 // ── 6단계 렌더러 ──────────────────────────────────────────────────────────────
 
 function renderStep1(signal) {
@@ -481,8 +452,6 @@ function buildDiary(signal, opts = {}) {
       ]
     : [];
 
-  const signalBlock = isNeutral ? '' : renderSignalBlock(signal);
-
   const header = [
     `# 구조 다이어리 — ${signal.pair} (HTF: 4H, LTF: 15M)`,
     ``,
@@ -513,7 +482,7 @@ function buildDiary(signal, opts = {}) {
     ].join('\n');
   }
 
-  return signalBlock + header + steps + [
+  return header + steps + [
     `---`,
     ``,
     renderAdvanced1(signal, erlIrl),

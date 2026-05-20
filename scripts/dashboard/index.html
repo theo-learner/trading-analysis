@@ -337,7 +337,7 @@ const API = (() => {
   const p = new URLSearchParams(location.search).get('api');
   if (p) { localStorage.setItem('ict_api', p); return p.replace(/\/$/, ''); }
   const s = localStorage.getItem('ict_api');
-  return s ? s.replace(/\/$/, '') : 'https://spark-ae2a.tailf69da0.ts.net';
+  return s ? s.replace(/\/$/, '') : 'http://localhost:3210';
 })();
 
 // Binance (BTC/ETH/SOL)

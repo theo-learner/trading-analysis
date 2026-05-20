@@ -74,7 +74,13 @@ run_capture() {
   log "▶ 캡처 시작 (node scripts/capture.js)"
   log_sep
 
-  if node scripts/capture.js 2>&1 | tee -a "$LOG_FILE"; then
+  # xvfb-run: headless: false 브라우저(Coinglass/Hyblock/Coinalyze)에 가상 디스플레이 제공
+  local CAPTURE_CMD="node scripts/capture.js"
+  if command -v xvfb-run &>/dev/null; then
+    CAPTURE_CMD="xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' $CAPTURE_CMD"
+  fi
+
+  if eval "$CAPTURE_CMD" 2>&1 | tee -a "$LOG_FILE"; then
     log "✓ 캡처 완료"
   else
     log "✗ 캡처 실패 (exit code: $?)"
