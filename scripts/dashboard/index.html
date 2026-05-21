@@ -1187,6 +1187,10 @@ async function runAnalyzeAll() {
   text.textContent = '전체 분석 중...';
   try {
     const resp = await fetch(`${API}/api/analyze-all`, { method: 'POST' });
+    if (!resp.ok && resp.status === 404) {
+      showToast('서버를 재시작해주세요 (구버전 실행 중)', 'error');
+      return;
+    }
     const data = await resp.json();
     if (resp.ok) {
       const done  = data.results?.filter(r => !r.error).length ?? 0;
@@ -1198,7 +1202,8 @@ async function runAnalyzeAll() {
       showToast(data.message || '전체 분석 실패', 'error');
     }
   } catch (e) {
-    showToast('서버 연결 실패: ' + e.message, 'error');
+    const msg = e.name === 'SyntaxError' ? '서버를 재시작해주세요' : '서버 연결 실패: ' + e.message;
+    showToast(msg, 'error');
   } finally {
     badge.classList.remove('visible');
   }
