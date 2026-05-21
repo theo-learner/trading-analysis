@@ -901,23 +901,8 @@ function renderSignalOverlays(signal) {
     addPriceLine({ price: signal.tp[1], color: '#0ECB81', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: `TP2 ${formatPrice(signal.tp[1])}` });
   }
 
-  // BOS + MSS + Sweep 마커를 단일 setMarkers 호출로 합산 (두 번 호출하면 덮어써짐)
+  // Sweep 마커
   const markers = [];
-  const pushStructureMarker = (e, label) => {
-    const isBull = e.direction === 'bull';
-    const isMSS  = label === 'MSS';
-    const originSuffix = e.origin ? ` (${e.origin === 'HTF' ? 'H' : 'L'})` : '';
-    markers.push({
-      time:     e.time,
-      position: isBull ? 'belowBar' : 'aboveBar',
-      color:    isMSS ? '#FCD535' : '#FFFFFF',
-      shape:    isMSS ? 'square' : (isBull ? 'arrowUp' : 'arrowDown'),
-      text:     `${label}${originSuffix}`,
-      size:     isMSS ? 0.6 : 0.4,
-    });
-  };
-  (signal.bos || []).forEach(e => pushStructureMarker(e, 'BOS'));
-  (signal.mss || []).forEach(e => pushStructureMarker(e, 'MSS'));
   if (signal.sweep && state.overlays.sweep) {
     (signal.sweep.sweepEvents || []).forEach(s => markers.push({
       time: s.time,
