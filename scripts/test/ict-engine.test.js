@@ -206,6 +206,39 @@ test('selectBestPOI: LONG — 현재가 아래 POI만 선택된다', () => {
   assert.ok(result.high <= currentPrice, `LONG 진입가(${result.high})가 현재가(${currentPrice}) 위 — 현재가 아래 수요 구간이어야 한다`);
 });
 
+test('selectBestPOI: SHORT — 현재가에 걸쳐 있는 POI(high>현재가, low<현재가)는 제외', () => {
+  // SOLUSDT 버그 재현: currentPrice=$87, POI=$86.75~$87.2
+  // poi.high($87.2) > currentPrice($87) → 기존 필터는 통과 → midpoint=$86.975 < currentPrice → 진입가 < 현재가 버그
+  // 수정 후: poi.low($86.75) < currentPrice($87) → 제외되어야 함
+  const currentPrice = 87;
+  const ltfSwings = [
+    makeSwing(85,  'low',  0),
+    makeSwing(89, 'high', 5),
+  ];
+  const straddle = makePOI(86.75, 87.2);  // 현재가에 걸쳐 있음 → SHORT에서 제외
+  const valid    = makePOI(87.5,  88.0);  // 전체가 현재가 위 → 유효
+
+  const result = _selectBestPOI([straddle, valid], [], [], 'bear', currentPrice, ltfSwings);
+  assert.ok(result !== null, 'POI를 찾아야 한다');
+  assert.ok(result.low >= currentPrice,
+    `선택된 POI low(${result.low})가 현재가(${currentPrice}) 아래 — 현재가에 걸친 POI가 잘못 선택됨`);
+});
+
+test('selectBestPOI: LONG — 현재가에 걸쳐 있는 POI(low<현재가, high>현재가)는 제외', () => {
+  const currentPrice = 50000;
+  const ltfSwings = [
+    makeSwing(49000, 'low',  0),
+    makeSwing(51000, 'high', 5),
+  ];
+  const straddle = makePOI(49500, 50200);  // 현재가에 걸쳐 있음 → LONG에서 제외
+  const valid    = makePOI(49000, 49400);  // 전체가 현재가 아래 → 유효
+
+  const result = _selectBestPOI([straddle, valid], [], [], 'bull', currentPrice, ltfSwings);
+  assert.ok(result !== null, 'POI를 찾아야 한다');
+  assert.ok(result.high <= currentPrice,
+    `선택된 POI high(${result.high})가 현재가(${currentPrice}) 위 — 현재가에 걸친 POI가 잘못 선택됨`);
+});
+
 test('analyzeICT: entry.killzone is never a boolean', () => {
   const signal = analyzeICT({
     pair: 'TESTUSDT',
