@@ -161,6 +161,51 @@ test('selectBestPOI: 스윙 포인트 없으면 기존처럼 모든 POI 허용',
   assert.ok(result !== null, '스윙 없으면 POI를 필터 없이 선택해야 한다');
 });
 
+// ── SHORT POI 방향성 검증 ────────────────────────────────────────────────────
+
+test('selectBestPOI: SHORT — 현재가 위 POI만 선택된다', () => {
+  // 현재가 50000, 공급 구간이 위(50200~50500)에 있어야 SHORT 진입 대기 가능
+  const currentPrice = 50000;
+  const ltfSwings = [
+    makeSwing(49000, 'low',  0),
+    makeSwing(51000, 'high', 5),
+  ];
+  const abovePOI = makePOI(50200, 50500);  // 현재가 위 → 유효한 SHORT 공급 구간
+  const belowPOI = makePOI(49500, 49800);  // 현재가 아래 → SHORT에서 제외되어야 함
+
+  const result = _selectBestPOI([abovePOI, belowPOI], [], [], 'bear', currentPrice, ltfSwings);
+  assert.ok(result !== null, 'SHORT POI를 찾아야 한다');
+  assert.ok(result.low >= currentPrice, `SHORT 진입가(${result.low})가 현재가(${currentPrice}) 아래 — 현재가 위 공급 구간이어야 한다`);
+});
+
+test('selectBestPOI: SHORT — 현재가 아래 POI만 있으면 null 반환', () => {
+  // 공급 구간이 모두 현재가 아래 → SHORT 시그널 불가
+  const currentPrice = 50000;
+  const ltfSwings = [
+    makeSwing(49000, 'low',  0),
+    makeSwing(51000, 'high', 5),
+  ];
+  const belowPOI = makePOI(49500, 49800);  // 현재가 아래
+
+  const result = _selectBestPOI([belowPOI], [], [], 'bear', currentPrice, ltfSwings);
+  assert.equal(result, null, '현재가 아래 공급 구간으로는 SHORT POI가 null이어야 한다');
+});
+
+test('selectBestPOI: LONG — 현재가 아래 POI만 선택된다', () => {
+  // 대칭 검증: 수요 구간이 현재가 아래 있어야 LONG 진입 대기 가능
+  const currentPrice = 50000;
+  const ltfSwings = [
+    makeSwing(49000, 'low',  0),
+    makeSwing(51000, 'high', 5),
+  ];
+  const belowPOI = makePOI(49500, 49800);  // 현재가 아래 → 유효한 LONG 수요 구간
+  const abovePOI = makePOI(50200, 50500);  // 현재가 위 → LONG에서 제외되어야 함
+
+  const result = _selectBestPOI([belowPOI, abovePOI], [], [], 'bull', currentPrice, ltfSwings);
+  assert.ok(result !== null, 'LONG POI를 찾아야 한다');
+  assert.ok(result.high <= currentPrice, `LONG 진입가(${result.high})가 현재가(${currentPrice}) 위 — 현재가 아래 수요 구간이어야 한다`);
+});
+
 test('analyzeICT: entry.killzone is never a boolean', () => {
   const signal = analyzeICT({
     pair: 'TESTUSDT',

@@ -40,7 +40,11 @@ function selectBestPOI(ltfFVGs, ltfOBs, htfBBs, direction, currentPrice, ltfSwin
   const rangeLow  = swingsBelow.length > 0 ? swingsBelow[swingsBelow.length - 1].price : -Infinity;
   const rangeHigh = swingsAbove.length > 0 ? swingsAbove[swingsAbove.length - 1].price : Infinity;
 
-  const inRange = (poi) => poi.low < rangeHigh && poi.high > rangeLow;
+  // LONG(bull): 수요 구간은 현재가 아래 — 가격이 내려와야 진입
+  // SHORT(bear): 공급 구간은 현재가 위 — 가격이 올라와야 진입
+  const inRange = direction === 'bull'
+    ? (poi) => poi.low < currentPrice && poi.high > rangeLow
+    : (poi) => poi.high > currentPrice && poi.low < rangeHigh;
 
   const activeFVGs = ltfFVGs.filter(f => f.status === 'active' && inRange(f)).map(p => ({ ...p, poiType: 'FVG' }));
   const activeOBs  = ltfOBs.filter(o => o.status === 'active' && inRange(o)).map(p => ({ ...p, poiType: 'OB' }));
