@@ -76,4 +76,29 @@ describe('watcher.run()', () => {
     await run(deps);
     assert.ok(logs.some(l => l.includes('SENT')));
   });
+
+  it('unsupported exchange를 가진 페어를 skip하고 나머지를 처리한다', async () => {
+    const fetched = [];
+    const warned  = [];
+    const deps = makeDeps({
+      traderConfig: {
+        pairs: [
+          { symbol: 'BTCUSDT',  exchange: 'binance', skipOnError: false },
+          { symbol: 'XYZUSDT',  exchange: 'bybit',   skipOnError: true  },
+          { symbol: 'ETHUSDT',  exchange: 'binance', skipOnError: false },
+        ],
+      },
+      fetchCandleSet: async (symbol) => {
+        fetched.push(symbol);
+        return { htf: [], ltf: [], h1: [], d1: [] };
+      },
+      logger: {
+        log:  () => {},
+        warn: (msg) => warned.push(msg),
+      },
+    });
+    await run(deps);
+    assert.deepEqual(fetched, ['BTCUSDT', 'ETHUSDT']);
+    assert.ok(warned.some(m => m.includes('XYZUSDT') && m.includes('미지원')));
+  });
 });

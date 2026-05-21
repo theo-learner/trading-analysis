@@ -1,5 +1,7 @@
 'use strict';
 
+const { normalizePair } = require('./utils/pair-config');
+
 async function run(deps = {}) {
   const {
     fetchCandleSet = require('./utils/binance').fetchCandleSet,
@@ -12,22 +14,27 @@ async function run(deps = {}) {
   } = deps;
 
   const work = (async () => {
-    for (const pair of traderConfig.pairs || []) {
+    for (const rawPair of traderConfig.pairs || []) {
+      const pairCfg = normalizePair(rawPair);
+      if (pairCfg.exchange !== 'binance') {
+        logger.warn(`[watcher] ${pairCfg.symbol}: exchange '${pairCfg.exchange}' 미지원, skip`);
+        continue;
+      }
       try {
-        const candles = await fetchCandleSet(pair);
+        const candles = await fetchCandleSet(pairCfg.symbol);
         const signal = analyzeICT({
           htfCandles: candles.htf,
           ltfCandles: candles.ltf,
           d1Candles:  candles.d1,
-          pair,
+          pair:       pairCfg.symbol,
           config:     ictConfig,
         });
         const result = await notifySignal(signal, traderConfig);
         const sig = `${signal.direction} | Tier${signal.tier} | ${signal.confidence} | RR ${signal.rr?.toFixed(2) ?? '?'} | kz:${signal.entry?.killzone ?? 'none'}`;
         const outcome = result.sent ? '✅ SENT' : `⏭ ${result.skipped}${result.reason ? ' — ' + result.reason : ''}`;
-        logger.log(`[watcher] ${pair}: ${sig} → ${outcome}`);
+        logger.log(`[watcher] ${pairCfg.symbol}: ${sig} → ${outcome}`);
       } catch (err) {
-        logger.warn(`[watcher] ${pair} failed: ${err.message}`);
+        logger.warn(`[watcher] ${pairCfg.symbol} failed: ${err.message}`);
       }
     }
   })();
