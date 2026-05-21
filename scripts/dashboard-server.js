@@ -24,11 +24,13 @@ const { spawn, execSync } = require('child_process');
 const { analyzeICT }     = require('./ict-engine');
 const { fetchCandleSet } = require('./utils/binance');
 const { buildDiary }     = require('./modules/diary');
+const traderConfig       = require('./config/trader.json');
 
-const PORT      = process.env.PORT ? parseInt(process.env.PORT, 10) : 3210;
-const ROOT      = path.resolve(__dirname, '..');
-const DASH_DIR  = path.join(__dirname, 'dashboard');
-const DIARY_DIR = path.join(ROOT, 'diary');
+const PORT        = process.env.PORT ? parseInt(process.env.PORT, 10) : 3210;
+const ROOT        = path.resolve(__dirname, '..');
+const DASH_DIR    = path.join(__dirname, 'dashboard');
+const DIARY_DIR   = path.join(ROOT, 'diary');
+const SIGNALS_DIR = path.join(ROOT, 'signals');
 
 // ── MIME 타입 ────────────────────────────────────────────────────────────────
 const MIME = {
@@ -197,6 +199,31 @@ async function handleRequest(req, res) {
     return jsonResponse(res, { ok: true, message: `분석 시작: ${pair} ${tf}` });
   }
 
+  // ── POST /api/analyze-all ─────────────────────────────────────────────────
+  if (req.method === 'POST' && pathname === '/api/analyze-all') {
+    if (analyzeProc) {
+      return jsonResponse(res, { ok: false, message: '단일 분석이 이미 실행 중입니다.' }, 409);
+    }
+
+    const pairs = traderConfig.pairs || ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'HYPEUSDT'];
+    const deps  = { fetchCandleSet, analyzeICT, buildDiary, diaryDir: DIARY_DIR, signalsDir: SIGNALS_DIR };
+
+    const settled = await Promise.allSettled(
+      pairs.map(async (p) => {
+        const result = await buildDiaryEntry(p, deps);
+        pushSSE('analyze-done', { code: 0, pair: p, direction: result.signal?.direction, tier: result.signal?.tier });
+        return { pair: p, direction: result.signal?.direction, tier: result.signal?.tier, confidence: result.signal?.confidence };
+      })
+    );
+
+    const results = settled.map((s, i) =>
+      s.status === 'fulfilled'
+        ? s.value
+        : { pair: pairs[i], error: s.reason?.message || '분석 실패' }
+    );
+    return jsonResponse(res, { ok: true, results });
+  }
+
   // ── POST /api/trades ─────────────────────────────────────────────────────
   if (req.method === 'POST' && pathname === '/api/trades') {
     const body = await readBody(req);
@@ -298,13 +325,14 @@ async function handleRequest(req, res) {
 
 // ── buildDiaryEntry — 테스트 가능한 순수 로직 ────────────────────────────────
 async function buildDiaryEntry(pair, deps) {
-  const { fetchCandleSet: fetchFn, analyzeICT: analyzeFn, buildDiary: buildFn, diaryDir } = deps;
+  const { fetchCandleSet: fetchFn, analyzeICT: analyzeFn, buildDiary: buildFn, diaryDir, signalsDir } = deps;
   const candles = await fetchFn(pair);
   const signal  = await analyzeFn({ htfCandles: candles.htf, ltfCandles: candles.ltf, d1Candles: candles.d1, pair });
   const diary   = buildFn(signal);
 
+  const isoSafe = new Date().toISOString().replace(/[:.]/g, '-');
+
   fs.mkdirSync(diaryDir, { recursive: true });
-  const isoSafe  = new Date().toISOString().replace(/[:.]/g, '-');
   const basename = `${pair}_15m_${isoSafe}.md`;
   const filepath = path.join(diaryDir, basename);
   const frontmatter = [
@@ -316,6 +344,12 @@ async function buildDiaryEntry(pair, deps) {
     '',
   ].join('\n');
   fs.writeFileSync(filepath, frontmatter + diary);
+
+  if (signalsDir) {
+    fs.mkdirSync(signalsDir, { recursive: true });
+    const sigName = `${pair}_15m_${isoSafe}.json`;
+    fs.writeFileSync(path.join(signalsDir, sigName), JSON.stringify(signal, null, 2));
+  }
 
   return { ok: true, diary, filename: `diary/${basename}`, signal };
 }

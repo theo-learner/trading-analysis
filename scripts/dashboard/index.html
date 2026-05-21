@@ -44,6 +44,9 @@
   .kz-badge { padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; background: rgba(14,203,129,.12); color: var(--bull); border: 1px solid rgba(14,203,129,.3); }
   .kz-badge.inactive { background: rgba(132,142,156,.08); color: var(--muted); border-color: var(--border); }
   .mode-badge { padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 700; background: rgba(252,213,53,.12); color: var(--primary); border: 1px solid rgba(252,213,53,.3); }
+  #analyze-all-badge { display: none; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; background: rgba(252,213,53,.08); color: var(--primary); border: 1px solid rgba(252,213,53,.25); }
+  #analyze-all-badge.visible { display: flex; }
+  #analyze-all-badge .spin { width: 10px; height: 10px; border: 2px solid rgba(252,213,53,.25); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
   .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--bull); box-shadow: 0 0 6px var(--bull); }
 
   /* ── 메인 레이아웃 ── */
@@ -211,6 +214,7 @@
     <button class="tf-pill" data-tf="4h">4H</button>
   </div>
   <div class="header-spacer"></div>
+  <div id="analyze-all-badge"><span class="spin"></span><span id="analyze-all-text">전체 분석 중...</span></div>
   <div class="kz-badge inactive" id="kzBadge">킬존 대기</div>
   <div class="mode-badge">DRY-RUN</div>
   <div class="status-dot" id="statusDot"></div>
@@ -1175,6 +1179,31 @@ async function executeTrade(signal) {
   }
 }
 
+// ── 전체 페어 자동 분석 ───────────────────────────────────────────────────
+async function runAnalyzeAll() {
+  const badge = document.getElementById('analyze-all-badge');
+  const text  = document.getElementById('analyze-all-text');
+  badge.classList.add('visible');
+  text.textContent = '전체 분석 중...';
+  try {
+    const resp = await fetch(`${API}/api/analyze-all`, { method: 'POST' });
+    const data = await resp.json();
+    if (resp.ok) {
+      const done  = data.results?.filter(r => !r.error).length ?? 0;
+      const total = data.results?.length ?? 0;
+      showToast(`전체 분석 완료 (${done}/${total}페어)`, done === total ? 'success' : 'info');
+      await loadLatestSignal();
+      await loadLatestDiary();
+    } else {
+      showToast(data.message || '전체 분석 실패', 'error');
+    }
+  } catch (e) {
+    showToast('서버 연결 실패: ' + e.message, 'error');
+  } finally {
+    badge.classList.remove('visible');
+  }
+}
+
 // ── 분석 실행 ─────────────────────────────────────────────────────────────
 async function runAnalysis() {
   if (state.analyzing) return;
@@ -1350,13 +1379,18 @@ function connectSSE() {
   evtSource.addEventListener('analyze-done', (e) => {
     try {
       const { code, pair, tf } = JSON.parse(e.data);
-      resetAnalyzeBtn();
+      // tf가 있으면 단일 분석 (POST /api/analyze), 없으면 analyze-all 진행 중
+      if (tf) resetAnalyzeBtn();
       if (code === 0) {
-        showToast(`분석 완료: ${pair} ${tf}`, 'success');
-        loadLatestSignal();
-        loadLatestDiary();
-        loadTrades();
-      } else {
+        if (pair === state.pair) {
+          loadLatestSignal();
+          loadLatestDiary();
+        }
+        if (tf) {
+          showToast(`분석 완료: ${pair} ${tf}`, 'success');
+          loadTrades();
+        }
+      } else if (tf) {
         showToast(`분석 종료 (code ${code}) — 로그 확인`, 'error');
       }
     } catch (_) {}
@@ -1501,6 +1535,7 @@ async function init() {
   await loadLatestSignal();
   await loadLatestDiary();
   setInterval(loadTrades, 10_000);
+  runAnalyzeAll();
 }
 
 init();
