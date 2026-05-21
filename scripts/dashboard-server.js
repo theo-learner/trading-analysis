@@ -109,8 +109,9 @@ function readBody(req) {
 }
 
 // ── 실행 중인 분석 프로세스 추적 ─────────────────────────────────────────────
-let analyzeProc = null;
-let analyzeLog  = [];
+let analyzeProc    = null;
+let analyzeLog     = [];
+let analyzeAllRunning = false;
 
 // ── 라우터 ───────────────────────────────────────────────────────────────────
 async function handleRequest(req, res) {
@@ -201,27 +202,32 @@ async function handleRequest(req, res) {
 
   // ── POST /api/analyze-all ─────────────────────────────────────────────────
   if (req.method === 'POST' && pathname === '/api/analyze-all') {
-    if (analyzeProc) {
-      return jsonResponse(res, { ok: false, message: '단일 분석이 이미 실행 중입니다.' }, 409);
+    if (analyzeProc || analyzeAllRunning) {
+      return jsonResponse(res, { ok: false, message: '분석이 이미 실행 중입니다.' }, 409);
     }
 
-    const pairs = traderConfig.pairs || ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'HYPEUSDT'];
-    const deps  = { fetchCandleSet, analyzeICT, buildDiary, diaryDir: DIARY_DIR, signalsDir: SIGNALS_DIR };
+    analyzeAllRunning = true;
+    try {
+      const pairs = traderConfig.pairs || ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'HYPEUSDT'];
+      const deps  = { fetchCandleSet, analyzeICT, buildDiary, diaryDir: DIARY_DIR, signalsDir: SIGNALS_DIR };
 
-    const settled = await Promise.allSettled(
-      pairs.map(async (p) => {
-        const result = await buildDiaryEntry(p, deps);
-        pushSSE('analyze-done', { code: 0, pair: p, direction: result.signal?.direction, tier: result.signal?.tier });
-        return { pair: p, direction: result.signal?.direction, tier: result.signal?.tier, confidence: result.signal?.confidence };
-      })
-    );
+      const settled = await Promise.allSettled(
+        pairs.map(async (p) => {
+          const result = await buildDiaryEntry(p, deps);
+          pushSSE('analyze-done', { code: 0, pair: p, direction: result.signal?.direction, tier: result.signal?.tier });
+          return { pair: p, direction: result.signal?.direction, tier: result.signal?.tier, confidence: result.signal?.confidence };
+        })
+      );
 
-    const results = settled.map((s, i) =>
-      s.status === 'fulfilled'
-        ? s.value
-        : { pair: pairs[i], error: s.reason?.message || '분석 실패' }
-    );
-    return jsonResponse(res, { ok: true, results });
+      const results = settled.map((s, i) =>
+        s.status === 'fulfilled'
+          ? s.value
+          : { pair: pairs[i], error: s.reason?.message || '분석 실패' }
+      );
+      return jsonResponse(res, { ok: true, results });
+    } finally {
+      analyzeAllRunning = false;
+    }
   }
 
   // ── POST /api/trades ─────────────────────────────────────────────────────

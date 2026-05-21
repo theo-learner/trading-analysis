@@ -1187,11 +1187,19 @@ async function runAnalyzeAll() {
   text.textContent = '전체 분석 중...';
   try {
     const resp = await fetch(`${API}/api/analyze-all`, { method: 'POST' });
-    if (!resp.ok && resp.status === 404) {
-      showToast('서버를 재시작해주세요 (구버전 실행 중)', 'error');
+    let data;
+    try {
+      data = await resp.json();
+    } catch (_) {
+      console.error('[runAnalyzeAll] non-JSON response, status:', resp.status);
+      if (resp.status === 404) showToast('서버를 재시작해주세요 (구버전 실행 중)', 'error');
+      else showToast(`서버 오류 (HTTP ${resp.status}) — 재시작 후 새로고침`, 'error');
       return;
     }
-    const data = await resp.json();
+    if (resp.status === 409) {
+      // already running — silently wait for SSE analyze-done to trigger reload
+      return;
+    }
     if (resp.ok) {
       const done  = data.results?.filter(r => !r.error).length ?? 0;
       const total = data.results?.length ?? 0;
@@ -1202,8 +1210,8 @@ async function runAnalyzeAll() {
       showToast(data.message || '전체 분석 실패', 'error');
     }
   } catch (e) {
-    const msg = e.name === 'SyntaxError' ? '서버를 재시작해주세요' : '서버 연결 실패: ' + e.message;
-    showToast(msg, 'error');
+    console.error('[runAnalyzeAll] fetch error:', e);
+    showToast('서버 연결 실패: ' + e.message, 'error');
   } finally {
     badge.classList.remove('visible');
   }
