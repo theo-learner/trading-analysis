@@ -134,7 +134,7 @@ function buildNeutral(pair, reason, tier, currentPrice, extra = {}) {
   };
 }
 
-function buildSignal({ pair, direction, alignment, scorecard, poi, sl, tps, rr, confidence, htfTrend, ltfTrend, htfAMD, kzResult, fvgs, obs, bbs, sweeps, sizeMultiplier, currentPrice, mss, bos, displacements, swingRanges }) {
+function buildSignal({ pair, direction, alignment, scorecard, poi, sl, tps, rr, confidence, htfTrend, ltfTrend, htfAMD, kzResult, fvgs, obs, bbs, sweeps, unsweptHighs, unsweptLows, sizeMultiplier, currentPrice, mss, bos, displacements, swingRanges }) {
   const entry = poi.price;
   return {
     pair,
@@ -168,7 +168,7 @@ function buildSignal({ pair, direction, alignment, scorecard, poi, sl, tps, rr, 
       amdPhase:   htfAMD,
       confluence: [],
     },
-    levels: { fvgs, obs, bbs, sweeps },
+    levels: { fvgs, obs, bbs, sweeps, unsweptHighs: unsweptHighs || [], unsweptLows: unsweptLows || [] },
     mss:          mss          || [],
     bos:          bos          || [],
     displacements: displacements || [],
@@ -270,12 +270,27 @@ function analyzeICT(params) {
     ltf: computeSwingRange(ltfSwings, SWING_LOOKBACK),
   };
 
+  // ERL용: 스윕 이벤트가 발생하지 않은 순수 스윙 고점/저점
+  const allSweeps = [...htfSweeps, ...ltfSweeps];
+  const sweptHighPrices = new Set(allSweeps.filter(s => s.type === 'BSL').map(s => s.price));
+  const sweptLowPrices  = new Set(allSweeps.filter(s => s.type === 'SSL').map(s => s.price));
+  const unsweptHighs = [
+    ...htfSwings.filter(s => s.type === 'high' && !sweptHighPrices.has(s.price)).map(s => ({ ...s, origin: 'HTF' })),
+    ...ltfSwings.filter(s => s.type === 'high' && !sweptHighPrices.has(s.price)).map(s => ({ ...s, origin: 'LTF' })),
+  ];
+  const unsweptLows = [
+    ...htfSwings.filter(s => s.type === 'low' && !sweptLowPrices.has(s.price)).map(s => ({ ...s, origin: 'HTF' })),
+    ...ltfSwings.filter(s => s.type === 'low' && !sweptLowPrices.has(s.price)).map(s => ({ ...s, origin: 'LTF' })),
+  ];
+
   const neutralStructure = { htfTrend, ltfTrend, amdPhase: htfAMD };
   const neutralLevels    = {
     fvgs:   [...htfFVGs, ...ltfFVGs],
     obs:    [...htfOBs,  ...ltfOBs],
     bbs:    htfBBs,
     sweeps: [...htfSweeps, ...ltfSweeps],
+    unsweptHighs,
+    unsweptLows,
   };
 
   // Tier ≥ 4 → NEUTRAL 조기 반환
@@ -348,6 +363,8 @@ function analyzeICT(params) {
     obs:    [...htfOBs,  ...ltfOBs],
     bbs:    htfBBs,
     sweeps: [...htfSweeps, ...ltfSweeps],
+    unsweptHighs,
+    unsweptLows,
     sizeMultiplier: scorecard.sizeMultiplier,
     currentPrice,
     mss: taggedMSS, bos: taggedBOS, displacements,

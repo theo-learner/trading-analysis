@@ -59,22 +59,24 @@ function detectUnicorn(bbs, fvgs, swingRange) {
 }
 
 function deriveERLIRL(signal) {
-  const sweeps = (signal.levels && signal.levels.sweeps) || [];
-  const fvgs   = (signal.levels && signal.levels.fvgs)   || [];
-  const obs    = (signal.levels && signal.levels.obs)    || [];
+  const cp           = signal.currentPrice || 0;
+  const fvgs         = (signal.levels && signal.levels.fvgs)         || [];
+  const obs          = (signal.levels && signal.levels.obs)          || [];
+  const unsweptHighs = (signal.levels && signal.levels.unsweptHighs) || [];
+  const unsweptLows  = (signal.levels && signal.levels.unsweptLows)  || [];
 
-  const confirmedSSL = sweeps.filter(s => s.type === 'SSL' && s.confirmed);
-  const pendingBSL   = sweeps.filter(s => s.type === 'BSL' && !s.confirmed);
-  const confirmedBSL = sweeps.filter(s => s.type === 'BSL' && s.confirmed);
-  const pendingSSL   = sweeps.filter(s => s.type === 'SSL' && !s.confirmed);
+  // ERL = 현재가 기준 아직 닿지 않은 스윙 고점/저점
+  const erlHigh = unsweptHighs
+    .filter(s => s.price > cp)
+    .sort((a, b) => a.price - b.price)[0] || null;   // 가장 가까운 위
+  const erlLow = unsweptLows
+    .filter(s => s.price < cp)
+    .sort((a, b) => b.price - a.price)[0] || null;   // 가장 가까운 아래
 
-  const erlLow  = confirmedSSL.length > 0 ? confirmedSSL.slice(-1)[0] : (pendingSSL.length > 0 ? pendingSSL.slice(-1)[0] : null);
-  const erlHigh = pendingBSL.length  > 0 ? pendingBSL.slice(-1)[0]  : (confirmedBSL.length > 0 ? confirmedBSL.slice(-1)[0] : null);
-
-  const cp      = signal.currentPrice;
   const activeFVGs = fvgs.filter(f => f.status === 'active');
   const activeOBs  = obs.filter(o => o.status === 'active');
-  const irlZone = activeFVGs.find(f => cp >= f.low && cp <= f.high) || activeOBs.find(o => cp >= o.low && cp <= o.high) || null;
+  const irlZone    = activeFVGs.find(f => cp >= f.low && cp <= f.high) ||
+                     activeOBs.find(o => cp >= o.low && cp <= o.high) || null;
 
   return { erlLow, erlHigh, irlZone, activeFVGs, activeOBs };
 }
@@ -362,15 +364,15 @@ function renderStep6(signal) {
 
 function renderAdvanced1(signal, erlIrl) {
   const { erlLow, erlHigh, irlZone } = erlIrl;
-  const erlLowText  = erlLow  ? `${fmtPrice(erlLow.price)} (${erlLow.type}, ${erlLow.confirmed ? '확정' : '미확정'})` : '—';
-  const erlHighText = erlHigh ? `${fmtPrice(erlHigh.price)} (${erlHigh.type}, ${erlHigh.confirmed ? '확정' : '미확정'})` : '—';
+  const erlLowText  = erlLow  ? `${fmtPrice(erlLow.price)} (${erlLow.origin || ''} 스윙 저점, 미취득)` : '—';
+  const erlHighText = erlHigh ? `${fmtPrice(erlHigh.price)} (${erlHigh.origin || ''} 스윙 고점, 미취득)` : '—';
   const posText = irlZone
     ? `IRL (FVG/OB ${fmtPrice(irlZone.low)}-${fmtPrice(irlZone.high)} 내부)`
     : 'ERL 방향으로 이동 중';
   const dirText = erlHigh && signal.direction === 'LONG'
-    ? `ERL 상단(${erlHigh.type})을 향해 이동 중 — 연료 보충 후 재진행`
+    ? `ERL 상단(${fmtPrice(erlHigh.price)})을 향해 이동 중 — 연료 보충 후 재진행`
     : erlLow && signal.direction === 'SHORT'
-      ? `ERL 하단(${erlLow.type})을 향해 이동 중`
+      ? `ERL 하단(${fmtPrice(erlLow.price)})을 향해 이동 중`
       : '방향 결정 중';
   return [
     `## 심화 1 · 딜링 레인지 (ERL/IRL)`,
