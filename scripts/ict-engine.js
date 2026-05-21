@@ -267,17 +267,19 @@ function analyzeICT(params) {
     ltf: computeSwingRange(ltfSwings, SWING_LOOKBACK),
   };
 
+  const neutralStructure = { htfTrend, ltfTrend, amdPhase: htfAMD };
+
   // Tier ≥ 4 → NEUTRAL 조기 반환
   if (alignment.tier >= 4) {
     return buildNeutral(params.pair, `Tier ${alignment.tier}: 정렬 불충분`, alignment.tier, currentPrice,
-      { alignmentScore: alignment.score, mss: taggedMSS, bos: taggedBOS, displacements, swingRanges });
+      { alignmentScore: alignment.score, structure: neutralStructure, mss: taggedMSS, bos: taggedBOS, displacements, swingRanges });
   }
 
   // [19] 최적 POI 선택
   const poi = selectBestPOI(ltfFVGs, ltfOBs, htfBBs, alignment.htfBias, currentPrice, ltfSwings);
   if (!poi) {
     return buildNeutral(params.pair, 'POI 없음', alignment.tier, currentPrice,
-      { alignmentScore: alignment.score, mss: taggedMSS, bos: taggedBOS, displacements, swingRanges });
+      { alignmentScore: alignment.score, structure: neutralStructure, mss: taggedMSS, bos: taggedBOS, displacements, swingRanges });
   }
 
   // [20] 킬존
@@ -309,7 +311,7 @@ function analyzeICT(params) {
   // [22] 진입 결정
   if (scorecard.action !== 'ENTER') {
     return buildNeutral(params.pair, `Scorecard: ${scorecard.action}`, alignment.tier, currentPrice,
-      { alignmentScore: alignment.score, scorecard, mss: taggedMSS, bos: taggedBOS, displacements, swingRanges });
+      { alignmentScore: alignment.score, structure: neutralStructure, scorecard, mss: taggedMSS, bos: taggedBOS, displacements, swingRanges });
   }
 
   // [23-25] SL / TP / R:R
@@ -320,7 +322,7 @@ function analyzeICT(params) {
   // R:R 2:1 미만 → NEUTRAL (Appendix B §4)
   if (rr < cfg.signal.minRR) {
     return buildNeutral(params.pair, `R:R 미달 (${rr.toFixed(2)})`, alignment.tier, currentPrice,
-      { alignmentScore: alignment.score, mss: taggedMSS, bos: taggedBOS, displacements, swingRanges });
+      { alignmentScore: alignment.score, structure: neutralStructure, mss: taggedMSS, bos: taggedBOS, displacements, swingRanges });
   }
 
   // [26] 신뢰도
