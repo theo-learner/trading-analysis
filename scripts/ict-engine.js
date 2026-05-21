@@ -15,6 +15,7 @@ const { detectOrderBlocks }       = require('./modules/order-block');
 const { detectBreakerBlocks }     = require('./modules/breaker-block');
 const { detectLiquiditySweeps }   = require('./modules/sweep');
 const { isDisplacement }          = require('./modules/displacement');
+const { bodySize, rollingAvgBody } = require('./utils/candle-utils');
 const { calculateAlignmentScore } = require('./modules/alignment');
 const { detectAMDPhase }          = require('./modules/amd');
 const { calculateEntryScorecard } = require('./modules/scorecard');
@@ -78,14 +79,16 @@ function scanDisplacements(candles, cfg) {
   const result = [];
   for (let i = 1; i < candles.length; i++) {
     if (isDisplacement(candles[i], candles, i, cfg.displacement)) {
-      const c = candles[i];
-      const bodyPct = Math.abs(c.close - c.open) / c.open * 100;
+      const c       = candles[i];
+      const avgBody = rollingAvgBody(candles, cfg.displacement.rollingWindow, i);
+      const body    = bodySize(c);
       result.push({
-        index: i,
-        time:  c.time,
-        direction: c.close > c.open ? 'bull' : 'bear',
-        bodyPct: +bodyPct.toFixed(2),
-        close: c.close,
+        index:         i,
+        time:          c.time,
+        direction:     c.close > c.open ? 'bull' : 'bear',
+        bodyPct:       +(body / c.open * 100).toFixed(2),
+        avgMultiplier: avgBody > 0 ? +(body / avgBody).toFixed(1) : null,
+        close:         c.close,
       });
     }
   }

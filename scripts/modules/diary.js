@@ -203,11 +203,11 @@ function renderStep4(signal, gradedFVGs) {
   } else {
     const header = `**Displacement 캔들** (LTF · 총 ${disps.length}개 감지 · 최근 ${recentDisps.length}개)`;
     const rows = recentDisps.map(d => {
-      const arrow    = d.direction === 'bull' ? '▲' : '▼';
-      const sign     = d.direction === 'bull' ? '+' : '-';
-      const kst      = new Date((d.time + 9 * 3600) * 1000).toISOString().slice(0, 16).replace('T', ' ');
-      const alignTag = alignedDir && d.direction === alignedDir ? ' ← **방향 일치**' : '';
-      return `  - ${arrow} ${kst} KST · close ${fmtPrice(d.close)} · body ${sign}${d.bodyPct}%${alignTag}`;
+      const arrow      = d.direction === 'bull' ? '▲ 양봉' : '▼ 음봉';
+      const kst        = new Date((d.time + 9 * 3600) * 1000).toISOString().slice(0, 16).replace('T', ' ');
+      const multStr    = d.avgMultiplier != null ? ` (평균의 ${d.avgMultiplier}배)` : '';
+      const alignTag   = alignedDir && d.direction === alignedDir ? ' ← **방향 일치**' : '';
+      return `  - ${arrow} · ${kst} KST · close ${fmtPrice(d.close)} · 바디 크기${multStr}${alignTag}`;
     });
     fmtDisp = header + '\n' + rows.join('\n');
   }
