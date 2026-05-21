@@ -144,13 +144,13 @@ function renderStep3(signal) {
     ].join('\n');
   }
 
-  const swingRange = getSwingRange(signal);
-  const inRange = sweeps.filter(s => s.price >= swingRange.low && s.price <= swingRange.high);
+  const swingRange    = getSwingRange(signal);
+  const confirmed     = sweeps.filter(s => s.confirmed && s.price >= swingRange.low && s.price <= swingRange.high);
 
-  if (inRange.length === 0) {
+  if (confirmed.length === 0) {
     return [
       `## 3단계 · 유동성 식별`,
-      `**최근 스윕**: 없음 (스윙 범위 ${fmtPrice(swingRange.low)}~${fmtPrice(swingRange.high)} 내 스윕 없음)`,
+      `**확정 스윕**: 없음 (스윙 범위 ${fmtPrice(swingRange.low)}~${fmtPrice(swingRange.high)} 내)`,
       '',
     ].join('\n');
   }
@@ -160,21 +160,20 @@ function renderStep3(signal) {
     (dir === 'LONG'  && s.type === 'SSL') ||
     (dir === 'SHORT' && s.type === 'BSL');
 
-  const sorted = inRange.slice().sort((a, b) =>
+  const sorted  = confirmed.slice().sort((a, b) =>
     (isRelevant(b) ? 1 : 0) - (isRelevant(a) ? 1 : 0) ||
     ((b.time || 0) - (a.time || 0))
   );
   const top     = sorted.slice(0, 3);
-  const omitted = sweeps.length - top.length;
-  const suffix  = omitted > 0 ? ` *(외 ${omitted}개 범위 외 생략)*` : '';
+  const omitted = confirmed.length - top.length;
+  const suffix  = omitted > 0 ? ` *(외 ${omitted}개 생략)*` : '';
 
-  const lines = top.map(s => {
-    const st = s.confirmed ? '확정 (확인 close)' : '미확정 (대기)';
-    return `- ${s.type} @ ${fmtPrice(s.price)}, close ${fmtPrice(s.close)} (${s.origin || 'LTF'}, ${fmtTime(s.time)}) — ${st}`;
-  });
+  const lines = top.map(s =>
+    `- ${s.type} @ ${fmtPrice(s.price)}, close ${fmtPrice(s.close)} (${s.origin || 'LTF'}, ${fmtTime(s.time)})`
+  );
 
-  const confirmedSSL = inRange.filter(s => s.type === 'SSL' && s.confirmed);
-  const confirmedBSL = inRange.filter(s => s.type === 'BSL' && s.confirmed);
+  const confirmedSSL = confirmed.filter(s => s.type === 'SSL');
+  const confirmedBSL = confirmed.filter(s => s.type === 'BSL');
   let narrative = '';
   if (confirmedSSL.length > 0 && dir === 'LONG') {
     narrative = '\n방향: SSL 스윕 후 반등 → 매수측 유동성 회수 시나리오';
@@ -184,7 +183,7 @@ function renderStep3(signal) {
 
   return [
     `## 3단계 · 유동성 식별`,
-    `**최근 스윕 이벤트** (스윙 범위 내, 최대 3개)${suffix}:`,
+    `**확정 스윕** (스윙 범위 내, 최대 3개)${suffix}:`,
     ...lines,
     narrative,
     '',
