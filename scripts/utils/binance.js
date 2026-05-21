@@ -6,7 +6,7 @@ const LIMITS = { htf: 300, ltf: 300, h1: 300, d1: 100 };
 async function fetchKlines(pair, interval, limit, fetchFn) {
   const fn = fetchFn || fetch;
   const url = `${BASE_URL}?symbol=${pair}&interval=${interval}&limit=${limit}`;
-  const resp = await fn(url);
+  const resp = await fn(url, { signal: AbortSignal.timeout(15_000) });
   if (!resp.ok) throw new Error(`Binance API error: ${resp.status} for ${pair}/${interval}`);
   const raw = await resp.json();
   const cutoff = Date.now();

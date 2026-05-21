@@ -1186,7 +1186,15 @@ async function runAnalyzeAll() {
   badge.classList.add('visible');
   text.textContent = '전체 분석 중...';
   try {
-    const resp = await fetch(`${API}/api/analyze-all`, { method: 'POST' });
+    const resp = await fetch(`${API}/api/analyze-all`, {
+      method: 'POST',
+      signal: AbortSignal.timeout(90_000),
+    });
+    // 409 체크를 json() 파싱 전에 먼저 처리
+    if (resp.status === 409) {
+      // already running — silently wait for SSE analyze-done to trigger reload
+      return;
+    }
     let data;
     try {
       data = await resp.json();
@@ -1194,10 +1202,6 @@ async function runAnalyzeAll() {
       console.error('[runAnalyzeAll] non-JSON response, status:', resp.status);
       if (resp.status === 404) showToast('서버를 재시작해주세요 (구버전 실행 중)', 'error');
       else showToast(`서버 오류 (HTTP ${resp.status}) — 재시작 후 새로고침`, 'error');
-      return;
-    }
-    if (resp.status === 409) {
-      // already running — silently wait for SSE analyze-done to trigger reload
       return;
     }
     if (resp.ok) {
