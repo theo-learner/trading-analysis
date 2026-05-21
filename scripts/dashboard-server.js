@@ -24,6 +24,7 @@ const { spawn, execSync } = require('child_process');
 const { analyzeICT }     = require('./ict-engine');
 const { fetchCandleSet } = require('./utils/binance');
 const { buildDiary }     = require('./modules/diary');
+const { normalizePair }  = require('./utils/pair-config');
 const traderConfig       = require('./config/trader.json');
 
 const PORT        = process.env.PORT ? parseInt(process.env.PORT, 10) : 3210;
@@ -208,21 +209,22 @@ async function handleRequest(req, res) {
 
     analyzeAllRunning = true;
     try {
-      const pairs = traderConfig.pairs || ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'HYPEUSDT'];
+      const rawPairs = traderConfig.pairs || ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'HYPEUSDT'];
+      const pairs = rawPairs.map(normalizePair);
       const deps  = { fetchCandleSet, analyzeICT, buildDiary, diaryDir: DIARY_DIR, signalsDir: SIGNALS_DIR };
 
       const settled = await Promise.allSettled(
-        pairs.map(async (p) => {
-          const result = await buildDiaryEntry(p, deps);
-          pushSSE('analyze-done', { code: 0, pair: p, direction: result.signal?.direction, tier: result.signal?.tier });
-          return { pair: p, direction: result.signal?.direction, tier: result.signal?.tier, confidence: result.signal?.confidence };
+        pairs.map(async (pairCfg) => {
+          const result = await buildDiaryEntry(pairCfg.symbol, deps);
+          pushSSE('analyze-done', { code: 0, pair: pairCfg.symbol, direction: result.signal?.direction, tier: result.signal?.tier });
+          return { pair: pairCfg.symbol, direction: result.signal?.direction, tier: result.signal?.tier, confidence: result.signal?.confidence };
         })
       );
 
       const results = settled.map((s, i) =>
         s.status === 'fulfilled'
           ? s.value
-          : { pair: pairs[i], error: s.reason?.message || '분석 실패' }
+          : { pair: pairs[i].symbol, error: s.reason?.message || '분석 실패' }
       );
       return jsonResponse(res, { ok: true, results });
     } finally {
