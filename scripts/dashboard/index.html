@@ -905,14 +905,15 @@ function renderSignalOverlays(signal) {
   const markers = [];
   const pushStructureMarker = (e, label) => {
     const isBull = e.direction === 'bull';
+    const isMSS  = label === 'MSS';
     const originSuffix = e.origin ? ` (${e.origin === 'HTF' ? 'H' : 'L'})` : '';
     markers.push({
-      time: e.time,
+      time:     e.time,
       position: isBull ? 'belowBar' : 'aboveBar',
-      color: isBull ? '#0ECB81' : '#F6465D',
-      shape: isBull ? 'arrowUp' : 'arrowDown',
-      text: `${label}${originSuffix}`,
-      size: 1,
+      color:    isMSS ? '#FCD535' : '#FFFFFF',
+      shape:    isMSS ? 'square' : (isBull ? 'arrowUp' : 'arrowDown'),
+      text:     `${label}${originSuffix}`,
+      size:     isMSS ? 1.5 : 1,
     });
   };
   (signal.bos || []).forEach(e => pushStructureMarker(e, 'BOS'));
@@ -927,6 +928,13 @@ function renderSignalOverlays(signal) {
       size: 0.5,
     }));
   }
+  // 동일 time 마커 겹침 방지: 두 번째 이상은 inBar로
+  const seenTimes = new Map();
+  markers.forEach(m => {
+    const count = seenTimes.get(m.time) || 0;
+    if (count > 0) m.position = 'inBar';
+    seenTimes.set(m.time, count + 1);
+  });
   if (markers.length) {
     markers.sort((a, b) => a.time - b.time);
     candleSeries.setMarkers(markers);
