@@ -74,7 +74,7 @@ function formatMessage(signal, verdict) {
       }).join('\n')
     : `TP      \\$${esc(fmt(tp))}`;
 
-  const poi = entry?.poi ? esc(entry.poi) : '';
+  const poi = entry?.basis ? esc(entry.basis) : '';
   const kz  = entry?.killzone
     ? ` · ${esc(entry.killzone.charAt(0).toUpperCase() + entry.killzone.slice(1))}`
     : '';

@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const DEFAULT_LEDGER_PATH = path.join(__dirname, '..', '..', 'sessions', 'notifications-sent.json');
-const WINDOW_MS = 1 * 60 * 60 * 1000;
+const WINDOW_MS = 24 * 60 * 60 * 1000;
 
 function getLedgerPath() {
   return process.env._TEST_LEDGER_PATH || DEFAULT_LEDGER_PATH;
