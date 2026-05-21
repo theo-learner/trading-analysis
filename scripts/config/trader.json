@@ -31,7 +31,14 @@
     "_marginOptions": ["isolated", "cross"]
   },
 
-  "pairs": ["BTCUSDT", "ETHUSDT", "SOLUSDT", "HYPEUSDT"],
+  "pairs": [
+    { "symbol": "BTCUSDT",    "exchange": "binance" },
+    { "symbol": "ETHUSDT",    "exchange": "binance" },
+    { "symbol": "SOLUSDT",    "exchange": "binance" },
+    { "symbol": "HYPEUSDT",   "exchange": "binance" },
+    { "symbol": "ZECUSDT",    "exchange": "binance", "skipOnError": true },
+    { "symbol": "MORPHOUSDT", "exchange": "binance", "skipOnError": true }
+  ],
 
   "notifications": {
     "telegram": {
