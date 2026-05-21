@@ -913,7 +913,7 @@ function renderSignalOverlays(signal) {
       color:    isMSS ? '#FCD535' : '#FFFFFF',
       shape:    isMSS ? 'square' : (isBull ? 'arrowUp' : 'arrowDown'),
       text:     `${label}${originSuffix}`,
-      size:     isMSS ? 1.5 : 1,
+      size:     isMSS ? 0.6 : 0.4,
     });
   };
   (signal.bos || []).forEach(e => pushStructureMarker(e, 'BOS'));
