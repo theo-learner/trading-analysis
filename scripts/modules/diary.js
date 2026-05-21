@@ -195,11 +195,23 @@ function renderStep4(signal, gradedFVGs) {
   const disps      = signal.displacements || [];
   const swingRange = getSwingRange(signal);
 
-  // most recent displacement only
-  const latestDisp = disps.slice(-1)[0];
-  const fmtDisp    = latestDisp
-    ? `- **Displacement 캔들**: LTF ${fmtTime(latestDisp.time)}, close ${fmtPrice(latestDisp.close)}, body ${latestDisp.direction === 'bull' ? '+' : '-'}${latestDisp.bodyPct}% (임계 통과)`
-    : '- **Displacement**: 감지되지 않음';
+  // most recent 3 displacements, newest first
+  const alignedDir  = signal.direction === 'LONG' ? 'bull' : signal.direction === 'SHORT' ? 'bear' : null;
+  const recentDisps = disps.slice(-3).reverse();
+  let fmtDisp;
+  if (recentDisps.length === 0) {
+    fmtDisp = '**Displacement**: 감지되지 않음';
+  } else {
+    const header = `**Displacement 캔들** (LTF · 총 ${disps.length}개 감지 · 최근 ${recentDisps.length}개)`;
+    const rows = recentDisps.map(d => {
+      const arrow    = d.direction === 'bull' ? '▲' : '▼';
+      const sign     = d.direction === 'bull' ? '+' : '-';
+      const kst      = new Date((d.time + 9 * 3600) * 1000).toISOString().slice(0, 16).replace('T', ' ');
+      const alignTag = alignedDir && d.direction === alignedDir ? ' ← **방향 일치**' : '';
+      return `  - ${arrow} ${kst} KST · close ${fmtPrice(d.close)} · body ${sign}${d.bodyPct}%${alignTag}`;
+    });
+    fmtDisp = header + '\n' + rows.join('\n');
+  }
 
   // active FVGs within current swing range only (max 3)
   const gradeOrder = { 'A+': 0, 'A': 1, 'B': 2 };
