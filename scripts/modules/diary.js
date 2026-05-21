@@ -168,17 +168,25 @@ function renderStep3(signal) {
   const omitted = confirmed.length - top.length;
   const suffix  = omitted > 0 ? ` *(외 ${omitted}개 생략)*` : '';
 
-  const lines = top.map(s =>
-    `- ${s.type} @ ${fmtPrice(s.price)}, close ${fmtPrice(s.close)} (${s.origin || 'LTF'}, ${fmtTime(s.time)})`
-  );
+  const lines = top.map(s => {
+    const isSsl    = s.type === 'SSL';
+    const arrow    = isSsl ? '▼' : '▲';
+    const label    = isSsl ? 'SSL (저점 스윕)' : 'BSL (고점 스윕)';
+    const action   = isSsl
+      ? `${fmtPrice(s.price)} 아래 찍고 ${fmtPrice(s.close)} 복귀`
+      : `${fmtPrice(s.price)} 위 찍고 ${fmtPrice(s.close)} 복귀`;
+    const kst      = new Date((s.time + 9 * 3600) * 1000).toISOString().slice(0, 16).replace('T', ' ');
+    const tf       = s.origin || 'LTF';
+    const alignTag = isRelevant(s) ? ' ← **방향 일치**' : '';
+    return `- ${arrow} ${label} · ${action} · ${kst} KST (${tf})${alignTag}`;
+  });
 
-  const confirmedSSL = confirmed.filter(s => s.type === 'SSL');
-  const confirmedBSL = confirmed.filter(s => s.type === 'BSL');
+  const hasRelevantSweep = top.some(isRelevant);
   let narrative = '';
-  if (confirmedSSL.length > 0 && dir === 'LONG') {
-    narrative = '\n방향: SSL 스윕 후 반등 → 매수측 유동성 회수 시나리오';
-  } else if (confirmedBSL.length > 0 && dir === 'SHORT') {
-    narrative = '\n방향: BSL 스윕 후 하락 → 매도측 유동성 회수 시나리오';
+  if (hasRelevantSweep && dir === 'LONG') {
+    narrative = '\n→ 저점 유동성 회수 후 반등 확인 — 롱 시나리오 지지';
+  } else if (hasRelevantSweep && dir === 'SHORT') {
+    narrative = '\n→ 고점 유동성 회수 후 하락 확인 — 숏 시나리오 지지';
   }
 
   return [
