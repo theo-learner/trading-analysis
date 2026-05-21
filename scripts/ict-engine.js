@@ -60,13 +60,10 @@ function selectBestPOI(ltfFVGs, ltfOBs, htfBBs, direction, currentPrice, ltfSwin
   return null;
 }
 
-function calculateSL(poi, htfSwings, direction) {
-  const lastSwingLow  = htfSwings.filter(s => s.type === 'low').slice(-1)[0];
-  const lastSwingHigh = htfSwings.filter(s => s.type === 'high').slice(-1)[0];
-  if (direction === 'bull') {
-    return Math.min(poi.low, lastSwingLow ? lastSwingLow.price : poi.low);
-  }
-  return Math.max(poi.high, lastSwingHigh ? lastSwingHigh.price : poi.high);
+function calculateSL(poi, direction) {
+  // SL = POI 하단/상단 — POI가 무효화되는 지점
+  // HTF 스윙 저점/고점은 invalidation 필드에 별도 기록
+  return direction === 'bull' ? poi.low : poi.high;
 }
 
 function calculateTP(entry, sl, direction, unsweptHighs, unsweptLows, minRR) {
@@ -151,8 +148,13 @@ function buildNeutral(pair, reason, tier, currentPrice, extra = {}) {
   };
 }
 
-function buildSignal({ pair, direction, alignment, scorecard, poi, sl, tps, tpBasisArr, rr, confidence, htfTrend, ltfTrend, htfAMD, kzResult, fvgs, obs, bbs, sweeps, unsweptHighs, unsweptLows, sizeMultiplier, currentPrice, mss, bos, displacements, swingRanges }) {
+function buildSignal({ pair, direction, alignment, scorecard, poi, sl, tps, tpBasisArr, rr, confidence, htfTrend, ltfTrend, htfAMD, kzResult, fvgs, obs, bbs, sweeps, unsweptHighs, unsweptLows, sizeMultiplier, currentPrice, mss, bos, displacements, swingRanges, htfSwings }) {
   const entry = poi.price;
+  const lastSwingLow  = htfSwings ? htfSwings.filter(s => s.type === 'low').slice(-1)[0]  : null;
+  const lastSwingHigh = htfSwings ? htfSwings.filter(s => s.type === 'high').slice(-1)[0] : null;
+  const htfInvalidation = direction === 'LONG'
+    ? (lastSwingLow  ? lastSwingLow.price  : null)
+    : (lastSwingHigh ? lastSwingHigh.price : null);
   return {
     pair,
     timestamp: Math.floor(Date.now() / 1000),
@@ -191,7 +193,8 @@ function buildSignal({ pair, direction, alignment, scorecard, poi, sl, tps, tpBa
     displacements: displacements || [],
     invalidation: {
       price:  sl,
-      reason: direction === 'LONG' ? 'Close below SL' : 'Close above SL',
+      reason: direction === 'LONG' ? 'Close below POI low' : 'Close above POI high',
+      htfLevel: htfInvalidation,
     },
     currentPrice,
     swingRanges: swingRanges || null,
@@ -356,7 +359,7 @@ function analyzeICT(params) {
   }
 
   // [23-25] SL / TP / R:R
-  const sl             = calculateSL(poi, htfSwings, alignment.htfBias);
+  const sl             = calculateSL(poi, alignment.htfBias);
   const { prices: tps, basis: tpBasisArr } = calculateTP(poi.price, sl, alignment.htfBias, unsweptHighs, unsweptLows, cfg.signal.minRR);
   const rr             = Math.abs(tps[0] - poi.price) / Math.abs(poi.price - sl);
 
@@ -386,6 +389,7 @@ function analyzeICT(params) {
     currentPrice,
     mss: taggedMSS, bos: taggedBOS, displacements,
     swingRanges,
+    htfSwings,
   });
 }
 
