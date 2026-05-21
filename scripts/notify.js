@@ -66,8 +66,12 @@ function formatMessage(signal, verdict) {
     return esc(`HTF ${htfStr} / LTF ${ltfStr} / ${oteStr} / ${kzStr} / ${liqStr} / ${pdStr}`);
   }
 
+  const tpBasis = signal.tpBasis ?? [];
   const tpLines = Array.isArray(tp)
-    ? tp.map((t, i) => `TP${i + 1}    \\$${esc(fmt(t))}${esc(pct(t))}`).join('\n')
+    ? tp.map((t, i) => {
+        const tag = tpBasis[i] === 'RR' ? ' · RR' : tpBasis[i] === 'ERL' ? ' · ERL' : '';
+        return `TP${i + 1}    \\$${esc(fmt(t))}${esc(pct(t))}${esc(tag)}`;
+      }).join('\n')
     : `TP      \\$${esc(fmt(tp))}`;
 
   const poi = entry?.poi ? esc(entry.poi) : '';
