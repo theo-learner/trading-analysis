@@ -2,7 +2,7 @@
 
 const { test } = require('node:test');
 const assert   = require('node:assert/strict');
-const { analyzeICT, _selectBestPOI } = require('../ict-engine');
+const { analyzeICT, _selectBestPOI, _calculateTP } = require('../ict-engine');
 
 // 합성 캔들 생성 헬퍼 — 단조증가 HTF (bull trend 유도)
 function makeBullCandles(n, basePrice = 50000, step = 100) {
@@ -302,4 +302,68 @@ test('analyzeICT: LONG 시그널이면 SL < 진입가, SHORT 시그널이면 SL 
     });
   }
   // NEUTRAL이면 SL/TP 검증 불필요
+});
+
+// ── calculateTP: 구조적 TP 검증 ─────────────────────────────────────────────
+
+function makeSwingLevel(price) { return { price, type: 'high', index: 0, time: 0 }; }
+
+test('calculateTP: LONG — 미스윕 고점을 가까운 순으로 TP1/2/3 사용', () => {
+  const entry = 100;
+  const sl    = 90;
+  const unsweptHighs = [
+    makeSwingLevel(130),
+    makeSwingLevel(115),  // 가장 가까움 → TP1
+    makeSwingLevel(145),
+  ];
+  const { prices, basis } = _calculateTP(entry, sl, 'bull', unsweptHighs, [], 2.0);
+
+  assert.equal(prices[0], 115, 'TP1은 진입가 위 가장 가까운 미스윕 고점이어야 한다');
+  assert.equal(prices[1], 130, 'TP2는 두 번째 가까운 미스윕 고점이어야 한다');
+  assert.equal(prices[2], 145, 'TP3는 세 번째 가까운 미스윕 고점이어야 한다');
+  assert.deepEqual(basis, ['ERL', 'ERL', 'ERL'], '구조적 타겟은 모두 ERL로 표기');
+});
+
+test('calculateTP: SHORT — 미스윕 저점을 가까운 순으로 TP1/2/3 사용', () => {
+  const entry = 100;
+  const sl    = 110;
+  const unsweptLows = [
+    makeSwingLevel(60),
+    makeSwingLevel(85),   // 가장 가까움 → TP1
+    makeSwingLevel(72),
+  ];
+  const { prices, basis } = _calculateTP(entry, sl, 'bear', [], unsweptLows, 2.0);
+
+  assert.equal(prices[0], 85,  'TP1은 진입가 아래 가장 가까운 미스윕 저점이어야 한다');
+  assert.equal(prices[1], 72,  'TP2는 두 번째');
+  assert.equal(prices[2], 60,  'TP3는 세 번째');
+  assert.deepEqual(basis, ['ERL', 'ERL', 'ERL']);
+});
+
+test('calculateTP: 구조적 타겟 부족 시 R:R로 나머지 채움', () => {
+  const entry = 100;
+  const sl    = 90;  // risk = 10
+  const unsweptHighs = [makeSwingLevel(115)];  // 1개만
+  const { prices, basis } = _calculateTP(entry, sl, 'bull', unsweptHighs, [], 2.0);
+
+  assert.equal(prices[0], 115,   'TP1은 구조적 타겟');
+  assert.equal(prices[1], 100 + 10 * 2.0 * 1.5, 'TP2는 R:R 폴백 (1.5배)');
+  assert.equal(prices[2], 100 + 10 * 2.0 * 2,   'TP3는 R:R 폴백 (2배)');
+  assert.equal(basis[0], 'ERL');
+  assert.equal(basis[1], 'RR');
+  assert.equal(basis[2], 'RR');
+});
+
+test('calculateTP: 진입가 아래 고점은 LONG TP 타겟에서 제외', () => {
+  const entry = 100;
+  const sl    = 90;
+  const unsweptHighs = [
+    makeSwingLevel(95),   // 진입가 아래 → 제외
+    makeSwingLevel(120),  // 유효
+  ];
+  const { prices, basis } = _calculateTP(entry, sl, 'bull', unsweptHighs, [], 2.0);
+
+  assert.equal(prices[0], 120, '진입가 아래 고점은 무시하고 120이 TP1이어야 한다');
+  assert.equal(basis[0], 'ERL');
+  assert.equal(basis[1], 'RR', 'TP2는 구조적 타겟 없어서 R:R 폴백');
 });

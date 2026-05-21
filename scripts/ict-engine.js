@@ -69,14 +69,27 @@ function calculateSL(poi, htfSwings, direction) {
   return Math.max(poi.high, lastSwingHigh ? lastSwingHigh.price : poi.high);
 }
 
-function calculateTP(entry, sl, minRR) {
+function calculateTP(entry, sl, direction, unsweptHighs, unsweptLows, minRR) {
   const risk = Math.abs(entry - sl);
-  const sign = entry > sl ? 1 : -1;
-  return [
-    entry + sign * risk * minRR,
-    entry + sign * risk * minRR * 1.5,
-    entry + sign * risk * minRR * 2,
-  ];
+  const sign = direction === 'bull' ? 1 : -1;
+
+  // 구조적 타겟: 진입가 너머의 미스윕 스윙 고점/저점 (가까운 순)
+  const structuralTargets = direction === 'bull'
+    ? unsweptHighs.filter(s => s.price > entry).sort((a, b) => a.price - b.price)
+    : unsweptLows.filter(s => s.price < entry).sort((a, b) => b.price - a.price);
+
+  const prices = structuralTargets.slice(0, 3).map(s => s.price);
+  const basis  = prices.map(() => 'ERL');
+
+  // 구조적 타겟이 3개 미만이면 R:R 수학으로 채움
+  const fallbackMultipliers = [minRR, minRR * 1.5, minRR * 2];
+  while (prices.length < 3) {
+    const m = fallbackMultipliers[prices.length];
+    prices.push(+(entry + sign * risk * m).toFixed(8));
+    basis.push('RR');
+  }
+
+  return { prices, basis };
 }
 
 function scanDisplacements(candles, cfg) {
@@ -138,7 +151,7 @@ function buildNeutral(pair, reason, tier, currentPrice, extra = {}) {
   };
 }
 
-function buildSignal({ pair, direction, alignment, scorecard, poi, sl, tps, rr, confidence, htfTrend, ltfTrend, htfAMD, kzResult, fvgs, obs, bbs, sweeps, unsweptHighs, unsweptLows, sizeMultiplier, currentPrice, mss, bos, displacements, swingRanges }) {
+function buildSignal({ pair, direction, alignment, scorecard, poi, sl, tps, tpBasisArr, rr, confidence, htfTrend, ltfTrend, htfAMD, kzResult, fvgs, obs, bbs, sweeps, unsweptHighs, unsweptLows, sizeMultiplier, currentPrice, mss, bos, displacements, swingRanges }) {
   const entry = poi.price;
   return {
     pair,
@@ -164,7 +177,7 @@ function buildSignal({ pair, direction, alignment, scorecard, poi, sl, tps, rr, 
     sl,
     slBasis: direction === 'LONG' ? 'BELOW_OB' : 'ABOVE_OB',
     tp:      tps,
-    tpBasis: tps.map((_, i) => `TP${i + 1}`),
+    tpBasis: tpBasisArr,
     rr,
     structure: {
       htfTrend,
@@ -343,9 +356,9 @@ function analyzeICT(params) {
   }
 
   // [23-25] SL / TP / R:R
-  const sl  = calculateSL(poi, htfSwings, alignment.htfBias);
-  const tps = calculateTP(poi.price, sl, cfg.signal.minRR);
-  const rr  = Math.abs(tps[0] - poi.price) / Math.abs(poi.price - sl);
+  const sl             = calculateSL(poi, htfSwings, alignment.htfBias);
+  const { prices: tps, basis: tpBasisArr } = calculateTP(poi.price, sl, alignment.htfBias, unsweptHighs, unsweptLows, cfg.signal.minRR);
+  const rr             = Math.abs(tps[0] - poi.price) / Math.abs(poi.price - sl);
 
   // R:R 2:1 미만 → NEUTRAL (Appendix B §4)
   if (rr < cfg.signal.minRR) {
@@ -361,7 +374,7 @@ function analyzeICT(params) {
   return buildSignal({
     pair: params.pair,
     direction: entryDirection,
-    alignment, scorecard, poi, sl, tps, rr, confidence,
+    alignment, scorecard, poi, sl, tps, tpBasisArr, rr, confidence,
     htfTrend, ltfTrend, htfAMD, kzResult,
     fvgs:   [...htfFVGs, ...ltfFVGs],
     obs:    [...htfOBs,  ...ltfOBs],
@@ -376,7 +389,7 @@ function analyzeICT(params) {
   });
 }
 
-module.exports = { analyzeICT, _selectBestPOI: selectBestPOI };
+module.exports = { analyzeICT, _selectBestPOI: selectBestPOI, _calculateTP: calculateTP };
 
 // ── CLI 진입점 ────────────────────────────────────────────────────────────────
 
