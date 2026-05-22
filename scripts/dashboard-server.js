@@ -83,7 +83,7 @@ function readJSON(fp) {
 }
 
 function getPairsResponse() {
-  return { pairs: loadPairs().filter(p => !p.skipOnError) };
+  return { pairs: loadPairs() };
 }
 
 function readDirJSON(dir, limit = 50) {

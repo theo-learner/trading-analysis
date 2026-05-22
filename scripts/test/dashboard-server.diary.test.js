@@ -83,9 +83,9 @@ describe('getPairsResponse', () => {
     }
   });
 
-  it('skipOnError 페어를 제외한다', () => {
+  it('skipOnError 페어를 포함한다', () => {
     const { getPairsResponse } = require('../dashboard-server');
     const resp = getPairsResponse();
-    assert.ok(resp.pairs.every(p => !p.skipOnError));
+    assert.ok(resp.pairs.some(p => p.skipOnError));
   });
 });
