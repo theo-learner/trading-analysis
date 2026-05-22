@@ -1,22 +1,50 @@
 'use strict';
 
 const { normalizePair } = require('./utils/pair-config');
+const { dedupKey, hasRecentNotification } = require('./utils/notification-ledger');
+const { loadTradeEnv } = require('./utils/load-env');
+
+function _mergeEnv(base, tenv) {
+  const hasOverride = tenv.LEVERAGE || tenv.MARGIN_USD || tenv.NOTIONAL_USD;
+  if (!hasOverride) return base;
+  return {
+    ...base,
+    execution: {
+      ...base.execution,
+      ...(tenv.LEVERAGE     && { leverage:    parseInt(tenv.LEVERAGE, 10) }),
+      ...(tenv.MARGIN_USD   && { marginUsd:   parseFloat(tenv.MARGIN_USD) }),
+      ...(tenv.NOTIONAL_USD && { notionalUsd: parseFloat(tenv.NOTIONAL_USD) }),
+    },
+    position: {
+      ...base.position,
+      ...(tenv.LEVERAGE && { leverage: parseInt(tenv.LEVERAGE, 10) }),
+    },
+  };
+}
 
 async function run(deps = {}) {
   const {
-    fetchCandleSet = require('./utils/binance').fetchCandleSet,
-    analyzeICT     = require('./ict-engine').analyzeICT,
-    notifySignal   = require('./notify').notifySignal,
-    traderConfig   = require('./config/trader.json'),
-    ictConfig      = require('./config/ict-engine.json'),
-    logger         = console,
-    timeoutMs      = 45_000,
+    fetchCandleSet  = require('./utils/binance').fetchCandleSet,
+    analyzeICT      = require('./ict-engine').analyzeICT,
+    notifySignal    = require('./notify').notifySignal,
+    judgeSignal     = require('./signal-judge').judgeSignal,
+    tradeExecutor   = require('./trade-executor'),
+    positionMonitor = require('./position-monitor'),
+    traderConfig    = require('./config/trader.json'),
+    ictConfig       = require('./config/ict-engine.json'),
+    logger          = console,
+    timeoutMs       = 45_000,
+    env             = process.env,
   } = deps;
 
+  // Hot-reload: apply sessions/trade.env overrides each tick (no pm2 restart needed)
+  const cfg = _mergeEnv(traderConfig, loadTradeEnv());
+
+  const isLive = cfg.mode === 'live' && env.TRADING_LIVE === '1';
   let cancelled = false;
 
   const work = (async () => {
-    for (const rawPair of traderConfig.pairs || []) {
+    for (const rawPair of cfg.pairs || []) {
       if (cancelled) break;
       const pairCfg = normalizePair(rawPair);
       if (pairCfg.exchange !== 'binance') {
@@ -32,13 +60,36 @@ async function run(deps = {}) {
           pair:       pairCfg.symbol,
           config:     ictConfig,
         });
-        const result = await notifySignal(signal, traderConfig);
+
+        // Judge signal once here — result injected into notifySignal to avoid double call
+        const verdict = judgeSignal(signal, cfg);
+
+        let tradeResult = null;
+        const tradeKey = dedupKey(signal);
+        if (verdict.approved && (isLive || cfg.mode === 'dry-run') && !hasRecentNotification(tradeKey)) {
+          try {
+            tradeResult = await tradeExecutor.execute(signal, verdict, cfg, { env });
+            const modeTag = tradeResult?.dryRun ? '[dry-run]' : '[live]';
+            logger.log(`[watcher] ${pairCfg.symbol}: trade ${modeTag} ${tradeResult.id} slippage=${tradeResult.entry?.slippageBps ?? 0}bps`);
+          } catch (err) {
+            logger.warn(`[watcher] ${pairCfg.symbol}: trade execute failed: ${err.message}`);
+          }
+        }
+
+        const result = await notifySignal(signal, cfg, { verdict, tradeResult, env });
         const sig = `${signal.direction} | Tier${signal.tier} | ${signal.confidence} | RR ${signal.rr?.toFixed(2) ?? '?'} | kz:${signal.entry?.killzone ?? 'none'}`;
         const outcome = result.sent ? '✅ SENT' : `⏭ ${result.skipped}${result.reason ? ' — ' + result.reason : ''}`;
         logger.log(`[watcher] ${pairCfg.symbol}: ${sig} → ${outcome}`);
       } catch (err) {
         logger.warn(`[watcher] ${pairCfg.symbol} failed: ${err.message}`);
       }
+    }
+
+    // Position monitor tick — runs after all pairs processed
+    try {
+      await positionMonitor.tick(cfg, { env });
+    } catch (err) {
+      logger.warn(`[watcher] position monitor tick failed: ${err.message}`);
     }
   })();
 

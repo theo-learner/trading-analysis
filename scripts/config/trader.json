@@ -1,20 +1,20 @@
 {
   "_comment": "trader.js 실행 설정 — 실제 API 키는 sessions/ 폴더에서 로드",
-  "mode": "dry-run",
+  "mode": "live",
   "_modeOptions": ["dry-run", "live"],
 
   "exchange": {
-    "default": "bybit",
+    "default": "binance",
     "_options": ["bybit", "binance"],
     "bybit": {
       "baseUrl": "https://api.bybit.com",
       "testnetUrl": "https://api-testnet.bybit.com",
-      "useTestnet": true
+      "useTestnet": false
     },
     "binance": {
       "baseUrl": "https://fapi.binance.com",
       "testnetUrl": "https://testnet.binancefuture.com",
-      "useTestnet": true
+      "useTestnet": false
     }
   },
 
@@ -25,14 +25,52 @@
     "minRR": 2.0
   },
 
+  "execution": {
+    "_comment": "주문 실행 설정 — marginUsd × leverage = notionalUsd",
+    "exchange": "bybit",
+    "leverage": 2,
+    "marginUsd": 10,
+    "marginUsdMin": 10,
+    "notionalUsd": 20,
+    "minBalanceUsd": 50,
+    "enabled": true
+  },
+
   "position": {
-    "leverage": 5,
+    "leverage": 2,
     "marginType": "isolated",
-    "_marginOptions": ["isolated", "cross"]
+    "_marginOptions": ["isolated", "cross"],
+    "maxConcurrent": 4,
+    "maxPerPair": 1
+  },
+
+  "trailing": {
+    "enabled": true,
+    "tp1ToBE": true,
+    "tp2ToTP1": true,
+    "moveOnFillConfirmDelayMs": 1500
+  },
+
+  "slippage": {
+    "maxBps": 100,
+    "useMarkPrice": true
+  },
+
+  "retry": {
+    "orderMaxAttempts": 3,
+    "backoffMs": [250, 750, 2000]
+  },
+
+  "reconcile": {
+    "onStartup": true,
+    "adoptOrphans": false
+  },
+
+  "safety": {
+    "maxDailyTrades": 12
   },
 
   "pairs": [
-    { "symbol": "BTCUSDT",    "exchange": "binance" },
     { "symbol": "ETHUSDT",    "exchange": "binance" },
     { "symbol": "SOLUSDT",    "exchange": "binance" },
     { "symbol": "HYPEUSDT",   "exchange": "binance", "chartSource": "bybit" },

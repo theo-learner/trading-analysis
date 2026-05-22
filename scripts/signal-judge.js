@@ -18,7 +18,7 @@ const traderConfig = require('./config/trader.json');
  * @param {ICTSignal} signal - ict-engine.js 출력
  * @returns {{ approved: boolean, reason: string, order?: OrderParams }}
  */
-function judgeSignal(signal) {
+function judgeSignal(signal, cfg = traderConfig) {
   // ── 기본 필터 ──────────────────────────────────────────────────────────
   if (signal.direction === 'NEUTRAL') {
     return { approved: false, reason: 'NEUTRAL — 방향성 없음' };
@@ -29,24 +29,24 @@ function judgeSignal(signal) {
   }
 
   // ── 티어 필터 ──────────────────────────────────────────────────────────
-  if (signal.tier > traderConfig.signal.maxTier) {
-    return { approved: false, reason: `Tier ${signal.tier} — 최대 허용 Tier ${traderConfig.signal.maxTier} 초과` };
+  if (signal.tier > cfg.signal.maxTier) {
+    return { approved: false, reason: `Tier ${signal.tier} — 최대 허용 Tier ${cfg.signal.maxTier} 초과` };
   }
 
   // ── Confidence 필터 ────────────────────────────────────────────────────
   const confidenceRank = { HIGH: 3, MEDIUM: 2, LOW: 1 };
-  const minRank = confidenceRank[traderConfig.signal.minConfidence] || 2;
+  const minRank = confidenceRank[cfg.signal.minConfidence] || 2;
   if ((confidenceRank[signal.confidence] || 0) < minRank) {
-    return { approved: false, reason: `Confidence ${signal.confidence} — 최소 ${traderConfig.signal.minConfidence} 필요` };
+    return { approved: false, reason: `Confidence ${signal.confidence} — 최소 ${cfg.signal.minConfidence} 필요` };
   }
 
   // ── R:R 필터 ───────────────────────────────────────────────────────────
-  if (signal.rr < traderConfig.risk.minRR) {
-    return { approved: false, reason: `R:R ${signal.rr.toFixed(2)} — 최소 ${traderConfig.risk.minRR} 미달` };
+  if (signal.rr < cfg.risk.minRR) {
+    return { approved: false, reason: `R:R ${signal.rr.toFixed(2)} — 최소 ${cfg.risk.minRR} 미달` };
   }
 
   // ── 킬존 필터 ──────────────────────────────────────────────────────────
-  if (traderConfig.signal.requireKillzone && !signal.entry.killzone) {
+  if (cfg.signal.requireKillzone && !signal.entry.killzone) {
     const isTopGrade = signal.tier === 1 && signal.scorecard?.grade === 'S';
     if (!isTopGrade) {
       return { approved: false, reason: '킬존 외부 — 진입 보류' };
@@ -59,10 +59,9 @@ function judgeSignal(signal) {
     return { approved: false, reason: `Size ${signal.scorecard?.sizeMultiplier ?? '?'}x — 1x만 알림` };
   }
 
-  // ── 포지션 사이즈 계산 (TODO: 실제 계좌 잔고 조회 필요) ─────────────────
-  // const accountBalance = await getAccountBalance();
-  // const riskAmount = accountBalance * (traderConfig.risk.maxRiskPerTradePct / 100);
-  // const qty = riskAmount / Math.abs(signal.entry.price - signal.sl);
+  // ── 포지션 사이즈 계산 (rawQty — stepSize 라운딩은 trade-executor에서) ───
+  const notionalUsd = cfg.execution?.notionalUsd ?? 20;
+  const rawQty = signal.entry.price > 0 ? notionalUsd / signal.entry.price : 0;
 
   return {
     approved: true,
@@ -73,7 +72,7 @@ function judgeSignal(signal) {
       entry:     signal.entry.price,
       sl:        signal.sl,
       tp:        signal.tp,
-      // qty: qty  // TODO
+      rawQty,
     }
   };
 }

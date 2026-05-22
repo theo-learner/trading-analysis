@@ -12,5 +12,18 @@ module.exports = {
         NODE_ENV: 'production',
       },
     },
+    {
+      name: 'ict-watcher',
+      script: 'scripts/watcher.js',
+      cwd: '/home/theo/dev/trading-analysis',
+      watch: false,
+      restart_delay: 5000,
+      max_restarts: 20,
+      env: {
+        TELEGRAM_NOTIFY: '1',
+        TRADING_LIVE: '1',
+        NODE_ENV: 'production',
+      },
+    },
   ],
 };
