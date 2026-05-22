@@ -368,7 +368,6 @@ const FALLBACK_PAIRS = [
 ];
 
 async function loadPairsConfig() {
-  if (!API) { console.warn('[dashboard] no API base — using fallback pairs'); return FALLBACK_PAIRS; }
   try {
     const r = await fetch(`${API}/api/pairs`, { signal: AbortSignal.timeout(3000) });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
