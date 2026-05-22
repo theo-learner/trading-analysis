@@ -71,6 +71,7 @@
   },
 
   "pairs": [
+    { "symbol": "BTCUSDT",    "exchange": "binance" },
     { "symbol": "ETHUSDT",    "exchange": "binance" },
     { "symbol": "SOLUSDT",    "exchange": "binance" },
     { "symbol": "HYPEUSDT",   "exchange": "binance", "chartSource": "bybit" },
