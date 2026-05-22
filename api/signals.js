@@ -2,13 +2,13 @@
 
 const fs   = require('fs');
 const path = require('path');
-
-const PAIRS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'HYPEUSDT'];
+const { loadPairs } = require('../scripts/utils/pair-config');
 
 module.exports = function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
+  const PAIRS = loadPairs().map(p => p.symbol);
   const signals = [];
   for (const pair of PAIRS) {
     try {
