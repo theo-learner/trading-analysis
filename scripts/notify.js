@@ -11,9 +11,10 @@ const { dedupKey, hasRecentNotification, recordNotification } = require('./utils
  *
  * @param {object} signal
  * @param {object} verdict
+ * @param {object} [tradeResult]
  * @returns {string}
  */
-function formatMessage(signal, verdict) {
+function formatMessage(signal, verdict, tradeResult) {
   const esc = escapeMarkdownV2;
   const { pair, direction, tier, confidence, entry, sl, tp, rr, currentPrice, scorecard, structure } = signal;
 
@@ -34,11 +35,19 @@ function formatMessage(signal, verdict) {
   }
 
   // 현재가 → 진입가 방향 표시
+  // LONG: 화살표 항상 ↓ (리미트 진입 방향). ep > currentPrice면 이미 POI 내 진입.
+  // SHORT: 화살표 항상 ↑. ep < currentPrice면 이미 POI 내 진입.
   function distToEntry() {
     if (!currentPrice || !ep) return '';
-    const d = (ep - currentPrice) / currentPrice * 100;
-    const arrow = d >= 0 ? '↑' : '↓';
-    return `  ${arrow}${Math.abs(d).toFixed(1)}% 진입까지`;
+    const absPct = Math.abs((ep - currentPrice) / currentPrice * 100).toFixed(1);
+    if (direction === 'LONG') {
+      return ep <= currentPrice ? `  ↓${absPct}% 진입까지` : `  ↓${absPct}% 진입 중`;
+    }
+    if (direction === 'SHORT') {
+      return ep >= currentPrice ? `  ↑${absPct}% 진입까지` : `  ↑${absPct}% 진입 중`;
+    }
+    const arrow = ep >= currentPrice ? '↑' : '↓';
+    return `  ${arrow}${absPct}% 진입까지`;
   }
 
   // Tier 설명
@@ -94,6 +103,8 @@ function formatMessage(signal, verdict) {
     ? `R:${rr.toFixed(2)}`
     : 'R:R ?';
 
+  const tradeLines = _buildTradeLines(tradeResult, esc, fmt);
+
   return [
     `${dirEmoji} *${direction}  ${esc(pair)}*  \\|  Tier ${esc(String(tier))} · ${esc(confidence)}`,
     `_${tierLabel(tier)}_  \\|  Grade *${esc(grade)}*  \\|  Size ${esc(String(size))}x`,
@@ -106,6 +117,7 @@ function formatMessage(signal, verdict) {
     `💡 ${buildSummary()}`,
     `🎯 ${poi}${kz}`,
     `🕐 ${timeStr}`,
+    ...(tradeLines ? ['', tradeLines] : []),
   ].join('\n');
 }
 
@@ -122,6 +134,8 @@ function formatMessage(signal, verdict) {
  *   loadCredentialsFn?: Function,
  *   env?: object,
  *   ledgerPath?: string,
+ *   verdict?: object,    // pre-computed judgeSignal result — skips internal judgeFn call
+ *   tradeResult?: object, // trade execution result to include in message
  * }} [opts]
  * @returns {Promise<{ sent: boolean, skipped?: string, error?: string }>}
  */
@@ -132,6 +146,8 @@ async function notifySignal(signal, traderConfig, opts = {}) {
     loadCredentialsFn = loadTelegramCredentials,
     env = process.env,
     ledgerPath,
+    verdict: precomputedVerdict,
+    tradeResult,
   } = opts;
 
   // Inject test ledger path if provided
@@ -149,8 +165,8 @@ async function notifySignal(signal, traderConfig, opts = {}) {
       return { sent: false, skipped: 'env_gate' };
     }
 
-    // 3. Signal quality gate
-    const verdict = judgeFn(signal);
+    // 3. Signal quality gate (use pre-computed verdict if provided)
+    const verdict = precomputedVerdict ?? judgeFn(signal);
     if (!verdict.approved) {
       return { sent: false, skipped: 'rejected', reason: verdict.reason };
     }
@@ -170,7 +186,7 @@ async function notifySignal(signal, traderConfig, opts = {}) {
     }
 
     // 6. Format message
-    const message = formatMessage(signal, verdict);
+    const message = formatMessage(signal, verdict, tradeResult);
 
     // 7. Send
     let messageId;
@@ -203,6 +219,28 @@ async function notifySignal(signal, traderConfig, opts = {}) {
       }
     }
   }
+}
+
+function _buildTradeLines(tradeResult, esc, fmt) {
+  if (!tradeResult) return null;
+  const { dryRun, preflightFailed, slFailed, id, entry, qty, riskCheck, reason } = tradeResult;
+  if (preflightFailed) {
+    return `⚠️ 주문 건너뜀: ${esc(reason ?? '미상')}`;
+  }
+  if (slFailed) {
+    return `🚨 SL 배치 실패 → 비상 청산`;
+  }
+  const modeTag = dryRun ? '\\[dry\\-run\\]' : '\\[LIVE\\]';
+  const filledLine = entry?.filled
+    ? `체결가 \\$${esc(fmt(entry.filled))} · slip ${esc(String(entry.slippageBps ?? 0))}bps`
+    : '';
+  const qtyLine  = qty  ? `수량 ${esc(String(qty))}` : '';
+  const idLine   = id   ? `주문ID ${esc(id)}` : '';
+  const balLine  = riskCheck?.balanceUsd != null ? `잔액 \\$${esc(String(riskCheck.balanceUsd))}` : '';
+  return [
+    `📋 ${modeTag} 주문 접수`,
+    filledLine, qtyLine, idLine, balLine,
+  ].filter(Boolean).join('\n');
 }
 
 module.exports = { notifySignal, formatMessage };
