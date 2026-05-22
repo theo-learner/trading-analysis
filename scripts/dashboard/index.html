@@ -202,12 +202,7 @@
 <!-- 헤더 -->
 <div id="header">
   <div class="logo">⚡ ICT Engine</div>
-  <div class="pair-tabs" id="pairTabs">
-    <button class="pair-tab active" data-pair="BTCUSDT">BTC</button>
-    <button class="pair-tab" data-pair="ETHUSDT">ETH</button>
-    <button class="pair-tab" data-pair="SOLUSDT">SOL</button>
-    <button class="pair-tab" data-pair="HYPEUSDT">HYPE</button>
-  </div>
+  <div class="pair-tabs" id="pairTabs"></div>
   <div class="toolbar-sep"></div>
   <div class="tf-pills" id="tfPills">
     <button class="tf-pill active" data-tf="15m">15M</button>
@@ -352,9 +347,9 @@ const BINANCE_REST = 'https://api.binance.com/api/v3';
 const BYBIT_REST = 'https://api.bybit.com/v5/market/kline';
 const BYBIT_WS   = 'wss://stream.bybit.com/v5/public/linear';
 
-// HYPEUSDT는 Bybit에서, 나머지는 Binance에서 가져온다
-const BYBIT_PAIRS = new Set(['HYPEUSDT']);
-const getExchange = (pair) => BYBIT_PAIRS.has(pair) ? 'bybit' : 'binance';
+// 페어별 차트 소스는 /api/pairs 응답의 chartSource 필드로 결정된다
+const findPairCfg = (symbol) => state.pairs.find(p => p.symbol === symbol);
+const getChartSource = (symbol) => findPairCfg(symbol)?.chartSource || 'binance';
 
 // Bybit interval 코드 매핑 (Binance tf → Bybit interval)
 const BYBIT_TF = { '15m': '15', '4h': '240' };
@@ -364,9 +359,41 @@ const TF_LABEL     = { '15m': '15M', '4h': '4H' };
 const TF_LIMIT     = { '15m': 1000, '4h': 500 };
 const TF_BAR_SPACING = { '15m': 6, '4h': 8 };
 
+// ── 페어 설정 로드 ────────────────────────────────────────────────────────────
+const FALLBACK_PAIRS = [
+  { symbol: 'BTCUSDT',  exchange: 'binance', chartSource: 'binance', skipOnError: false },
+  { symbol: 'ETHUSDT',  exchange: 'binance', chartSource: 'binance', skipOnError: false },
+  { symbol: 'SOLUSDT',  exchange: 'binance', chartSource: 'binance', skipOnError: false },
+  { symbol: 'HYPEUSDT', exchange: 'binance', chartSource: 'bybit',   skipOnError: false },
+];
+
+async function loadPairsConfig() {
+  if (!API) { console.warn('[dashboard] no API base — using fallback pairs'); return FALLBACK_PAIRS; }
+  try {
+    const r = await fetch(`${API}/api/pairs`, { signal: AbortSignal.timeout(3000) });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    return Array.isArray(data.pairs) && data.pairs.length ? data.pairs : FALLBACK_PAIRS;
+  } catch (e) {
+    console.warn('[dashboard] /api/pairs failed, using fallback:', e.message);
+    return FALLBACK_PAIRS;
+  }
+}
+
+const labelOf = (symbol) => symbol.replace(/USDT$/, '');
+
+function renderPairTabs() {
+  const container = document.getElementById('pairTabs');
+  if (!container) return;
+  container.innerHTML = state.pairs.map(p =>
+    `<button class="pair-tab${p.symbol === state.pair ? ' active' : ''}" data-pair="${p.symbol}">${labelOf(p.symbol)}</button>`
+  ).join('');
+}
+
 // ── 상태 ───────────────────────────────────────────────────────────────────
 let state = {
-  pair: 'BTCUSDT',
+  pair:  null,
+  pairs: [],
   tf:   '15m',
   overlays: { fvg: true, ob: true, bb: true, sweep: true },
   useBoxOverlays: true,
@@ -691,7 +718,7 @@ resizeObs.observe(chartEl);
 async function loadCandles() {
   const { pair, tf } = state;
   const limit  = TF_LIMIT[tf] || 200;
-  const exch   = getExchange(pair);
+  const exch   = getChartSource(pair);
 
   try {
     let candles;
@@ -766,7 +793,7 @@ function connectWS() {
   }
 
   const { pair, tf } = state;
-  const exch = getExchange(pair);
+  const exch = getChartSource(pair);
 
   if (exch === 'bybit') {
     // ── Bybit WebSocket ─────────────────────────────────────────────────
@@ -1205,9 +1232,14 @@ async function runAnalyzeAll() {
       return;
     }
     if (resp.ok) {
-      const done  = data.results?.filter(r => !r.error).length ?? 0;
-      const total = data.results?.length ?? 0;
-      showToast(`전체 분석 완료 (${done}/${total}페어)`, done === total ? 'success' : 'info');
+      const failed = data.results?.filter(r => r.error) ?? [];
+      const done   = (data.results?.length ?? 0) - failed.length;
+      const total  = data.results?.length ?? 0;
+      if (failed.length > 0) {
+        failed.forEach(r => showToast(`${r.pair} 분석 실패: ${r.error}`, 'error'));
+      } else {
+        showToast(`전체 분석 완료 (${done}/${total}페어)`, 'success');
+      }
       await loadLatestSignal();
       await loadLatestDiary();
     } else {
@@ -1541,6 +1573,9 @@ async function checkServerStatus() {
 
 // ── 초기화 ────────────────────────────────────────────────────────────────
 async function init() {
+  state.pairs = await loadPairsConfig();
+  state.pair  = state.pairs[0]?.symbol || 'BTCUSDT';
+  renderPairTabs();
   updateKillzoneBadge();
   setInterval(updateKillzoneBadge, 60_000);
   checkServerStatus();
