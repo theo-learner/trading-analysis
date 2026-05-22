@@ -4,6 +4,7 @@ const fs   = require('fs');
 const path = require('path');
 const { analyzeICT }     = require('../scripts/ict-engine');
 const { fetchCandleSet } = require('../scripts/utils/binance');
+const { buildDiary }     = require('../scripts/modules/diary');
 const { loadPairs }      = require('../scripts/utils/pair-config');
 
 module.exports = async function handler(req, res) {
@@ -19,9 +20,11 @@ module.exports = async function handler(req, res) {
     try {
       const { htf, ltf, d1 } = await fetchCandleSet(symbol);
       const signal = await analyzeICT({ htfCandles: htf, ltfCandles: ltf, d1Candles: d1, pair: symbol });
+      const diary  = buildDiary(signal);
 
       try {
         fs.writeFileSync(path.join('/tmp', `${symbol}_latest.json`), JSON.stringify(signal));
+        fs.writeFileSync(path.join('/tmp', `${symbol}_latest_diary.txt`), diary);
       } catch (_) {}
 
       return { pair: symbol, direction: signal.direction, tier: signal.tier, confidence: signal.confidence };
