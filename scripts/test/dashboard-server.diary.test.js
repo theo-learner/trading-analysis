@@ -82,4 +82,10 @@ describe('getPairsResponse', () => {
       assert.equal(typeof p.skipOnError, 'boolean');
     }
   });
+
+  it('skipOnError 페어를 제외한다', () => {
+    const { getPairsResponse } = require('../dashboard-server');
+    const resp = getPairsResponse();
+    assert.ok(resp.pairs.every(p => !p.skipOnError));
+  });
 });
