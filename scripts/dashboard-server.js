@@ -24,8 +24,11 @@ const { spawn, execSync } = require('child_process');
 const { analyzeICT }     = require('./ict-engine');
 const { fetchCandleSet } = require('./utils/binance');
 const { buildDiary }     = require('./modules/diary');
-const { normalizePair }  = require('./utils/pair-config');
+const { normalizePair, loadPairs } = require('./utils/pair-config');
 const traderConfig       = require('./config/trader.json');
+
+const PAIRS = loadPairs();
+const DEFAULT_PAIR = PAIRS[0]?.symbol || 'BTCUSDT';
 
 const PORT        = process.env.PORT ? parseInt(process.env.PORT, 10) : 3210;
 const ROOT        = path.resolve(__dirname, '..');
@@ -77,6 +80,10 @@ fs.watch(DRY_RUN_DIR, (event, filename) => {
 function readJSON(fp) {
   try { return JSON.parse(fs.readFileSync(fp, 'utf8')); }
   catch (_) { return null; }
+}
+
+function getPairsResponse() {
+  return { pairs: loadPairs() };
 }
 
 function readDirJSON(dir, limit = 50) {
@@ -152,6 +159,11 @@ async function handleRequest(req, res) {
     return jsonResponse(res, signals);
   }
 
+  // ── GET /api/pairs ────────────────────────────────────────────────────────
+  if (req.method === 'GET' && pathname === '/api/pairs') {
+    return jsonResponse(res, getPairsResponse());
+  }
+
   // ── GET /api/config ───────────────────────────────────────────────────────
   if (req.method === 'GET' && pathname === '/api/config') {
     const cfg = readJSON(path.join(ROOT, 'scripts', 'config', 'ict-engine.json'));
@@ -173,7 +185,7 @@ async function handleRequest(req, res) {
     }
 
     const body = await readBody(req);
-    const pair  = body.pair  || 'BTCUSDT';
+    const pair  = body.pair  || DEFAULT_PAIR;
     const tf    = body.tf    || '1H';
     const scriptPath = path.join(__dirname, 'ict-engine.js');
 
@@ -255,7 +267,7 @@ async function handleRequest(req, res) {
   // ── GET /api/latest-signal ────────────────────────────────────────────────
   if (req.method === 'GET' && pathname === '/api/latest-signal') {
     const sigDir = path.join(ROOT, 'signals');
-    const pair   = url.searchParams.get('pair') || 'BTCUSDT';
+    const pair   = url.searchParams.get('pair') || DEFAULT_PAIR;
     try {
       fs.mkdirSync(sigDir, { recursive: true });
       const files = fs.readdirSync(sigDir)
@@ -291,7 +303,7 @@ async function handleRequest(req, res) {
 
   // ── GET /api/latest-diary ─────────────────────────────────────────────────
   if (req.method === 'GET' && pathname === '/api/latest-diary') {
-    const pair = url.searchParams.get('pair') || 'BTCUSDT';
+    const pair = url.searchParams.get('pair') || DEFAULT_PAIR;
     try {
       const files = fs.readdirSync(DIARY_DIR)
         .filter(f => f.startsWith(`${pair}_15m_`) && f.endsWith('.md'))
@@ -388,4 +400,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { buildDiaryEntry };
+module.exports = { buildDiaryEntry, getPairsResponse };

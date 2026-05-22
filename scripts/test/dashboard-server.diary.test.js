@@ -68,3 +68,18 @@ describe('buildDiaryEntry', () => {
     assert.match(content, /scorecardGrade:/);
   });
 });
+
+describe('getPairsResponse', () => {
+  it('PairConfig 배열을 반환한다', () => {
+    const { getPairsResponse } = require('../dashboard-server');
+    const resp = getPairsResponse();
+    assert.ok(Array.isArray(resp.pairs));
+    assert.ok(resp.pairs.length > 0);
+    for (const p of resp.pairs) {
+      assert.equal(typeof p.symbol, 'string');
+      assert.ok(['binance', 'bybit'].includes(p.exchange));
+      assert.ok(['binance', 'bybit'].includes(p.chartSource));
+      assert.equal(typeof p.skipOnError, 'boolean');
+    }
+  });
+});
