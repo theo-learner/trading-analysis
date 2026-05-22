@@ -361,10 +361,12 @@ const TF_BAR_SPACING = { '15m': 6, '4h': 8 };
 
 // ── 페어 설정 로드 ────────────────────────────────────────────────────────────
 const FALLBACK_PAIRS = [
-  { symbol: 'BTCUSDT',  exchange: 'binance', chartSource: 'binance', skipOnError: false },
-  { symbol: 'ETHUSDT',  exchange: 'binance', chartSource: 'binance', skipOnError: false },
-  { symbol: 'SOLUSDT',  exchange: 'binance', chartSource: 'binance', skipOnError: false },
-  { symbol: 'HYPEUSDT', exchange: 'binance', chartSource: 'bybit',   skipOnError: false },
+  { symbol: 'BTCUSDT',   exchange: 'binance', chartSource: 'binance', skipOnError: false },
+  { symbol: 'ETHUSDT',   exchange: 'binance', chartSource: 'binance', skipOnError: false },
+  { symbol: 'SOLUSDT',   exchange: 'binance', chartSource: 'binance', skipOnError: false },
+  { symbol: 'HYPEUSDT',  exchange: 'binance', chartSource: 'bybit',   skipOnError: false },
+  { symbol: 'ZECUSDT',   exchange: 'binance', chartSource: 'binance', skipOnError: true  },
+  { symbol: 'MORPHOUSDT',exchange: 'binance', chartSource: 'binance', skipOnError: true  },
 ];
 
 async function loadPairsConfig() {
