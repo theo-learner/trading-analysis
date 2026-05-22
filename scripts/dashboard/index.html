@@ -130,25 +130,6 @@
   .sc-placeholder { color: var(--muted); font-size: 12px; text-align: center; padding: 16px 0; }
   .sc-size-badge { display: inline-block; padding: 2px 7px; border-radius: 3px; font-size: 10px; font-weight: 700; font-family: var(--mono); background: rgba(252,213,53,.1); color: var(--primary); border: 1px solid rgba(252,213,53,.3); }
 
-  /* 시그널 */
-  .signal-card { background: var(--card); border-radius: 6px; padding: 12px; }
-  .signal-direction { font-size: 15px; font-weight: 800; margin-bottom: 8px; }
-  .signal-direction.long  { color: var(--bull); }
-  .signal-direction.short { color: var(--bear); }
-  .signal-direction.neutral { color: var(--muted); }
-  .signal-kv { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; font-size: 12px; }
-  .signal-kv .sk { color: var(--muted); }
-  .signal-kv .sv { font-family: var(--mono); font-weight: 600; }
-  .signal-kv .sv.bull { color: var(--bull); }
-  .signal-kv .sv.bear { color: var(--bear); }
-  .signal-kv .sv.primary { color: var(--primary); }
-  #execute-btn { width: 100%; margin-top: 12px; padding: 10px; border-radius: 6px; border: none; font-weight: 700; font-size: 14px; cursor: pointer; transition: opacity .15s; }
-  #execute-btn:hover:not(:disabled) { opacity: .85; }
-  #execute-btn:disabled { opacity: .35; cursor: not-allowed; }
-  #execute-btn.long  { background: var(--bull); color: #000; }
-  #execute-btn.short { background: var(--bear); color: #fff; }
-  #execute-btn.hidden { display: none; }
-  .signal-placeholder { color: var(--muted); font-size: 12px; text-align: center; padding: 20px 0; }
 
   /* AMD 상태 */
   .amd-row { display: flex; gap: 4px; }
@@ -257,13 +238,6 @@
 
     <!-- 사이드 패널 -->
     <div id="side-col">
-      <!-- 시그널 -->
-      <div class="side-section">
-        <div class="side-section-title">🎯 시그널</div>
-        <div id="signal-body">
-          <div class="signal-placeholder">분석을 실행하면<br>시그널이 여기에 표시됩니다</div>
-        </div>
-      </div>
 
       <!-- 스코어카드 -->
       <div class="side-section">
@@ -1096,49 +1070,6 @@ function renderScorecard(sc, signal) {
 }
 
 // ── 시그널 렌더링 ──────────────────────────────────────────────────────────
-function renderSignal(signal) {
-  const body = document.getElementById('signal-body');
-  if (!signal || signal.direction === 'NEUTRAL') {
-    const priceInfo = (signal?.currentPrice) ? `<div style="margin-top:8px;font-size:12px;color:var(--muted)">기준가 ${formatPrice(signal.currentPrice)}</div>` : '';
-    body.innerHTML = `<div class="signal-placeholder">${signal ? '중립 — 진입 조건 미충족' : '분석을 실행하면<br>시그널이 여기에 표시됩니다'}${priceInfo}</div>`;
-    return;
-  }
-
-  const isLong = signal.direction === 'LONG';
-  const rr = signal.rr ? signal.rr.toFixed(2) : '—';
-  const conf = signal.confidence || '—';
-  const confColor = conf === 'HIGH' ? 'bull' : conf === 'MEDIUM' ? '' : 'bear';
-  const execBtnClass = isLong ? 'long' : 'short';
-  const execBtnText = isLong ? '▲ LONG 진입 (DRY-RUN)' : '▼ SHORT 진입 (DRY-RUN)';
-
-  const basisMap  = { OB_RETEST: 'OB 재진입', FVG_RETEST: 'FVG 재진입', BB_RETEST: 'BB 재진입', POI_RETEST: 'POI 재진입' };
-  const slBasisMap = { BELOW_OB: 'OB 하단', ABOVE_OB: 'OB 상단' };
-  const entryBasis = basisMap[signal.entry?.basis] || signal.entry?.basis || '—';
-  const slBasis    = slBasisMap[signal.slBasis] || signal.slBasis || '—';
-
-  body.innerHTML = `
-    <div class="signal-card">
-      <div class="signal-direction ${isLong ? 'long' : 'short'}">
-        ${isLong ? '▲ LONG' : '▼ SHORT'}
-        <span style="font-size:12px;font-weight:400;color:var(--muted);margin-left:6px">${state.pair} ${TF_LABEL[state.tf]}</span>
-      </div>
-      <div class="signal-kv"><span class="sk">분석 기준가</span><span class="sv" style="color:var(--muted)">${signal.currentPrice ? formatPrice(signal.currentPrice) : '—'}</span></div>
-      <div class="signal-kv"><span class="sk">진입가</span><span class="sv primary">${formatPrice(signal.entry?.price ?? signal.entry)}</span></div>
-      <div class="signal-kv"><span class="sk">진입 근거</span><span class="sv" style="color:var(--muted)">${entryBasis}</span></div>
-      <div class="signal-kv"><span class="sk">스탑로스</span><span class="sv bear">${formatPrice(signal.sl)}</span></div>
-      <div class="signal-kv"><span class="sk">SL 근거</span><span class="sv" style="color:var(--muted)">${slBasis}</span></div>
-      <div class="signal-kv"><span class="sk">TP1</span><span class="sv bull">${signal.tp?.[0] ? formatPrice(signal.tp[0]) : '—'}</span></div>
-      <div class="signal-kv"><span class="sk">TP2</span><span class="sv bull">${signal.tp?.[1] ? formatPrice(signal.tp[1]) : '—'}</span></div>
-      <div class="signal-kv"><span class="sk">R:R</span><span class="sv" style="color:var(--primary)">${rr}</span></div>
-      <div class="signal-kv"><span class="sk">신뢰도</span><span class="sv ${confColor}">${conf}</span></div>
-      <div class="signal-kv"><span class="sk">AMD</span><span class="sv" style="color:var(--neutral)">${signal.structure?.amdPhase || '—'}</span></div>
-      <div class="signal-kv"><span class="sk">Tier</span><span class="sv">Tier ${signal.tier || '—'}</span></div>
-    </div>
-    <button id="execute-btn" class="${execBtnClass}">${execBtnText}</button>
-  `;
-
-  document.getElementById('execute-btn').onclick = () => executeTrade(signal);
-}
 
 // ── AMD 상태 렌더링 ─────────────────────────────────────────────────────────
 function renderAMD(amdState) {
@@ -1187,25 +1118,6 @@ function renderHistory(trades) {
   }).join('');
 }
 
-// ── 거래 실행 (dry-run) ───────────────────────────────────────────────────
-async function executeTrade(signal) {
-  if (!signal) return;
-  try {
-    const resp = await fetch(`${API}/api/trades`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ signal, pair: state.pair }),
-    });
-    if (resp.ok) {
-      showToast('DRY-RUN 거래가 기록되었습니다', 'success');
-      await loadTrades();
-    } else {
-      showToast('거래 실행 실패', 'error');
-    }
-  } catch (e) {
-    showToast('서버 연결 실패: ' + e.message, 'error');
-  }
-}
 
 // ── 전체 페어 자동 분석 ───────────────────────────────────────────────────
 async function runAnalyzeAll() {
@@ -1385,7 +1297,6 @@ function applySignal(signal) {
   state.overlayData.sweeps = signal.levels?.sweeps ?? [];
   clearOverlayLines();
   renderScorecard(signal.scorecard, signal);
-  renderSignal(signal);
   renderAMD(signal.structure?.amdPhase);
   renderSignalOverlays(signal);
   if (signal.direction === 'NEUTRAL' && state.candles) loadAutoLevels(state.candles);
@@ -1481,7 +1392,6 @@ document.getElementById('pairTabs').addEventListener('click', (e) => {
   state.signal = null;
   clearOverlayLines();
   renderScorecard(null);
-  renderSignal(null);
   renderAMD(null);
   renderDiary(null);
   loadCandles();
