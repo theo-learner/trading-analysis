@@ -6,15 +6,14 @@ const path = require('node:path');
 const SESSION_DIR = path.join(__dirname, '..', '..', 'sessions');
 
 /**
- * Loads Telegram credentials.
- * Token from sessions/telegram-bot-token.txt (mirrors coinalyze-api-key.txt pattern).
- * ChatId from traderConfig.notifications.telegram.chatId.
+ * Loads Telegram credentials from the sessions/ directory.
+ * Token: sessions/telegram-bot-token.txt
+ * ChatId: sessions/telegram-chat-id.txt
  *
- * @param {object} traderConfig
  * @returns {{ token: string, chatId: string }}
- * @throws {Error} if token file missing or chatId not configured
+ * @throws {Error} if either file is missing or empty
  */
-function loadTelegramCredentials(traderConfig) {
+function loadTelegramCredentials() {
   const tokenPath = path.join(SESSION_DIR, 'telegram-bot-token.txt');
   if (!fs.existsSync(tokenPath)) {
     throw new Error(`Telegram token file not found: ${tokenPath}`);

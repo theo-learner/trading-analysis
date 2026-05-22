@@ -131,20 +131,29 @@ screenshots/YYYYMMDD/
 ## Telegram 알림 규칙
 
 - **토큰**: `sessions/telegram-bot-token.txt` (plaintext, `.gitignore` 의 `sessions/` 룰로 자동 제외)
-- **chatId**: `scripts/config/trader.json` `notifications.telegram.chatId` 필드에 설정
+- **chatId**: `sessions/telegram-chat-id.txt` (plaintext, `.gitignore` 의 `sessions/` 룰로 자동 제외)
 - **env gate**: `TELEGRAM_NOTIFY=1` 환경 변수가 설정된 경우에만 알림 발사 — `scripts/com.trading.analyze.plist` (launchd 크론)에는 설정, 대시보드 (`npm run dashboard`) 에는 미설정
 - **필터**: `judgeSignal()` 승인 시에만 발송. `trader.json` 의 `notifications.telegram` 에 별도 필터 조건 없음 — `judgeSignal` 이 단일 정책 소스
 - **중복 방지**: `sessions/notifications-sent.json` 파일 기반 24h 윈도우 ledger (`pair_date_direction_tier_price` 키 — entry price rounded 포함)
 - **장애 처리**: 알림 실패는 트레이딩 플로우를 절대 차단하지 않음 (try/catch swallow)
-- **실시간 감시**: `scripts/watcher.js` 가 launchd (`com.trading.watcher.plist`, `StartInterval=60`) 로 매 분 4페어 × 15m ICT 분석을 실행한다. 알림은 `judgeSignal()` + dedup ledger (24h, entry-price 단위) 를 통과한 시그널만 발사.
+- **실시간 감시**: `scripts/watcher.js` 가 PM2 (`ict-watcher` 프로세스) 로 매 분 4페어 × 15m ICT 분석을 실행한다. 알림은 `judgeSignal()` + dedup ledger (24h, entry-price 단위) 를 통과한 시그널만 발사.
+- **PM2 프로세스**: `ict-dashboard` (대시보드 서버), `ict-watcher` (실시간 감시) 두 프로세스를 PM2로 관리한다.
 
 | 작업 | 명령 |
 |------|------|
-| 설치 | `cp scripts/com.trading.watcher.plist ~/Library/LaunchAgents/ && launchctl bootstrap gui/$UID ~/Library/LaunchAgents/com.trading.watcher.plist` |
-| 일시 중지 | `launchctl bootout gui/$UID/com.trading.watcher` |
-| 즉시 1회 실행 | `launchctl kickstart gui/$UID/com.trading.watcher` |
-| 로그 | `tail -f logs/launchd_watcher.log` |
+| 상태 확인 | `pm2 status` |
+| 감시 재시작 | `pm2 restart ict-watcher` |
+| 감시 중지 | `pm2 stop ict-watcher` |
+| 감시 시작 | `pm2 start ict-watcher` |
+| 로그 | `pm2 logs ict-watcher` |
 | 수동 테스트 | `TELEGRAM_NOTIFY=1 node scripts/watcher.js` |
+| 대시보드 무중단 재시작 | `pm2 reload ict-dashboard` |
+| 대시보드 로그 | `pm2 logs ict-dashboard` |
+
+## 서버 성능 기준
+- **Binance API 타임아웃**: `scripts/utils/binance.js` `AbortSignal.timeout(5_000)` — 5초 내 미응답 시 해당 페어 분석 실패
+- **analyze-all 응답 구조**: 페어 일부 실패 시에도 HTTP 200 반환. `results[i].error` 유무로 성공/실패 구분
+- **정상 분석 소요**: 1~3초 (4페어 × 4인터벌 병렬). 최악 5초 (타임아웃 발생 시)
 
 ## 핵심 원칙
 - 차트에서 실제로 보이는 것만 분석. 보이지 않는 것을 추측하지 않음

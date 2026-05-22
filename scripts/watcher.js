@@ -13,8 +13,11 @@ async function run(deps = {}) {
     timeoutMs      = 45_000,
   } = deps;
 
+  let cancelled = false;
+
   const work = (async () => {
     for (const rawPair of traderConfig.pairs || []) {
+      if (cancelled) break;
       const pairCfg = normalizePair(rawPair);
       if (pairCfg.exchange !== 'binance') {
         logger.warn(`[watcher] ${pairCfg.symbol}: exchange '${pairCfg.exchange}' 미지원, skip`);
@@ -41,10 +44,10 @@ async function run(deps = {}) {
 
   let timer;
   const guard = new Promise((_, reject) => {
-    timer = setTimeout(
-      () => reject(new Error(`watcher run timeout (${timeoutMs}ms)`)),
-      timeoutMs,
-    );
+    timer = setTimeout(() => {
+      cancelled = true;
+      reject(new Error(`watcher run timeout (${timeoutMs}ms)`));
+    }, timeoutMs);
   });
   try {
     await Promise.race([work, guard]);

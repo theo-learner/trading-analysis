@@ -33,6 +33,7 @@ function fetchIPv4(url, init = {}) {
         });
       });
     });
+    req.setTimeout(10_000, () => req.destroy(new Error('Telegram request timeout')));
     req.on('error', reject);
     if (body) req.write(body);
     req.end();
