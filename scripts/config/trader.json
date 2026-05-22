@@ -35,7 +35,7 @@
     { "symbol": "BTCUSDT",    "exchange": "binance" },
     { "symbol": "ETHUSDT",    "exchange": "binance" },
     { "symbol": "SOLUSDT",    "exchange": "binance" },
-    { "symbol": "HYPEUSDT",   "exchange": "binance" },
+    { "symbol": "HYPEUSDT",   "exchange": "binance", "chartSource": "bybit" },
     { "symbol": "ZECUSDT",    "exchange": "binance", "skipOnError": true },
     { "symbol": "MORPHOUSDT", "exchange": "binance", "skipOnError": true }
   ],
