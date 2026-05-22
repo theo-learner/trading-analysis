@@ -58,7 +58,7 @@ function formatMessage(signal, verdict) {
 
     const htfStr  = htf === 'bull' ? '상승추세' : htf === 'bear' ? '하락추세' : '횡보';
     const ltfStr  = ltf === 'bull' ? '상승' : ltf === 'bear' ? '하락' : '횡보';
-    const oteStr  = ote === 'OTE' ? 'OTE 구간' : ote === 'SHALLOW' ? '얕은 되돌림' : ote === 'DEEP' ? '깊은 되돌림' : '';
+    const oteStr  = ote === 'OTE' ? 'OTE 구간' : ote === 'SHALLOW' ? '얕은 되돌림' : ote === 'DEEP' ? '깊은 되돌림' : 'OTE 미확인';
     const kzStr   = bd.time  ? '킬존 ✓' : '킬존 외';
     const liqStr  = bd.liquidity ? '스윕 ✓' : '스윕 미확인';
     const pdStr   = bd.pdArray >= 2 ? 'PD 복합' : bd.pdArray === 1 ? 'PD 단일' : 'PD 없음';
@@ -74,7 +74,7 @@ function formatMessage(signal, verdict) {
       }).join('\n')
     : `TP      \\$${esc(fmt(tp))}`;
 
-  const poi = entry?.basis ? esc(entry.basis) : '';
+  const poi = entry?.basis ? esc(entry.basis) : 'POI_RETEST';
   const kz  = entry?.killzone
     ? ` · ${esc(entry.killzone.charAt(0).toUpperCase() + entry.killzone.slice(1))}`
     : '';
@@ -90,6 +90,10 @@ function formatMessage(signal, verdict) {
     ? `현재가  \\$${esc(fmt(currentPrice))}${esc(distToEntry())}\n`
     : '';
 
+  const rrLabel = rr != null && Number.isFinite(rr)
+    ? `R:${rr.toFixed(2)}`
+    : 'R:R ?';
+
   return [
     `${dirEmoji} *${direction}  ${esc(pair)}*  \\|  Tier ${esc(String(tier))} · ${esc(confidence)}`,
     `_${tierLabel(tier)}_  \\|  Grade *${esc(grade)}*  \\|  Size ${esc(String(size))}x`,
@@ -97,7 +101,7 @@ function formatMessage(signal, verdict) {
     `${curLine}진입    \\$${esc(fmt(ep))}`,
     `SL      \\$${esc(fmt(sl ?? 0))}${esc(pct(sl))}`,
     tpLines,
-    `R:R     ${esc(rr?.toFixed(2) ?? '?')}`,
+    `${rrLabel}`,
     '',
     `💡 ${buildSummary()}`,
     `🎯 ${poi}${kz}`,

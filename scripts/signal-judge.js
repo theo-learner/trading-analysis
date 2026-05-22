@@ -53,6 +53,12 @@ function judgeSignal(signal) {
     }
   }
 
+  // ── 사이즈 필터 ────────────────────────────────────────────────────────
+  // sizeMultiplier가 1이 아니면 (0.5x 또는 0) Telegram 메시지 건너뜀
+  if (signal.scorecard?.sizeMultiplier !== 1) {
+    return { approved: false, reason: `Size ${signal.scorecard?.sizeMultiplier ?? '?'}x — 1x만 알림` };
+  }
+
   // ── 포지션 사이즈 계산 (TODO: 실제 계좌 잔고 조회 필요) ─────────────────
   // const accountBalance = await getAccountBalance();
   // const riskAmount = accountBalance * (traderConfig.risk.maxRiskPerTradePct / 100);
