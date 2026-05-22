@@ -9,6 +9,7 @@ describe('normalizePair()', () => {
     assert.deepEqual(normalizePair('BTCUSDT'), {
       symbol: 'BTCUSDT',
       exchange: 'binance',
+      chartSource: 'binance',
       skipOnError: false,
     });
   });
@@ -17,6 +18,7 @@ describe('normalizePair()', () => {
     assert.deepEqual(normalizePair({ symbol: 'ZECUSDT' }), {
       symbol: 'ZECUSDT',
       exchange: 'binance',
+      chartSource: 'binance',
       skipOnError: false,
     });
   });
@@ -24,13 +26,26 @@ describe('normalizePair()', () => {
   it('명시된 skipOnError를 보존한다', () => {
     assert.deepEqual(
       normalizePair({ symbol: 'MORPHOUSDT', exchange: 'binance', skipOnError: true }),
-      { symbol: 'MORPHOUSDT', exchange: 'binance', skipOnError: true }
+      { symbol: 'MORPHOUSDT', exchange: 'binance', chartSource: 'binance', skipOnError: true }
     );
   });
 
   it('명시된 exchange를 보존한다', () => {
     const result = normalizePair({ symbol: 'XYZUSDT', exchange: 'bybit' });
     assert.equal(result.exchange, 'bybit');
+  });
+
+  it('chartSource 가 없으면 exchange 값으로 디폴팅한다', () => {
+    assert.deepEqual(normalizePair('BTCUSDT'), {
+      symbol: 'BTCUSDT', exchange: 'binance', chartSource: 'binance', skipOnError: false,
+    });
+    assert.equal(normalizePair({ symbol: 'X', exchange: 'bybit' }).chartSource, 'bybit');
+  });
+
+  it('명시된 chartSource 를 보존한다 (exchange 와 달라도)', () => {
+    const r = normalizePair({ symbol: 'HYPEUSDT', exchange: 'binance', chartSource: 'bybit' });
+    assert.equal(r.exchange, 'binance');
+    assert.equal(r.chartSource, 'bybit');
   });
 });
 

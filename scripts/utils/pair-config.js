@@ -4,9 +4,10 @@ const traderConfig = require('../config/trader.json');
 
 function normalizePair(p) {
   if (typeof p === 'string') {
-    return { symbol: p, exchange: 'binance', skipOnError: false };
+    return { symbol: p, exchange: 'binance', chartSource: 'binance', skipOnError: false };
   }
-  return { exchange: 'binance', skipOnError: false, ...p };
+  const exchange = p.exchange || 'binance';
+  return { exchange, chartSource: exchange, skipOnError: false, ...p };
 }
 
 function loadPairs() {
