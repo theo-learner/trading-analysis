@@ -83,9 +83,9 @@ function formatMessage(signal, verdict, tradeResult) {
       }).join('\n')
     : `TP      \\$${esc(fmt(tp))}`;
 
-  const poi = entry?.basis ? esc(entry.basis) : 'POI_RETEST';
+  const poi = entry?.basis?.trim() ? esc(entry.basis) : 'POI_RETEST';
   const kz  = entry?.killzone
-    ? ` · ${esc(entry.killzone.charAt(0).toUpperCase() + entry.killzone.slice(1))}`
+    ? ` · ${esc(entry.killzone.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '))}`
     : '';
 
   const grade = scorecard?.grade ?? '?';
