@@ -77,7 +77,9 @@ function getCurrentTrend(swings) {
 
   // --- Fallback: extend window to find enough swings ---
   // Look back up to last 16 swings; accept if we get 2+ highs AND 2+ lows
-  for (let window = 10; window <= Math.min(16, swings.length); window += 2) {
+  // Start from small window and expand — prefer recent structure over older swings
+  const maxWindow = Math.min(16, swings.length);
+  for (let window = Math.min(8, swings.length); window <= maxWindow; window += 2) {
     const sub = swings.slice(-window);
     const hs = sub.filter(s => s.type === 'high').map(s => s.price);
     const ls = sub.filter(s => s.type === 'low').map(s => s.price);
