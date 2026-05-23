@@ -223,7 +223,8 @@ async function handleRequest(req, res) {
   // ── GET /api/config ───────────────────────────────────────────────────────
   if (req.method === 'GET' && pathname === '/api/config') {
     const cfg = readJSON(path.join(ROOT, 'scripts', 'config', 'ict-engine.json'));
-    return jsonResponse(res, cfg || {});
+    const traderCfg = readJSON(path.join(ROOT, 'scripts', 'config', 'trader.json')) || {};
+    return jsonResponse(res, { ...cfg, mode: traderCfg.mode || 'dry-run' });
   }
 
   // ── GET /api/analyze-log ─────────────────────────────────────────────────

@@ -1600,10 +1600,37 @@ document.addEventListener('click', (e) => {
   }
 });
 
+// ── 모드시장 업데이트 ───────────────────────────────────────────────────
+function updateModeBadge() {
+  const badge = document.getElementById('modeBadge');
+  if (!badge) return;
+  const isLive = state.mode === 'live';
+  badge.textContent = isLive ? 'LIVE' : 'DRY-RUN';
+  badge.style.color = isLive ? 'var(--bull)' : 'var(--primary)';
+  badge.style.borderColor = isLive ? 'var(--bull)' : 'rgba(252,213,53,0.3)';
+  badge.style.background = isLive ? 'rgba(14,203,129,0.12)' : 'rgba(252,213,53,0.12)';
+
+  // Update chart watermark
+  const text = isLive ? 'ICT Engine — LIVE' : 'ICT Engine — DRY RUN';
+  const color = isLive ? 'rgba(14,203,129,0.35)' : 'rgba(132,142,156,0.2)';
+  chart.applyOptions({ watermark: { visible: true, fontSize: 11, text, color } });
+}
+
 // ── 초기화 ────────────────────────────────────────────────────────────────
 async function init() {
   state.pairs = await loadPairsConfig();
   state.pair  = state.pairs[0]?.symbol || 'BTCUSDT';
+
+  // Load mode from server config
+  try {
+    const cfgResp = await fetch(`${API}/api/config`);
+    const cfg = await cfgResp.json();
+    if (cfg.mode) {
+      state.mode = cfg.mode;
+      updateModeBadge();
+    }
+  } catch (_) {}
+
   renderPairTabs();
   updateKillzoneBadge();
   setInterval(updateKillzoneBadge, 60_000);
