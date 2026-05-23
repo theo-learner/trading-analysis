@@ -45,16 +45,9 @@ function judgeSignal(signal, cfg = traderConfig) {
     return { approved: false, reason: `R:R ${signal.rr.toFixed(2)} — 최소 ${cfg.risk.minRR} 미달` };
   }
 
-  // ── 킬존 필터 ──────────────────────────────────────────────────────────
-  if (cfg.signal.requireKillzone && !signal.entry.killzone) {
-    const isTopGrade = signal.tier === 1 && signal.scorecard?.grade === 'S';
-    if (!isTopGrade) {
-      return { approved: false, reason: '킬존 외부 — 진입 보류' };
-    }
-  }
-
   // ── 사이즈 필터 ────────────────────────────────────────────────────────
   // sizeMultiplier가 1이 아니면 (0.5x 또는 0) Telegram 메시지 건너뜀
+  // 킬존은 scorecard에서 가산/감점 요소로 처리 — judgeSignal에서 중복 차단하지 않음
   if (signal.scorecard?.sizeMultiplier !== 1) {
     return { approved: false, reason: `Size ${signal.scorecard?.sizeMultiplier ?? '?'}x — 1x만 알림` };
   }

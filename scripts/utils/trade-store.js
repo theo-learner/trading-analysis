@@ -109,9 +109,14 @@ function openCount() {
   } catch { return 0; }
 }
 
-/** True if there is an open trade for the given pair. */
-function hasOpenTrade(pair) {
-  return openTrades().some(t => t.pair === pair);
+/** True if there is an open trade for the given pair (any direction). */
+function hasOpenTrade(pair, direction) {
+  return openTrades().some(t => t.pair === pair && (direction ? t.direction === direction : true));
 }
 
-module.exports = { saveTrade, closeTrade, openTrades, closedTrades, getTrade, openCount, hasOpenTrade };
+/** Count open trades for a pair in the same direction. */
+function openCountForPairAndDirection(pair, direction) {
+  return openTrades().filter(t => t.pair === pair && t.direction === direction).length;
+}
+
+module.exports = { saveTrade, closeTrade, openTrades, closedTrades, getTrade, openCount, hasOpenTrade, openCountForPairAndDirection };

@@ -100,17 +100,17 @@ function formatMessage(signal, verdict, tradeResult) {
     : '';
 
   const rrLabel = rr != null && Number.isFinite(rr)
-    ? `R:${rr.toFixed(2)}`
+    ? `R:${esc(String(rr.toFixed(2)))}`
     : 'R:R ?';
 
   const tradeLines = _buildTradeLines(tradeResult, esc, fmt);
 
   return [
-    `${dirEmoji} *${direction}  ${esc(pair)}*  \\|  Tier ${esc(String(tier))} · ${esc(confidence)}`,
-    `_${tierLabel(tier)}_  \\|  Grade *${esc(grade)}*  \\|  Size ${esc(String(size))}x`,
+    `${dirEmoji} *${direction}  ${esc(pair)}*  \\\\|  Tier ${esc(String(tier))} · ${esc(confidence)}`,
+    `_${tierLabel(tier)}_  \\\\|  Grade *${esc(grade)}*  \\\\|  Size ${esc(String(size))}x`,
     '',
-    `${curLine}진입    \\$${esc(fmt(ep))}`,
-    `SL      \\$${esc(fmt(sl ?? 0))}${esc(pct(sl))}`,
+    `${curLine}진입    \\\\$${esc(fmt(ep))}`,
+    `SL      \\\\$${esc(fmt(sl ?? 0))}${esc(pct(sl))}`,
     tpLines,
     `${rrLabel}`,
     '',
@@ -163,6 +163,12 @@ async function notifySignal(signal, traderConfig, opts = {}) {
     // 2. Env gate — only cron/launchd sets TELEGRAM_NOTIFY=1
     if (env.TELEGRAM_NOTIFY !== '1') {
       return { sent: false, skipped: 'env_gate' };
+    }
+
+    // 2.5. Size gate — only send 1x signals (0.5x / 0x are no-trade)
+    const size = signal?.scorecard?.sizeMultiplier;
+    if (size != null && size !== 1) {
+      return { sent: false, skipped: 'size', reason: `Size ${size}x — 알림 제외` };
     }
 
     // 3. Signal quality gate (use pre-computed verdict if provided)

@@ -66,7 +66,7 @@ async function run(deps = {}) {
 
         let tradeResult = null;
         const tradeKey = dedupKey(signal);
-        if (verdict.approved && (isLive || cfg.mode === 'dry-run') && !hasRecentNotification(tradeKey)) {
+        if (verdict.approved && (isLive || cfg.mode === 'dry-run') && (!isLive || !hasRecentNotification(tradeKey))) {
           try {
             tradeResult = await tradeExecutor.execute(signal, verdict, cfg, { env });
             const modeTag = tradeResult?.dryRun ? '[dry-run]' : '[live]';
@@ -78,7 +78,14 @@ async function run(deps = {}) {
 
         const result = await notifySignal(signal, cfg, { verdict, tradeResult, env });
         const sig = `${signal.direction} | Tier${signal.tier} | ${signal.confidence} | RR ${signal.rr?.toFixed(2) ?? '?'} | kz:${signal.entry?.killzone ?? 'none'}`;
-        const outcome = result.sent ? '✅ SENT' : `⏭ ${result.skipped}${result.reason ? ' — ' + result.reason : ''}`;
+        let outcome;
+        if (result.sent) {
+          outcome = '✅ SENT';
+        } else if (result.skipped === 'error') {
+          outcome = `⏭ error — ${result.error || 'unknown'}`;
+        } else {
+          outcome = `⏭ ${result.skipped}${result.reason ? ' — ' + result.reason : ''}`;
+        }
         logger.log(`[watcher] ${pairCfg.symbol}: ${sig} → ${outcome}`);
       } catch (err) {
         logger.warn(`[watcher] ${pairCfg.symbol} failed: ${err.message}`);

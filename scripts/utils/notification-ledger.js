@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const DEFAULT_LEDGER_PATH = path.join(__dirname, '..', '..', 'sessions', 'notifications-sent.json');
-const WINDOW_MS = 24 * 60 * 60 * 1000;
+const WINDOW_MS = 15 * 60 * 1000; // 15분 dedup window (매분 신호 재생성 대응)
 
 function getLedgerPath() {
   return process.env._TEST_LEDGER_PATH || DEFAULT_LEDGER_PATH;
@@ -13,7 +13,10 @@ function getLedgerPath() {
 function readLedger() {
   const p = getLedgerPath();
   try {
-    return JSON.parse(fs.readFileSync(p, 'utf-8'));
+    const data = JSON.parse(fs.readFileSync(p, 'utf-8'));
+    // 깨진 JSON 또는 entries가 배열이 아닌 경우 방어
+    if (!data || !Array.isArray(data.entries)) return { entries: [] };
+    return data;
   } catch {
     return { entries: [] };
   }

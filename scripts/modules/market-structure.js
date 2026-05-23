@@ -61,13 +61,19 @@ function detectMSS(candles, swings) {
 }
 
 function getCurrentTrend(swings) {
-  if (swings.length < 4) return 'ranging';
-  const last4 = swings.slice(-4);
-  const highs = last4.filter(s => s.type === 'high').map(s => s.price);
-  const lows  = last4.filter(s => s.type === 'low').map(s => s.price);
-  if (highs.length < 2 || lows.length < 2) return 'ranging';
-  if (highs[1] > highs[0] && lows[1] > lows[0]) return 'bull';
-  if (highs[1] < highs[0] && lows[1] < lows[0]) return 'bear';
+  if (swings.length < 6) return 'ranging';
+  const last6 = swings.slice(-6);
+  const highs = last6.filter(s => s.type === 'high').map(s => s.price);
+  const lows  = last6.filter(s => s.type === 'low').map(s => s.price);
+  if (highs.length < 3 || lows.length < 3) return 'ranging';
+  // Compare first 3 swings with last 3 swings — smoothens out single-wick noise
+  const hDelta = highs[2] - highs[0];
+  const lDelta = lows[2] - lows[0];
+  const range = highs[0] - lows[0];
+  const minMove = range * 0.05; // require at least 5% of swing range movement
+  // Both highs AND lows must move meaningfully in the same direction for a confirmed trend
+  if (hDelta > minMove && lDelta > minMove) return 'bull';
+  if (hDelta < -minMove && lDelta < -minMove) return 'bear';
   return 'ranging';
 }
 

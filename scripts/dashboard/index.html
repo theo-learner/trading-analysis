@@ -998,9 +998,13 @@ function renderScorecard(sc, signal) {
   const htfTrend = signal?.structure?.htfTrend;
 
   function structureReason(score) {
-    const match = (htfTrend === 'bull' && dir === 'LONG') || (htfTrend === 'bear' && dir === 'SHORT');
-    const trendLabel = htfTrend === 'bull' ? '상승' : htfTrend === 'bear' ? '하락' : htfTrend || '?';
-    return { cls: score > 0 ? 'pass' : 'fail', text: `HTF ${trendLabel} 추세 — 방향 ${match ? '일치' : '역행'}` };
+    // 'ranging' is direction-neutral — never penalize or reward for direction mismatch
+    const isBull = htfTrend === 'bull';
+    const isBear = htfTrend === 'bear';
+    const match = (isBull && dir === 'LONG') || (isBear && dir === 'SHORT');
+    // Korean trend label with proper ranging support
+    const tl = htfTrend === 'bull' ? '상승' : htfTrend === 'bear' ? '하락' : htfTrend === 'ranging' ? '횡보' : (htfTrend || '?');
+    return { cls: score > 0 ? 'pass' : 'fail', text: `HTF ${tl} 추세 — 방향 ${match ? '일치' : (isBull || isBear ? '역행' : '중립')}` };
   }
   function timeReason(score) {
     return score > 0

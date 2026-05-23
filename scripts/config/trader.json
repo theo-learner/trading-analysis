@@ -32,16 +32,16 @@
     "marginUsd": 10,
     "marginUsdMin": 10,
     "notionalUsd": 20,
-    "minBalanceUsd": 50,
+    "minBalanceUsd": 15,
     "enabled": true
   },
 
   "position": {
     "leverage": 2,
-    "marginType": "isolated",
+    "marginType": "cross",
     "_marginOptions": ["isolated", "cross"],
     "maxConcurrent": 4,
-    "maxPerPair": 1
+    "maxPerPair": 2
   },
 
   "trailing": {

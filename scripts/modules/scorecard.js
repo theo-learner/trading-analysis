@@ -97,8 +97,7 @@ function finalEntryDecision(tier, grade) {
   if (grade === 'C') return { action: 'SKIP',  sizeMultiplier: 0 };
   if (tier >= 4)     return { action: 'SKIP',  sizeMultiplier: 0 };
 
-  if ((grade === 'S' || grade === 'A') && tier <= 2) return { action: 'ENTER', sizeMultiplier: 1.0 };
-  if ((grade === 'S' || grade === 'A') && tier === 3) return { action: 'ENTER', sizeMultiplier: 0.5 };
+  if ((grade === 'S' || grade === 'A') && tier <= 3) return { action: 'ENTER', sizeMultiplier: 1.0 };
   if (grade === 'B' && tier <= 2) return { action: 'ENTER', sizeMultiplier: 0.5 };
 
   return { action: 'SKIP', sizeMultiplier: 0 };

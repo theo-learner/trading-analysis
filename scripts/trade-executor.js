@@ -2,7 +2,7 @@
 
 const crypto  = require('node:crypto');
 const { getExchange } = require('./exchanges/index');
-const { saveTrade, openCount, hasOpenTrade, getTrade } = require('./utils/trade-store');
+const { saveTrade, openCount, hasOpenTrade, openCountForPairAndDirection, getTrade } = require('./utils/trade-store');
 
 /**
  * Executes a trade for an approved signal.
@@ -48,8 +48,20 @@ async function execute(signal, verdict, cfg, deps = {}) {
   const requestedAt = nowFn();
 
   // Early exits — apply before both dry-run and live paths
-  if (hasOpenTrade(signal.pair)) {
-    return { pair: signal.pair, direction: signal.direction, dryRun: !isLive, preflightFailed: true, reason: `pair_already_open (${signal.pair})` };
+  if (openCountForPairAndDirection(signal.pair, signal.direction) >= (cfg.position?.maxPerPair ?? 2)) {
+    return { pair: signal.pair, direction: signal.direction, dryRun: !isLive, preflightFailed: true, reason: `max_per_pair (${cfg.position?.maxPerPair ?? 2}/${cfg.position?.maxPerPair ?? 2}) for ${signal.pair} ${signal.direction}` };
+  }
+  // Block opposite direction entirely
+  if (signal.direction === 'LONG') {
+    const shortOpen = openCountForPairAndDirection(signal.pair, 'SHORT');
+    if (shortOpen > 0) {
+      return { pair: signal.pair, direction: signal.direction, dryRun: !isLive, preflightFailed: true, reason: `opposite direction SHORT is open (${signal.pair})` };
+    }
+  } else {
+    const longOpen = openCountForPairAndDirection(signal.pair, 'LONG');
+    if (longOpen > 0) {
+      return { pair: signal.pair, direction: signal.direction, dryRun: !isLive, preflightFailed: true, reason: `opposite direction LONG is open (${signal.pair})` };
+    }
   }
   if (getTrade(tradeId)) {
     return { pair: signal.pair, direction: signal.direction, dryRun: !isLive, preflightFailed: true, reason: 'already_attempted_this_minute' };
@@ -104,13 +116,25 @@ async function execute(signal, verdict, cfg, deps = {}) {
     return { ...trade, preflightFailed: true, reason: preflight.reason };
   }
 
-  // 2. Setup leverage & margin type (idempotent — errors are tolerated)
+  // 2. Setup leverage & margin type (idempotent)
+  let setupFailed = false;
   try {
     await exchange.setMarginType(signal.pair, marginType);
+  } catch (err) {
+    trade.errors.push({ at: nowFn(), stage: 'setup_marginType', message: err.message });
+    setupFailed = true;
+  }
+  try {
     await exchange.setLeverage(signal.pair, leverage);
   } catch (err) {
-    trade.errors.push({ at: nowFn(), stage: 'setup', message: err.message });
-    // Non-fatal — continue
+    trade.errors.push({ at: nowFn(), stage: 'setup_leverage', message: err.message });
+    setupFailed = true;
+  }
+  if (setupFailed) {
+    trade.status = 'failed';
+    trade.closedReason = 'setup_failed';
+    saveTrade(trade);
+    return { ...trade, preflightFailed: true, reason: 'Leverage/margin setup failed — position not entered' };
   }
 
   // 3. Market entry
@@ -241,8 +265,12 @@ async function _preflight(signal, cfg, exchange, marginUsd, notionalUsd) {
     if (concurrent >= maxConcurrent) {
       return { ok: false, reason: `max_concurrent (${concurrent}/${maxConcurrent})`, snapshot: snap };
     }
-    if (hasOpenTrade(signal.pair)) {
-      return { ok: false, reason: `pair_already_open (${signal.pair})`, snapshot: snap };
+    if (hasOpenTrade(signal.pair, signal.direction)) {
+      const count = openCountForPairAndDirection(signal.pair, signal.direction);
+      const maxPerPair = cfg.position?.maxPerPair ?? 2;
+      if (count >= maxPerPair) {
+        return { ok: false, reason: `max_per_pair (${count}/${maxPerPair}) for ${signal.pair} ${signal.direction}`, snapshot: snap };
+      }
     }
 
     // Balance check
