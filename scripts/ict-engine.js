@@ -87,7 +87,45 @@ function calculateTP(entry, sl, direction, unsweptHighs, unsweptLows, minRR) {
     basis.push('RR');
   }
 
-  return { prices, basis };
+  return { prices, basis, risk };
+}
+
+function calculateATR(candles, period = 14) {
+  if (!candles || candles.length < period + 1) return null;
+  const atrValues = [];
+  for (let i = 1; i <= period; i++) {
+    const prevClose = candles[i - 1].close;
+    const high = candles[i].high;
+    const low = candles[i].low;
+    atrValues.push(Math.max(high - low, Math.abs(high - prevClose), Math.abs(low - prevClose)));
+  }
+  let atr = atrValues.reduce((a, b) => a + b, 0) / period;
+  for (let i = period + 1; i < candles.length; i++) {
+    const prevClose = candles[i - 1].close;
+    const high = candles[i].high;
+    const low = candles[i].low;
+    const tr = Math.max(high - low, Math.abs(high - prevClose), Math.abs(low - prevClose));
+    atr = (atr * (period - 1) + tr) / period;
+  }
+  return atr;
+}
+
+function selectEntryPrice(poi, direction, atr, cfg) {
+  const height = poi.high - poi.low;
+  if (height <= 0) return poi.price;
+
+  // Entry: POI 내 구체적 진입가 (midpoint 아님)
+  const atrBuffer = atr ? atr * (cfg.sl?.bufferATR || 0.25) : 0;
+  const poiBuffer = atrBuffer > 0 ? atrBuffer : height * (cfg.sl?.bufferPct || 0.3);
+  
+  const specificEntry = direction === 'bull'
+    ? poi.low + height * 0.22   // OB 78% 재테스트 (수요 구간 하단에서 22%)
+    : poi.high - height * 0.78;  // OB 78% 재테스트 (공급 구간 상단에서 78%)
+
+  return {
+    price: specificEntry,
+    poiBuffer: poiBuffer,
+  };
 }
 
 function scanDisplacements(candles, cfg) {
@@ -149,8 +187,8 @@ function buildNeutral(pair, reason, tier, currentPrice, extra = {}) {
   };
 }
 
-function buildSignal({ pair, direction, alignment, scorecard, poi, sl, tps, tpBasisArr, rr, confidence, htfTrend, ltfTrend, htfAMD, kzResult, fvgs, obs, bbs, sweeps, unsweptHighs, unsweptLows, sizeMultiplier, currentPrice, mss, bos, displacements, swingRanges, htfSwings }) {
-  const entry = poi.price;
+function buildSignal({ pair, direction, alignment, scorecard, poi, sl, tps, tpBasisArr, rr, confidence, htfTrend, ltfTrend, htfAMD, kzResult, fvgs, obs, bbs, sweeps, unsweptHighs, unsweptLows, sizeMultiplier, currentPrice, mss, bos, displacements, swingRanges, htfSwings, entryPrice, slBuffer, atr }) {
+  const entry = entryPrice ?? poi.price;
   const lastSwingLow  = htfSwings ? htfSwings.filter(s => s.type === 'low').slice(-1)[0]  : null;
   const lastSwingHigh = htfSwings ? htfSwings.filter(s => s.type === 'high').slice(-1)[0] : null;
   const htfInvalidation = direction === 'LONG'
@@ -178,7 +216,11 @@ function buildSignal({ pair, direction, alignment, scorecard, poi, sl, tps, tpBa
       killzone: kzResult.inKillzone ? (kzResult.name || 'UNKNOWN') : null,
     },
     sl,
-    slBasis: direction === 'LONG' ? 'BELOW_OB' : 'ABOVE_OB',
+    slBasis: slBuffer
+      ? `ABOVE_OB + ATR_buffer (${(slBuffer).toFixed(2)})`
+      : 'ABOVE_OB',
+    slBuffer,
+    atr,
     tp:      tps,
     tpBasis: tpBasisArr,
     rr,
@@ -331,6 +373,9 @@ function analyzeICT(params) {
   const kzResult = isInKillzone(new Date());
   const kzBonus  = killzoneBonus(kzResult);
 
+  // [20a] ATR 계산 (LTF 기준)
+  const ltfATR = calculateATR(ltfCandles, 14);
+
   // [21] 스코어카드
   const htfHighs = htfSwings.filter(s => s.type === 'high');
   const htfLows  = htfSwings.filter(s => s.type === 'low');
@@ -359,10 +404,21 @@ function analyzeICT(params) {
       { alignmentScore: alignment.score, structure: neutralStructure, levels: neutralLevels, scorecard, mss: taggedMSS, bos: taggedBOS, displacements, swingRanges });
   }
 
-  // [23-25] SL / TP / R:R
-  const sl             = calculateSL(poi, alignment.htfBias);
-  const { prices: tps, basis: tpBasisArr } = calculateTP(poi.price, sl, alignment.htfBias, unsweptHighs, unsweptLows, cfg.signal.minRR);
-  const rr             = Math.abs(tps[0] - poi.price) / Math.abs(poi.price - sl);
+  // [23] SL — POI boundary + ATR buffer (sweep protection)
+  const rawSL   = calculateSL(poi, alignment.htfBias);
+  const atrBuff = ltfATR ? ltfATR * (cfg.sl?.bufferATR || 0.25) : 0;
+  const poiBuff = atrBuff > 0 ? atrBuff : (poi.high - poi.low) * (cfg.sl?.bufferPct || 0.3);
+  const sl      = alignment.htfBias === 'bull'
+    ? rawSL - poiBuff   // LONG: POI low 아래로 buffer
+    : rawSL + poiBuff;  // SHORT: POI high 위로 buffer
+
+  // [24] Entry — POI 내 구체적 진입가 (midpoint 아님)
+  const entryChoice = selectEntryPrice(poi, alignment.htfBias, ltfATR, cfg);
+  const entryPrice  = entryChoice.price;
+
+  // [25] TP / R:R
+  const { prices: tps, basis: tpBasisArr, risk: calcRisk } = calculateTP(entryPrice, sl, alignment.htfBias, unsweptHighs, unsweptLows, cfg.signal.minRR);
+  const rr = calcRisk > 0 ? Math.abs(tps[0] - entryPrice) / calcRisk : 0;
 
   // R:R 2:1 미만 → NEUTRAL (Appendix B §4)
   if (rr < cfg.signal.minRR) {
@@ -379,6 +435,9 @@ function analyzeICT(params) {
     pair: params.pair,
     direction: entryDirection,
     alignment, scorecard, poi, sl, tps, tpBasisArr, rr, confidence,
+    entryPrice: entryPrice,
+    slBuffer: poiBuff,
+    atr: ltfATR,
     htfTrend, ltfTrend, htfAMD, kzResult,
     fvgs:   [...htfFVGs, ...ltfFVGs],
     obs:    [...htfOBs,  ...ltfOBs],
