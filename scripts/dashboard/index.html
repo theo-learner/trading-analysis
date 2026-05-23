@@ -143,6 +143,16 @@
   #history-header .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--bull); animation: pulse 2s ease infinite; }
   @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.4; } }
   #history-header .trade-count { font-size: 11px; color: var(--muted); margin-left: auto; }
+  #history-tabs { display: flex; gap: 4px; margin-left: auto; }
+  .history-tab { padding: 3px 10px; border-radius: 3px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-size: 11px; font-weight: 600; transition: all .15s; }
+  .history-tab.active { background: var(--primary); color: #000; border-color: var(--primary); }
+  #history-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--border); background: var(--card); }
+  .stat-card { text-align: center; }
+  .stat-label { font-size: 10px; color: var(--muted); margin-bottom: 2px; }
+  .stat-value { font-family: var(--mono); font-size: 14px; font-weight: 700; }
+  .stat-value.pos { color: var(--bull); }
+  .stat-value.neg { color: var(--bear); }
+  .stat-value.muted { color: var(--muted); }
   #history-table-wrap { overflow-x: auto; max-height: 180px; overflow-y: auto; }
   #history-table { width: 100%; border-collapse: collapse; font-size: 11px; }
   #history-table th { padding: 5px 10px; text-align: left; color: var(--muted); font-weight: 600; position: sticky; top: 0; background: var(--panel); border-bottom: 1px solid var(--border); white-space: nowrap; }
@@ -273,10 +283,21 @@
     <div id="history-header">
       <div class="live-dot"></div>
       <h3>트레이딩 이력</h3>
+      <div id="history-tabs">
+        <button class="history-tab active" data-tab="open">Open</button>
+        <button class="history-tab" data-tab="closed">Closed</button>
+        <button class="history-tab" data-tab="all">All</button>
+      </div>
       <span class="trade-count" id="tradeCount">0 건</span>
     </div>
+    <div id="history-stats">
+      <div class="stat-card"><div class="stat-label">총 거래</div><div class="stat-value muted" id="statTotal">—</div></div>
+      <div class="stat-card"><div class="stat-label">승률</div><div class="stat-value muted" id="statWinRate">—</div></div>
+      <div class="stat-card"><div class="stat-label">총 PnL</div><div class="stat-value muted" id="statTotalPnl">—</div></div>
+      <div class="stat-card"><div class="stat-label">평균 PnL</div><div class="stat-value muted" id="statAvgPnl">—</div></div>
+    </div>
     <div id="history-table-wrap">
-      <div id="history-empty">아직 체결된 거래가 없습니다. ICT 분석 후 진입 버튼을 누르면 DRY-RUN 거래가 기록됩니다.</div>
+      <div id="history-empty">거래가 없습니다.</div>
       <table id="history-table" style="display:none;">
         <thead>
           <tr>
@@ -284,12 +305,9 @@
             <th>페어</th>
             <th>방향</th>
             <th>진입가</th>
-            <th>SL</th>
-            <th>TP1</th>
-            <th>R:R</th>
-            <th>등급</th>
+            <th>출구가</th>
+            <th>PnL(%)</th>
             <th>상태</th>
-            <th>P&amp;L</th>
             <th>모드</th>
           </tr>
         </thead>
@@ -1486,6 +1504,99 @@ async function checkServerStatus() {
   }
 }
 
+// ── 거래 이력 상태 ──────────────────────────────────────────────────────
+let currentTradeTab = 'open';
+let allTradesData = { open: [], closed: [], stats: null };
+
+// ── 거래 이력 렌더링 ──────────────────────────────────────────────────────
+function renderHistory(trades, stats) {
+  const tbody = document.getElementById('history-tbody');
+  const empty = document.getElementById('history-empty');
+  const table = document.getElementById('history-table');
+  const count = document.getElementById('tradeCount');
+
+  // Update stats
+  if (stats) {
+    document.getElementById('statTotal').textContent = stats.totalTrades ?? '—';
+    document.getElementById('statWinRate').textContent = stats.winRate !== '—' ? `${stats.winRate}%` : '—';
+    const pnlEl = document.getElementById('statTotalPnl');
+    const avgEl = document.getElementById('statAvgPnl');
+    if (stats.totalPnl !== '—') {
+      const pnl = parseFloat(stats.totalPnl);
+      pnlEl.textContent = `${pnl > 0 ? '+' : ''}${stats.totalPnl}%`;
+      pnlEl.className = `stat-value ${pnl >= 0 ? 'pos' : 'neg'}`;
+    } else { pnlEl.textContent = '—'; pnlEl.className = 'stat-value muted'; }
+    if (stats.avgPnl !== '—') {
+      const avg = parseFloat(stats.avgPnl);
+      avgEl.textContent = `${avg > 0 ? '+' : ''}${stats.avgPnl}%`;
+      avgEl.className = `stat-value ${avg >= 0 ? 'pos' : 'neg'}`;
+    } else { avgEl.textContent = '—'; avgEl.className = 'stat-value muted'; }
+  }
+
+  count.textContent = `${trades.length} 건`;
+
+  if (!trades.length) {
+    empty.style.display = 'block';
+    table.style.display = 'none';
+    return;
+  }
+
+  empty.style.display = 'none';
+  table.style.display = 'table';
+
+  tbody.innerHTML = trades.map(t => {
+    const isLong = t.direction === 'LONG';
+    const pnl = t.pnl != null ? t.pnl.toFixed(2) : '—';
+    const pnlClass = t.pnl > 0 ? 'pos' : t.pnl < 0 ? 'neg' : '';
+    const ts = t.entry?.requestedAt || t.closedAt || t.createdAt;
+    const time = ts ? new Date(ts).toISOString().slice(11, 19) : '—';
+    const exit = t.exit?.price ?? t.exit ?? '—';
+    const modeLabel = (t.status === 'live' || t.exchange) ? 'LIVE' : 'DRY';
+    return `<tr>
+      <td>${time}</td>
+      <td>${t.pair || '—'}</td>
+      <td class="${isLong ? 'td-long' : 'td-short'}">${t.direction || '—'}</td>
+      <td>${formatPrice(t.entry?.price ?? t.entry)}</td>
+      <td>${formatPrice(exit)}</td>
+      <td class="td-pnl ${pnlClass}">${pnl !== '—' ? (t.pnl > 0 ? '+' : '') + pnl + '%' : '—'}</td>
+      <td class="${t.status === 'open' ? 'td-status-open' : 'td-status-closed'}">${t.status === 'open' ? 'OPEN' : (t.status || 'closed')}</td>
+      <td><span class="td-mode">${modeLabel}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── 거래 이력 로드 ──────────────────────────────────────────────────────────
+async function loadTrades() {
+  try {
+    const resp = await fetch(`${API}/api/ledger?limit=200`);
+    const data = await resp.json();
+    allTradesData = { open: data.open || [], closed: data.closed || [], stats: data.stats || null };
+    refreshHistoryTab();
+  } catch (_) {}
+}
+
+function refreshHistoryTab() {
+  const { open, closed, stats } = allTradesData;
+  let trades;
+  switch (currentTradeTab) {
+    case 'open':   trades = open; break;
+    case 'closed': trades = closed; break;
+    case 'all':    trades = [...closed, ...open]; break;
+    default: trades = [];
+  }
+  renderHistory(trades, stats);
+}
+
+// ── 거래 이력 탭 이벤트 ───────────────────────────────────────────────────
+document.addEventListener('click', (e) => {
+  if (e.target.classList.contains('history-tab')) {
+    document.querySelectorAll('.history-tab').forEach(b => b.classList.remove('active'));
+    e.target.classList.add('active');
+    currentTradeTab = e.target.dataset.tab;
+    refreshHistoryTab();
+  }
+});
+
 // ── 초기화 ────────────────────────────────────────────────────────────────
 async function init() {
   state.pairs = await loadPairsConfig();
@@ -1498,10 +1609,10 @@ async function init() {
   await loadCandles();
   connectWS();
   connectSSE();
-  await loadTrades();
+  loadTrades();
   await loadLatestSignal();
   await loadLatestDiary();
-  setInterval(loadTrades, 10_000);
+  setInterval(loadTrades, 15_000);
   runAnalyzeAll();
 }
 

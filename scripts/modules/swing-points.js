@@ -15,10 +15,8 @@ function detectSwingPoints(candles, { leftBars, rightBars }) {
     if (isLow)  swings.push({ index: i, time: candles[i].time, price: candles[i].low,  type: 'low'  });
   }
 
-  // 2. Merge flat zones: when multiple local lows/highs are within tolerancePct,
-  //    keep only the most extreme. This handles the 74,000 area where several
-  //    candles cluster near each other.
-  const merged = mergeSwingClusters(swings, 0.005);
+  // 2. Post-process merge (flat zone clustering)
+  const merged = mergeSwingClusters(swings);
 
   // 3. Rolling global extremes injection: scan the most recent candles
   //    (where flat zones tend to occur) and inject any global extremes
@@ -45,14 +43,20 @@ function detectSwingPoints(candles, { leftBars, rightBars }) {
         Math.abs(cand.price - s.price) / cand.price < 0.003
       );
       if (!nearby) {
-        merged.push({ index: cand.index, time: cand.time, price: cand.price, type });
+        // Check price isn't already very close to any swing of the same type
+        const priceCovered = merged.some(s =>
+          s.type === type && Math.abs(cand.price - s.price) / cand.price < 0.01
+        );
+        if (!priceCovered) {
+          merged.push({ index: cand.index, time: cand.time, price: cand.price, type });
+        }
       }
     }
   }
 
   // Final re-sort and re-merge (injected points might create new clusters)
   merged.sort((a, b) => a.index - b.index);
-  return mergeSwingClusters(merged, 0.005);
+  return mergeSwingClusters(merged, 0.008);
 }
 
 // Post-process: merge swings from flat price zones into clusters.

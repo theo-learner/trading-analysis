@@ -25,6 +25,7 @@ const { analyzeICT }     = require('./ict-engine');
 const { fetchCandleSet } = require('./utils/binance');
 const { buildDiary }     = require('./modules/diary');
 const { normalizePair, loadPairs } = require('./utils/pair-config');
+const { openTrades, closedTrades } = require('./utils/trade-store');
 const traderConfig       = require('./config/trader.json');
 
 const PAIRS = loadPairs();
@@ -150,6 +151,38 @@ async function handleRequest(req, res) {
   if (req.method === 'GET' && pathname === '/api/trades') {
     const trades = readDirJSON(DRY_RUN_DIR);
     return jsonResponse(res, trades);
+  }
+
+  // ── GET /api/ledger ──────────────────────────────────────────────────────
+  // Returns open + closed live trades from trade-store.js with summary stats
+  if (req.method === 'GET' && pathname === '/api/ledger') {
+    try {
+      const open  = openTrades();
+      const limit = url.searchParams.get('limit') ? parseInt(url.searchParams.get('limit'), 10) : 100;
+      const closed = closedTrades(limit);
+
+      // Calculate summary stats from closed trades
+      const closedWithPnl = closed.filter(t => t.pnl != null && typeof t.pnl === 'number');
+      const stats = {
+        totalTrades: closed.length,
+        winRate: closedWithPnl.length > 0
+          ? (closedWithPnl.filter(t => t.pnl > 0).length / closedWithPnl.length * 100).toFixed(1)
+          : '—',
+        totalPnl: closedWithPnl.length > 0
+          ? (closedWithPnl.reduce((s, t) => s + t.pnl, 0)).toFixed(2)
+          : '—',
+        avgPnl: closedWithPnl.length > 0
+          ? (closedWithPnl.reduce((s, t) => s + t.pnl, 0) / closedWithPnl.length).toFixed(2)
+          : '—',
+        wins: closedWithPnl.filter(t => t.pnl > 0).length,
+        losses: closedWithPnl.filter(t => t.pnl <= 0).length,
+      };
+
+      return jsonResponse(res, { open, closed, stats });
+    } catch (err) {
+      console.error('Ledger error:', err.message);
+      return jsonResponse(res, { open: [], closed: [], stats: null, error: err.message }, 500);
+    }
   }
 
   // ── GET /api/signals ─────────────────────────────────────────────────────
