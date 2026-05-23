@@ -60,7 +60,12 @@ function detectMSS(candles, swings) {
   return mss;
 }
 
-function getCurrentTrend(swings) {
+/**
+ * 스윙 기반 trend 계산 (ranging일 경우 price action 보정)
+ * @param {Array} swings - 스윙 배열 (정렬됨)
+ * @param {Array} candles - 캔들 배열 (option, price action 보정용)
+ */
+function getCurrentTrend(swings, candles) {
   if (swings.length < 4) return 'ranging';
 
   const highs = swings.filter(s => s.type === 'high');
@@ -75,9 +80,7 @@ function getCurrentTrend(swings) {
     return trendFromDelta(h6, l6);
   }
 
-  // --- Fallback: extend window to find enough swings ---
-  // Look back up to last 16 swings; accept if we get 2+ highs AND 2+ lows
-  // Start from small window and expand — prefer recent structure over older swings
+  // --- Fallback 1: extend window up to 16 ---
   const maxWindow = Math.min(16, swings.length);
   for (let window = Math.min(8, swings.length); window <= maxWindow; window += 2) {
     const sub = swings.slice(-window);
@@ -89,21 +92,17 @@ function getCurrentTrend(swings) {
     }
   }
 
-  // --- Fallback 2: single high+low pair (sharp move detection) ---
-  // e.g. low@38 → high@62 (one rally) = bullish
+  // --- Fallback 2: single high+low pair ---
   if (highs.length >= 1 && lows.length >= 1) {
     const lastHigh = highs[highs.length - 1];
     const lastLow  = lows[lows.length - 1];
 
-    // If most recent swing is a HIGH and a prior low exists
     if (lastHigh.index > lastLow.index) {
       const delta = lastHigh.price - lastLow.price;
       const range = Math.max(...highs.map(h => h)) - Math.min(...lows.map(l => l));
       const minMove = range * 0.03;
       if (delta > minMove) return 'bull';
-    }
-    // If most recent swing is a LOW and a prior high exists
-    else if (lastLow.index > lastHigh.index) {
+    } else if (lastLow.index > lastHigh.index) {
       const delta = lastHigh.price - lastLow.price;
       const range = Math.max(...highs.map(h => h)) - Math.min(...lows.map(l => l));
       const minMove = range * 0.03;
@@ -111,6 +110,38 @@ function getCurrentTrend(swings) {
     }
   }
 
+  return 'ranging';
+}
+
+/**
+ * 현재 가격 기반 추세 보정 — swing trend가 'ranging'일 때 최근 봉의 이동 경향 확인
+ * @param {string} swingTrend - getCurrentTrend() 결과
+ * @param {Array} candles - 캔들 배열 (최신 N봉)
+ * @returns {string} - 'bull' | 'bear' | 'ranging'
+ */
+function getPriceActionTrend(swingTrend, candles) {
+  if (swingTrend !== 'ranging' || !candles || candles.length < 5) return swingTrend;
+
+  // Check last N candles price action
+  const n = Math.min(8, candles.length);
+  const recent = candles.slice(-n);
+  const closes = recent.map(c => c.close);
+
+  // Count how many consecutive closes are higher than 3 bars ago
+  let upTrend = 0;
+  let downTrend = 0;
+  for (let i = 1; i < closes.length; i++) {
+    const idx = i - 3;
+    if (idx >= 0) {
+      if (closes[i] > closes[idx]) upTrend++;
+      else if (closes[i] < closes[idx]) downTrend++;
+    }
+  }
+
+  // If 3/4+ checks show consistent direction, use it
+  const threshold = Math.ceil(n / 2);
+  if (upTrend >= threshold) return 'bull';
+  if (downTrend >= threshold) return 'bear';
   return 'ranging';
 }
 
@@ -131,4 +162,4 @@ function filterByRecentSwings(events, swings, swingCount = 4) {
   return events.filter(e => e.time >= cutoffTime);
 }
 
-module.exports = { detectBOS, detectMSS, getCurrentTrend, filterByRecentSwings };
+module.exports = { detectBOS, detectMSS, getCurrentTrend, filterByRecentSwings, getPriceActionTrend };

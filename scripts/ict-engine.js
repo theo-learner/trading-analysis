@@ -9,7 +9,7 @@ const { fetchCandleSet }          = require('./utils/binance');
 const { isInKillzone, killzoneBonus } = require('./utils/time-utils');
 
 const { detectSwingPoints }       = require('./modules/swing-points');
-const { detectBOS, detectMSS, getCurrentTrend, filterByRecentSwings } = require('./modules/market-structure');
+const { detectBOS, detectMSS, getCurrentTrend, filterByRecentSwings, getPriceActionTrend } = require('./modules/market-structure');
 const { detectFVG }               = require('./modules/fvg');
 const { detectOrderBlocks }       = require('./modules/order-block');
 const { detectBreakerBlocks }     = require('./modules/breaker-block');
@@ -273,7 +273,8 @@ function analyzeICT(params) {
   // [5] HTF 구조
   const htfBOS    = detectBOS(htfCandles, htfSwings);
   const htfMSS    = detectMSS(htfCandles, htfSwings);
-  const htfTrend  = getCurrentTrend(htfSwings);
+  let htfTrend  = getCurrentTrend(htfSwings, htfCandles);
+  htfTrend = getPriceActionTrend(htfTrend, htfCandles);
 
   // [6-10] HTF POI + 스윕
   const dispFn    = (c, cs, idx) => isDisplacement(c, cs, idx, cfg.displacement);
@@ -296,7 +297,8 @@ function analyzeICT(params) {
   // [13-17] LTF 구조 + POI + 스윕
   const ltfBOS    = detectBOS(ltfCandles, ltfSwings);
   const ltfMSS    = detectMSS(ltfCandles, ltfSwings);
-  const ltfTrend  = getCurrentTrend(ltfSwings);
+  let ltfTrend  = getCurrentTrend(ltfSwings, ltfCandles);
+  ltfTrend = getPriceActionTrend(ltfTrend, ltfCandles);
   const ltfFVGs   = detectFVG(ltfCandles, cfg.fvg);
   const ltfOBs    = detectOrderBlocks(ltfCandles, ltfSwings, dispFn);
   const ltfSweeps = detectLiquiditySweeps(ltfCandles, ltfSwings, cfg.sweep);
