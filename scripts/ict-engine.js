@@ -328,10 +328,19 @@ function analyzeICT(params) {
   const displacements = scanDisplacements(ltfCandles, cfg);
 
   // 스윙 범위 — 최근 N개 스윙의 min/max (다이어리 헤더용)
+  // fallback: 4개에서 highs/lows가 없으면 8개, 16개로 넓혀서 시도
   const swingRanges = {
     htf: computeSwingRange(htfSwings, SWING_LOOKBACK),
     ltf: computeSwingRange(ltfSwings, SWING_LOOKBACK),
   };
+  if (swingRanges.htf === null && htfSwings.length > SWING_LOOKBACK) {
+    swingRanges.htf = computeSwingRange(htfSwings, Math.min(SWING_LOOKBACK * 2, htfSwings.length)) ||
+                      computeSwingRange(htfSwings, Math.min(SWING_LOOKBACK * 4, htfSwings.length));
+  }
+  if (swingRanges.ltf === null && ltfSwings.length > SWING_LOOKBACK) {
+    swingRanges.ltf = computeSwingRange(ltfSwings, Math.min(SWING_LOOKBACK * 2, ltfSwings.length)) ||
+                      computeSwingRange(ltfSwings, Math.min(SWING_LOOKBACK * 4, ltfSwings.length));
+  }
 
   // ERL용: 스윕 이벤트가 발생하지 않은 순수 스윙 고점/저점
   const allSweeps = [...htfSweeps, ...ltfSweeps];
