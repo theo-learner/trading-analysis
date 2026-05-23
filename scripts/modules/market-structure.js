@@ -109,7 +109,7 @@ function getCurrentTrend(swings) {
     }
   }
 
-  return 'raining';
+  return 'ranging';
 }
 
 function trendFromDelta(highs, lows) {
