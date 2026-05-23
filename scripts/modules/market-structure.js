@@ -114,22 +114,22 @@ function getCurrentTrend(swings, candles) {
 }
 
 /**
- * 현재 가격 기반 추세 보정 — swing trend가 'ranging'일 때 최근 봉의 이동 경향 확인
+ * 현재 가격 기반 추세 보정
+ * - swingTrend가 'ranging'일 때: 가격 흐름 우선
+ * - swingTrend가 directional일 때: swing high/low를 뚫고 유지할 때만 보정
  * @param {string} swingTrend - getCurrentTrend() 결과
- * @param {Array} candles - 캔들 배열 (최신 N봉)
+ * @param {Array} candles - 캔들 배열
  * @returns {string} - 'bull' | 'bear' | 'ranging'
  */
 function getPriceActionTrend(swingTrend, candles) {
-  if (swingTrend !== 'ranging' || !candles || candles.length < 5) return swingTrend;
+  if (!candles || candles.length < 5) return swingTrend;
 
-  // Check last N candles price action
   const n = Math.min(8, candles.length);
   const recent = candles.slice(-n);
   const closes = recent.map(c => c.close);
 
-  // Count how many consecutive closes are higher than 3 bars ago
-  let upTrend = 0;
-  let downTrend = 0;
+  // Count direction over last few bars
+  let upTrend = 0, downTrend = 0;
   for (let i = 1; i < closes.length; i++) {
     const idx = i - 3;
     if (idx >= 0) {
@@ -138,11 +138,29 @@ function getPriceActionTrend(swingTrend, candles) {
     }
   }
 
-  // If 3/4+ checks show consistent direction, use it
   const threshold = Math.ceil(n / 2);
-  if (upTrend >= threshold) return 'bull';
-  if (downTrend >= threshold) return 'bear';
-  return 'ranging';
+
+  // === Ranging: price action fully decides ===
+  if (swingTrend === 'ranging') {
+    if (upTrend >= threshold) return 'bull';
+    if (downTrend >= threshold) return 'bear';
+    return 'ranging';
+  }
+
+  // === Directional: price action can override only if structure breaks ===
+  // Check if recent 3 bars have consistently moved above/below starting level
+  const recent3 = closes.slice(-3);
+  const startLevel = closes[closes.length - recent3.length - 3] || closes[0];
+  const allAbove = recent3.every(c => c > startLevel);
+  const allBelow = recent3.every(c => c < startLevel);
+
+  // Only correct if price action direction is OPPOSITE to swing trend
+  // AND price is trending (not just a small bounce)
+  const bouncePct = Math.abs(closes[closes.length-1] - startLevel) / startLevel * 100;
+  if (swingTrend === 'bear' && upTrend >= threshold && allAbove && bouncePct > 1.0) return 'bull';
+  if (swingTrend === 'bull' && downTrend >= threshold && allBelow && bouncePct > 1.0) return 'bear';
+
+  return swingTrend;
 }
 
 function trendFromDelta(highs, lows) {
