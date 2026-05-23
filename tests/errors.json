@@ -1,0 +1,14 @@
+{
+  "timestamp": "2026-05-23T15:46:53.811Z",
+  "elapsed": 370,
+  "failures": [
+    {
+      "name": "Swing Detection",
+      "error": "HYPEUSDT: current price 57.43 above last swing high 55.99",
+      "time": "2026-05-23T15:46:53.811Z"
+    }
+  ],
+  "checkCount": 5,
+  "failCount": 1,
+  "passCount": 4
+}

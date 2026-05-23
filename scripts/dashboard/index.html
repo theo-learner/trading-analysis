@@ -202,7 +202,7 @@
   <div class="header-spacer"></div>
   <div id="analyze-all-badge"><span class="spin"></span><span id="analyze-all-text">전체 분석 중...</span></div>
   <div class="kz-badge inactive" id="kzBadge">킬존 대기</div>
-  <div class="mode-badge">DRY-RUN</div>
+  <div class="mode-badge" id="modeBadge">DRY-RUN</div>
   <div class="status-dot" id="statusDot"></div>
   <button id="api-settings-btn" title="서버 URL 설정" style="padding:4px 8px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:12px;">⚙</button>
 </div>
@@ -387,6 +387,7 @@ function renderPairTabs() {
 let state = {
   pair:  null,
   pairs: [],
+  mode:  'dry-run',
   tf:   '15m',
   overlays: { fvg: true, ob: true, bb: true, sweep: true },
   useBoxOverlays: true,
