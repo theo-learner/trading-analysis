@@ -1546,20 +1546,22 @@ function renderHistory(trades, stats) {
 
   tbody.innerHTML = trades.map(t => {
     const isLong = t.direction === 'LONG';
-    const pnl = t.pnl != null ? t.pnl.toFixed(2) : '—';
-    const pnlClass = t.pnl > 0 ? 'pos' : t.pnl < 0 ? 'neg' : '';
+    const pnl = t.realizedPnl != null ? t.realizedPnl.toFixed(2) : '—';
+    const pnlClass = t.realizedPnl > 0 ? 'pos' : t.realizedPnl < 0 ? 'neg' : '';
+    const entryPrice = t.entry?.price ?? t.entry?.requested ?? t.entry;
+    const exitPrice = t.exit?.price ?? t.exit?.fillPrice ?? t.exit;
     const ts = t.entry?.requestedAt || t.closedAt || t.createdAt;
     const time = ts ? new Date(ts).toISOString().slice(11, 19) : '—';
-    const exit = t.exit?.price ?? t.exit ?? '—';
-    const modeLabel = (t.status === 'live' || t.exchange) ? 'LIVE' : 'DRY';
+    const modeLabel = t.exchange ? 'LIVE' : 'DRY';
+    const statusLabel = t.status === 'open' ? 'OPEN' : (t.closedReason || t.status || 'closed');
     return `<tr>
       <td>${time}</td>
       <td>${t.pair || '—'}</td>
       <td class="${isLong ? 'td-long' : 'td-short'}">${t.direction || '—'}</td>
-      <td>${formatPrice(t.entry?.price ?? t.entry)}</td>
-      <td>${formatPrice(exit)}</td>
-      <td class="td-pnl ${pnlClass}">${pnl !== '—' ? (t.pnl > 0 ? '+' : '') + pnl + '%' : '—'}</td>
-      <td class="${t.status === 'open' ? 'td-status-open' : 'td-status-closed'}">${t.status === 'open' ? 'OPEN' : (t.status || 'closed')}</td>
+      <td>${formatPrice(entryPrice)}</td>
+      <td>${formatPrice(exitPrice)}</td>
+      <td class="td-pnl ${pnlClass}">${pnl !== '—' ? (t.realizedPnl > 0 ? '+' : '') + pnl + '%' : '—'}</td>
+      <td class="${t.status === 'open' ? 'td-status-open' : 'td-status-closed'}">${statusLabel}</td>
       <td><span class="td-mode">${modeLabel}</span></td>
     </tr>`;
   }).join('');

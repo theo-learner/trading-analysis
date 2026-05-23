@@ -158,25 +158,48 @@ async function handleRequest(req, res) {
   if (req.method === 'GET' && pathname === '/api/ledger') {
     try {
       const open  = openTrades();
-      const limit = url.searchParams.get('limit') ? parseInt(url.searchParams.get('limit'), 10) : 100;
+      // Cap limit at 50 to avoid blocking on large directories
+      const limit = Math.min(
+        url.searchParams.get('limit') ? parseInt(url.searchParams.get('limit'), 10) : 50,
+        50
+      );
       const closed = closedTrades(limit);
 
-      // Calculate summary stats from closed trades
-      const closedWithPnl = closed.filter(t => t.pnl != null && typeof t.pnl === 'number');
-      const stats = {
-        totalTrades: closed.length,
-        winRate: closedWithPnl.length > 0
-          ? (closedWithPnl.filter(t => t.pnl > 0).length / closedWithPnl.length * 100).toFixed(1)
-          : '—',
-        totalPnl: closedWithPnl.length > 0
-          ? (closedWithPnl.reduce((s, t) => s + t.pnl, 0)).toFixed(2)
-          : '—',
-        avgPnl: closedWithPnl.length > 0
-          ? (closedWithPnl.reduce((s, t) => s + t.pnl, 0) / closedWithPnl.length).toFixed(2)
-          : '—',
-        wins: closedWithPnl.filter(t => t.pnl > 0).length,
-        losses: closedWithPnl.filter(t => t.pnl <= 0).length,
-      };
+      // Calculate summary stats
+      const closedWithPnl = closed.filter(t => t.realizedPnl != null && typeof t.realizedPnl === 'number');
+      const allClosedFiles = []; // count total without reading all
+      let totalClosed = 0;
+      try {
+        totalClosed = fs.readdirSync(path.join(ROOT, 'trades', 'live', 'closed'))
+          .filter(f => f.endsWith('.json') && !f.endsWith('.tmp')).length;
+      } catch {}
+
+      // Also read a broader sample for stats (up to 200)
+      let stats = null;
+      if (closed.length > 0 || totalClosed > 0) {
+        let statsClosed = closed;
+        if (totalClosed > closed.length) {
+          try {
+            const broader = closedTrades(Math.min(totalClosed, 200));
+            statsClosed = broader;
+          } catch {}
+        }
+        const withPnl = statsClosed.filter(t => t.realizedPnl != null && typeof t.realizedPnl === 'number');
+        stats = {
+          totalTrades: totalClosed,
+          winRate: withPnl.length > 0
+            ? (withPnl.filter(t => t.realizedPnl > 0).length / withPnl.length * 100).toFixed(1)
+            : '—',
+          totalPnl: withPnl.length > 0
+            ? (withPnl.reduce((s, t) => s + t.realizedPnl, 0)).toFixed(2)
+            : '—',
+          avgPnl: withPnl.length > 0
+            ? (withPnl.reduce((s, t) => s + t.realizedPnl, 0) / withPnl.length).toFixed(2)
+            : '—',
+          wins: withPnl.filter(t => t.realizedPnl > 0).length,
+          losses: withPnl.filter(t => t.realizedPnl <= 0).length,
+        };
+      }
 
       return jsonResponse(res, { open, closed, stats });
     } catch (err) {
