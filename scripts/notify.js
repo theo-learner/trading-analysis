@@ -21,6 +21,10 @@ function formatMessage(signal, verdict, tradeResult) {
   const dirEmoji = direction === 'LONG' ? '📈' : direction === 'SHORT' ? '📉' : '➡️';
   const ep = entry?.price ?? 0;
 
+  // Use actual filled price if trade already executed — avoids signal vs fill confusion
+  const displayEntry = (tradeResult?.entry?.filled != null && tradeResult.entry.filled > 0)
+    ? tradeResult.entry.filled : ep;
+
   // 천 단위 쉼표, 불필요한 .0 제거
   function fmt(n) {
     if (!Number.isFinite(n)) return '?';
@@ -29,24 +33,24 @@ function formatMessage(signal, verdict, tradeResult) {
   }
 
   function pct(target) {
-    if (!ep || !target) return '';
-    const d = (target - ep) / ep * 100;
+    if (!displayEntry || !target) return '';
+    const d = (target - displayEntry) / displayEntry * 100;
     return ` (${d >= 0 ? '+' : ''}${d.toFixed(1)}%)`;
   }
 
   // 현재가 → 진입가 방향 표시
-  // LONG: 화살표 항상 ↓ (리미트 진입 방향). ep > currentPrice면 이미 POI 내 진입.
-  // SHORT: 화살표 항상 ↑. ep < currentPrice면 이미 POI 내 진입.
+  // LONG: 화살표 항상 ↓ (리미트 진입 방향). displayEntry > currentPrice면 이미 POI 내 진입.
+  // SHORT: 화살표 항상 ↑. displayEntry < currentPrice면 이미 POI 내 진입.
   function distToEntry() {
-    if (!currentPrice || !ep) return '';
-    const absPct = Math.abs((ep - currentPrice) / currentPrice * 100).toFixed(1);
+    if (!currentPrice || !displayEntry) return '';
+    const absPct = Math.abs((displayEntry - currentPrice) / currentPrice * 100).toFixed(1);
     if (direction === 'LONG') {
-      return ep <= currentPrice ? `  ↓${absPct}% 진입까지` : `  ↓${absPct}% 진입 중`;
+      return displayEntry <= currentPrice ? `  ↓${absPct}% 진입까지` : `  ↓${absPct}% 진입 중`;
     }
     if (direction === 'SHORT') {
-      return ep >= currentPrice ? `  ↑${absPct}% 진입까지` : `  ↑${absPct}% 진입 중`;
+      return displayEntry >= currentPrice ? `  ↑${absPct}% 진입까지` : `  ↑${absPct}% 진입 중`;
     }
-    const arrow = ep >= currentPrice ? '↑' : '↓';
+    const arrow = displayEntry >= currentPrice ? '↑' : '↓';
     return `  ${arrow}${absPct}% 진입까지`;
   }
 
@@ -109,7 +113,7 @@ function formatMessage(signal, verdict, tradeResult) {
     `${dirEmoji} *${direction}  ${esc(pair)}*  \\|  Tier ${esc(String(tier))} · ${esc(confidence)}`,
     `_${tierLabel(tier)}_  \\|  Grade *${esc(grade)}*  \\|  Size ${esc(String(size))}x`,
     '',
-    `${curLine}진입    \\\\$${esc(fmt(ep))}`,
+    `${curLine}진입    \\\\$${esc(fmt(displayEntry))}`,
     `SL      \\\\$${esc(fmt(sl ?? 0))}${esc(pct(sl))}`,
     tpLines,
     `${rrLabel}`,
