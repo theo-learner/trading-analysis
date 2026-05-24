@@ -171,14 +171,16 @@ class BybitExchange extends BaseExchange {
   }
 
   async placeMarketOrder(symbol, side, qty) {
-    const bySide = side === 'BUY' ? 'Buy' : 'Sell';
-    const data   = await this._request('POST', '/v5/order/create', {
-      category:    'linear',
+    const bySide   = side === 'BUY' ? 'Buy' : 'Sell';
+    const posSide  = side === 'BUY' ? 'long' : 'short';  // unified account: Buy→long, Sell→short
+    const data     = await this._request('POST', '/v5/order/create', {
+      category:     'linear',
       symbol,
-      side:        bySide,
-      orderType:   'Market',
-      qty:         String(qty),
-      timeInForce: 'IOC',
+      side:         bySide,
+      orderType:    'Market',
+      qty:          String(qty),
+      timeInForce:  'IOC',
+      positionSide: posSide,
     }, true);
     const orderId = data?.orderId;
 
@@ -200,35 +202,56 @@ class BybitExchange extends BaseExchange {
   }
 
   async placeStopMarket(symbol, side, stopPrice, qty) {
-    const bySide = side === 'BUY' ? 'Buy' : 'Sell';
-    const data   = await this._request('POST', '/v5/order/create', {
-      category:      'linear',
-      symbol,
-      side:          bySide,
-      orderType:     'Market',
-      qty:           String(qty),
-      triggerPrice:  String(stopPrice),
-      triggerBy:     'MarkPrice',
-      stopOrderType: 'Stop',
-      reduceOnly:    true,
-    }, true);
-    return { orderId: data?.orderId };
+    // Unified account: set SL via /v5/position/trading-stop (Full mode)
+    // Full mode: stopLoss/takeProfit are price strings (not booleans)
+    try {
+      await this._request('POST', '/v5/position/trading-stop', {
+        category:     'linear',
+        symbol,
+        stopLoss:     String(stopPrice),
+        slTriggerBy:  'MarkPrice',
+        tpslMode:     'Full',
+      }, true);
+      return { orderId: null };  // Full mode returns no orderId
+    } catch (err) {
+      throw err;
+    }
   }
 
   async placeTakeProfitMarket(symbol, side, stopPrice, qty) {
-    const bySide = side === 'BUY' ? 'Buy' : 'Sell';
-    const data   = await this._request('POST', '/v5/order/create', {
-      category:      'linear',
-      symbol,
-      side:          bySide,
-      orderType:     'Market',
-      qty:           String(qty),
-      triggerPrice:  String(stopPrice),
-      triggerBy:     'MarkPrice',
-      stopOrderType: 'TakeProfit',
-      reduceOnly:    true,
-    }, true);
-    return { orderId: data?.orderId };
+    // Unified account: set TP via /v5/position/trading-stop (Full mode)
+    // If SL already set, include both; otherwise TP only
+    try {
+      // First check if SL is already set on this position
+      const posData = await this._request('GET', '/v5/position/list', { category: 'linear', symbol }, true);
+      const pos = posData?.list?.[0];
+      const hasSL = pos?.stopLoss;
+
+      if (hasSL) {
+        // Both SL + TP
+        await this._request('POST', '/v5/position/trading-stop', {
+          category:     'linear',
+          symbol,
+          stopLoss:     String(hasSL),   // keep existing SL
+          slTriggerBy:  'MarkPrice',
+          takeProfit:   String(stopPrice),
+          tpTriggerBy:  'MarkPrice',
+          tpslMode:     'Full',
+        }, true);
+      } else {
+        // TP only
+        await this._request('POST', '/v5/position/trading-stop', {
+          category:     'linear',
+          symbol,
+          takeProfit:   String(stopPrice),
+          tpTriggerBy:  'MarkPrice',
+          tpslMode:     'Full',
+        }, true);
+      }
+      return { orderId: null };  // Full mode returns no orderId
+    } catch (err) {
+      throw err;
+    }
   }
 
   async getPosition(symbol) {
@@ -264,15 +287,17 @@ class BybitExchange extends BaseExchange {
 
   async closePosition(symbol, positionSide) {
     const closeSide = positionSide === 'LONG' ? 'Sell' : 'Buy';
-    const pos = await this.getPosition(symbol);
+    const posSide   = positionSide === 'LONG' ? 'short' : 'long';
+    const pos       = await this.getPosition(symbol);
     if (!pos.size) return;
     await this._request('POST', '/v5/order/create', {
-      category:   'linear',
+      category:     'linear',
       symbol,
-      side:       closeSide,
-      orderType:  'Market',
-      qty:        String(pos.size),
-      reduceOnly: true,
+      side:         closeSide,
+      orderType:    'Market',
+      qty:          String(pos.size),
+      reduceOnly:   true,
+      positionSide: posSide,
     }, true);
   }
 }

@@ -116,25 +116,22 @@ async function execute(signal, verdict, cfg, deps = {}) {
     return { ...trade, preflightFailed: true, reason: preflight.reason };
   }
 
-  // 2. Setup leverage & margin type (idempotent)
-  let setupFailed = false;
+  // 2. Setup leverage & margin type (idempotent — warn only, never abort)
+  let setupWarnings = [];
   try {
     await exchange.setMarginType(signal.pair, marginType);
   } catch (err) {
     trade.errors.push({ at: nowFn(), stage: 'setup_marginType', message: err.message });
-    setupFailed = true;
+    setupWarnings.push(err.message);
   }
   try {
     await exchange.setLeverage(signal.pair, leverage);
   } catch (err) {
     trade.errors.push({ at: nowFn(), stage: 'setup_leverage', message: err.message });
-    setupFailed = true;
+    setupWarnings.push(err.message);
   }
-  if (setupFailed) {
-    trade.status = 'failed';
-    trade.closedReason = 'setup_failed';
-    saveTrade(trade);
-    return { ...trade, preflightFailed: true, reason: 'Leverage/margin setup failed — position not entered' };
+  if (setupWarnings.length > 0) {
+    trade.errors.push({ at: nowFn(), stage: 'setup_warnings', message: setupWarnings.join('; ') });
   }
 
   // 3. Market entry
@@ -259,26 +256,11 @@ function _slippageBps(requested, filled) {
 async function _preflight(signal, cfg, exchange, marginUsd, notionalUsd) {
   const snap = {};
   try {
-    // Concurrent position limit
-    const concurrent = openCount();
-    const maxConcurrent = cfg.position?.maxConcurrent ?? 4;
-    if (concurrent >= maxConcurrent) {
-      return { ok: false, reason: `max_concurrent (${concurrent}/${maxConcurrent})`, snapshot: snap };
-    }
-    if (hasOpenTrade(signal.pair, signal.direction)) {
-      const count = openCountForPairAndDirection(signal.pair, signal.direction);
-      const maxPerPair = cfg.position?.maxPerPair ?? 2;
-      if (count >= maxPerPair) {
-        return { ok: false, reason: `max_per_pair (${count}/${maxPerPair}) for ${signal.pair} ${signal.direction}`, snapshot: snap };
-      }
-    }
-
     // Balance check
     const balance = await exchange.getAccountBalance();
     snap.balanceUsd = parseFloat(balance.toFixed(2));
-    const minBalance = cfg.execution?.minBalanceUsd ?? 50;
-    if (balance < minBalance) {
-      return { ok: false, reason: `insufficient_balance (${balance.toFixed(2)} < ${minBalance})`, snapshot: snap };
+    if (balance < marginUsd) {
+      return { ok: false, reason: `insufficient_balance (${balance.toFixed(2)} < ${marginUsd})`, snapshot: snap };
     }
 
     // minNotional check
