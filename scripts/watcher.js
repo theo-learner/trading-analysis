@@ -76,17 +76,23 @@ async function run(deps = {}) {
           }
         }
 
-        const result = await notifySignal(signal, cfg, { verdict, tradeResult, env });
-        const sig = `${signal.direction} | Tier${signal.tier} | ${signal.confidence} | RR ${signal.rr?.toFixed(2) ?? '?'} | kz:${signal.entry?.killzone ?? 'none'}`;
-        let outcome;
-        if (result.sent) {
-          outcome = '✅ SENT';
-        } else if (result.skipped === 'error') {
-          outcome = `⏭ error — ${result.error || 'unknown'}`;
+        // Only send Telegram if verdict.approved; rejected signals skip notifySignal entirely
+        if (!verdict.approved) {
+          const sig = `${signal.direction} | Tier${signal.tier} | ${signal.confidence} | RR ${signal.rr?.toFixed(2) ?? '?'} | kz:${signal.entry?.killzone ?? 'none'}`;
+          logger.log(`[watcher] ${pairCfg.symbol}: ${sig} → ⏭ rejected — ${verdict.reason}`);
         } else {
-          outcome = `⏭ ${result.skipped}${result.reason ? ' — ' + result.reason : ''}`;
+          const result = await notifySignal(signal, cfg, { verdict, tradeResult, env });
+          const sig = `${signal.direction} | Tier${signal.tier} | ${signal.confidence} | RR ${signal.rr?.toFixed(2) ?? '?'} | kz:${signal.entry?.killzone ?? 'none'}`;
+          let outcome;
+          if (result.sent) {
+            outcome = '✅ SENT';
+          } else if (result.skipped === 'error') {
+            outcome = `⏭ error — ${result.error || 'unknown'}`;
+          } else {
+            outcome = `⏭ ${result.skipped}${result.reason ? ' — ' + result.reason : ''}`;
+          }
+          logger.log(`[watcher] ${pairCfg.symbol}: ${sig} → ${outcome}`);
         }
-        logger.log(`[watcher] ${pairCfg.symbol}: ${sig} → ${outcome}`);
       } catch (err) {
         logger.warn(`[watcher] ${pairCfg.symbol} failed: ${err.message}`);
       }
