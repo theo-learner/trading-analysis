@@ -2,50 +2,40 @@
 
 const { getExchange }                  = require('./exchanges/index');
 const { openTrades, saveTrade, closeTrade } = require('./utils/trade-store');
+const { calcPnl }                      = require('./utils/pnl-calc');
 
 let _reconciled = false;
 
-/**
- * Called once per watcher cycle (after all pairs are processed).
- * - First call performs reconcile() against exchange.
- * - Every call checks open trades for TP fills and adjusts trailing SL.
- *
- * @param {object} cfg   - trader.json
- * @param {object} [deps]
- */
-async function tick(cfg, deps = {}) {
-  const {
-    exchangeFn = getExchange,
-    nowFn      = () => new Date().toISOString(),
-    env        = process.env,
-  } = deps;
+async function tick(cfg, deps) {
+  deps = deps || {};
+  var exchangeFn = deps.exchangeFn || getExchange;
+  var nowFn      = deps.nowFn      || function() { return new Date().toISOString(); };
+  var isLive = cfg.mode === 'live' && process.env.TRADING_LIVE === '1';
+  var exchangeName = cfg.execution?.exchange ?? cfg.exchange?.default ?? 'binance';
 
-  const isLive = cfg.mode === 'live' && env.TRADING_LIVE === '1';
-  const exchangeName = cfg.execution?.exchange ?? cfg.exchange?.default ?? 'binance';
-
-  // Skip entirely in dry-run (nothing to poll)
   if (!isLive) return;
 
-  let exchange;
+  var exchange;
   try {
     exchange = exchangeFn(exchangeName, cfg);
   } catch (err) {
-    console.warn(`[position-monitor] exchange init failed: ${err.message}`);
+    console.warn('[position-monitor] exchange init failed: ' + err.message);
     return;
   }
 
+  // Startup reconcile
   if (!_reconciled && cfg.reconcile?.onStartup !== false) {
     try {
       await _reconcile(exchange, cfg, nowFn);
     } catch (err) {
-      console.warn(`[position-monitor] reconcile error: ${err.message}`);
+      console.warn('[position-monitor] reconcile error: ' + err.message);
     }
     _reconciled = true;
   }
 
-  // Cancel unfilled GTC limit orders first
-  var uncancelCfg2 = cfg.uncancel || {};
-  if (uncancelCfg2.breachPct || uncancelCfg2.maxSignalAgeSec || cfg.execution && cfg.execution.gtcTimeoutSec) {
+  // Cancel unfilled GTC limit orders
+  var uncancelCfg = cfg.uncancel || {};
+  if (uncancelCfg.breachPct || uncancelCfg.maxSignalAgeSec || (cfg.execution && cfg.execution.gtcTimeoutSec)) {
     try {
       var cancelledCount = await cancelUnfilledOrders(exchange, cfg, nowFn);
       if (cancelledCount > 0) {
@@ -56,38 +46,30 @@ async function tick(cfg, deps = {}) {
     }
   }
 
-  const trades = openTrades();
-  for (const trade of trades) {
+  // Check each open trade
+  var trades = openTrades();
+  for (var i = 0; i < trades.length; i++) {
     try {
-      await _checkTrade(trade, exchange, cfg, nowFn);
+      await _checkTrade(trades[i], exchange, cfg, nowFn);
     } catch (err) {
-      console.warn(`[position-monitor] ${trade.pair} check failed: ${err.message}`);
+      console.warn('[position-monitor] ' + trades[i].pair + ' check failed: ' + err.message);
     }
   }
 }
 
-
-/**
- * Cancel unfilled GTC limit orders that match any of:
- *  1. POI breach — current price moved past POI + breachPct
- *  2. Signal stale — signal last_update exceeded maxSignalAgeSec
- *  3. GTC timeout — unfilled > gtcTimeoutSec
- */
 async function cancelUnfilledOrders(exchange, cfg, nowFn) {
   var uncancelCfg = cfg.uncancel || {};
   var breachPct = uncancelCfg.breachPct || 0.03;
   var maxAgeSec = uncancelCfg.maxSignalAgeSec || 7200;
   var gtcSec    = (cfg.execution && cfg.execution.gtcTimeoutSec) || 3600;
-
-  var openTradesList = openTrades();
+  var openList = openTrades();
   var cancelled = 0;
 
-  for (var ti = 0; ti < openTradesList.length; ti++) {
-    var trade = openTradesList[ti];
+  for (var i = 0; i < openList.length; i++) {
+    var trade = openList[i];
     if (trade.status !== 'unfilled') continue;
     if (!trade.entry || trade.entry.fillMethod !== 'limit') continue;
     if (!trade.entry.orderId) continue;
-
     var signal = trade.signal;
     if (!signal || !signal.entry) continue;
 
@@ -96,8 +78,6 @@ async function cancelUnfilledOrders(exchange, cfg, nowFn) {
     if (!unfilledAt) continue;
 
     var ageSec = (new Date(nowFn()) - new Date(unfilledAt)) / 1000;
-
-    // Get current mark price
     var currentPrice;
     try {
       var ticker = await exchange.getTicker(trade.pair);
@@ -108,30 +88,25 @@ async function cancelUnfilledOrders(exchange, cfg, nowFn) {
     }
     if (!currentPrice || currentPrice <= 0) continue;
 
-    // Check POI breach
     var reason = null;
-    var direction = signal.direction;
-    if (direction === 'long') {
-      var deviation = (currentPrice - poi) / poi;
-      if (deviation >= breachPct) reason = 'poi_breach';
+    var dir = signal.direction;
+    if (dir === 'long') {
+      var dev = (currentPrice - poi) / poi;
+      if (dev >= breachPct) reason = 'poi_breach';
     } else {
-      var deviation2 = (poi - currentPrice) / poi;
-      if (deviation2 >= breachPct) reason = 'poi_breach';
+      var dev2 = (poi - currentPrice) / poi;
+      if (dev2 >= breachPct) reason = 'poi_breach';
     }
-
-    // Check signal staleness
     if (!reason && signal.lastUpdate) {
       var sigAge = (new Date(nowFn()) - new Date(signal.lastUpdate)) / 1000;
       if (sigAge > maxAgeSec) reason = 'signal_stale';
     }
-
-    // Check GTC timeout
     if (!reason && ageSec >= gtcSec) reason = 'gtc_timeout';
 
     if (reason) {
       try {
         await exchange.cancelOrder(trade.pair, trade.entry.orderId);
-        console.log('[position-monitor] cancelled ' + trade.pair + ' limit order (' + reason + ') — ' + trade.entry.orderId);
+        console.log('[position-monitor] cancelled ' + trade.pair + ' limit order (' + reason + ')');
       } catch (err) {
         console.warn('[position-monitor] cancel failed for ' + trade.pair + ': ' + err.message);
       }
@@ -146,57 +121,60 @@ async function cancelUnfilledOrders(exchange, cfg, nowFn) {
       cancelled++;
     }
   }
-
   return cancelled;
 }
 
-// ── Per-trade check ───────────────────────────────────────────────────────
+// ── Per-trade check ──────────────────────────────────────────────────────
 
 async function _checkTrade(trade, exchange, cfg, nowFn) {
-  const pos = await exchange.getPosition(trade.pair);
+  var pos = await exchange.getPosition(trade.pair);
 
-  // Position gone — all closed (TP3 or SL hit or manual)
+  // Position gone
   if (pos.size === 0 || pos.side === null) {
     trade.status      = 'closed';
     trade.closedAt    = nowFn();
     trade.closedReason = 'position_closed';
-    // Try to derive PnL from fills if available
+
+    // Calculate PnL
+    await _calcPnl(trade, exchange, nowFn);
     closeTrade(trade);
     return;
   }
 
-  // Check each TP for fill by querying open orders
-  const openOrders = await exchange.getOpenOrders(trade.pair);
-  const openOrderIds = new Set(openOrders.map(o => String(o.orderId)));
+  // Check TP fills
+  var openOrders;
+  try {
+    openOrders = await exchange.getOpenOrders(trade.pair);
+  } catch (err) {
+    console.warn('[position-monitor] getOpenOrders failed for ' + trade.pair + ': ' + err.message);
+    return;
+  }
+  var openIds = new Set();
+  for (var i = 0; i < openOrders.length; i++) openIds.add(String(openOrders[i].orderId));
 
-  let tpFilled = false;
-  for (const tp of trade.tp) {
+  var tpFilled = false;
+  for (var j = 0; j < trade.tp.length; j++) {
+    var tp = trade.tp[j];
     if (tp.status !== 'pending' || !tp.orderId) continue;
-    if (!openOrderIds.has(String(tp.orderId))) {
-      // Order no longer open → assumed filled
+    if (!openIds.has(String(tp.orderId))) {
       tp.status      = 'filled';
       tp.filledAt    = nowFn();
-      tp.filledPrice = tp.price;  // best estimate; actual fill price via order history
+      tp.filledPrice = tp.price;
       tpFilled = true;
     }
   }
-
   if (!tpFilled) return;
 
-  // Trailing SL logic (after brief delay for fill confirmation)
-  await _sleep(cfg.trailing?.moveOnFillConfirmDelayMs ?? 1500);
-
-  const tp1 = trade.tp[0];
-  const tp2 = trade.tp[1];
-  const trailing = cfg.trailing ?? {};
-
-  if (trailing.tp2ToTP1 && tp2?.status === 'filled' && tp1?.status === 'filled') {
-    // Both TP1 and TP2 filled — move SL to TP1 price
-    await _moveSL(trade, exchange, cfg, tp1.price, 'tp2_filled_sl_to_tp1', nowFn);
-  } else if (trailing.tp1ToBE && tp1?.status === 'filled') {
-    // TP1 filled — move SL to entry (breakeven)
-    const bePrice = trade.entry.filled ?? trade.entry.requested;
-    await _moveSL(trade, exchange, cfg, bePrice, 'tp1_filled_sl_to_be', nowFn);
+  // Trailing SL
+  if (cfg.trailing) {
+    await _sleep(cfg.trailing.moveOnFillConfirmDelayMs || 1500);
+    var trailing = cfg.trailing;
+    if (trailing.tp2ToTP1 && trade.tp[1]?.status === 'filled' && trade.tp[0]?.status === 'filled') {
+      await _moveSL(trade, exchange, cfg, trade.tp[0].price, 'tp2_filled_sl_to_tp1', nowFn);
+    } else if (trailing.tp1ToBE && trade.tp[0]?.status === 'filled') {
+      var bePrice = trade.entry.filled ?? trade.entry.requested;
+      await _moveSL(trade, exchange, cfg, bePrice, 'tp1_filled_sl_to_be', nowFn);
+    }
   }
 
   saveTrade(trade);
@@ -204,68 +182,98 @@ async function _checkTrade(trade, exchange, cfg, nowFn) {
 
 async function _moveSL(trade, exchange, cfg, newPrice, reason, nowFn) {
   if (!trade.sl.orderId) return;
-  const closeSide = trade.direction === 'LONG' ? 'SELL' : 'BUY';
-
-  // Remaining qty = full qty - filled TP qtys
-  const filledQty = trade.tp.filter(t => t.status === 'filled').reduce((s, t) => s + (t.qty ?? 0), 0);
-  const remainQty = parseFloat((trade.qty - filledQty).toFixed(8));
+  var closeSide = trade.direction === 'LONG' ? 'SELL' : 'BUY';
+  var filledQty = 0;
+  for (var i = 0; i < trade.tp.length; i++) {
+    if (trade.tp[i].status === 'filled') filledQty += (trade.tp[i].qty || 0);
+  }
+  var remainQty = parseFloat((trade.qty - filledQty).toFixed(8));
   if (remainQty <= 0) return;
 
-  const prevPrice = trade.sl.price;
+  var prevPrice = trade.sl.price;
   try {
     await exchange.cancelOrder(trade.pair, trade.sl.orderId);
   } catch (err) {
-    // If already cancelled/filled, just continue
-    console.warn(`[position-monitor] cancel SL failed (${err.message}) — placing new anyway`);
+    console.warn('[position-monitor] cancel SL failed (' + err.message + ')');
   }
 
-  let newOrderId = null;
-  for (let attempt = 1; attempt <= (cfg.retry?.orderMaxAttempts ?? 3); attempt++) {
+  var newOrderId = null;
+  var maxAttempts = (cfg.retry && cfg.retry.orderMaxAttempts) || 3;
+  for (var i = 1; i <= maxAttempts; i++) {
     try {
-      const { orderId } = await exchange.placeStopMarket(trade.pair, closeSide, newPrice, remainQty);
-      newOrderId = orderId;
+      var result = await exchange.placeStopMarket(trade.pair, closeSide, newPrice, remainQty);
+      newOrderId = result.orderId;
       break;
     } catch (err) {
-      const delays = cfg.retry?.backoffMs ?? [250, 750, 2000];
-      if (attempt < delays.length + 1) await _sleep(delays[attempt - 1]);
+      var delays = (cfg.retry && cfg.retry.backoffMs) || [250, 750, 2000];
+      if (i < delays.length) await _sleep(delays[i - 1]);
     }
   }
 
   trade.sl.price   = newPrice;
   trade.sl.orderId = newOrderId;
-  trade.slMoves.push({ at: nowFn(), fromPrice: prevPrice, toPrice: newPrice, reason });
+  trade.slMoves.push({ at: nowFn(), fromPrice: prevPrice, toPrice: newPrice, reason: reason });
 }
 
-// ── Reconcile ─────────────────────────────────────────────────────────────
+// ── PnL calculation ──────────────────────────────────────────────────────
+
+async function _calcPnl(trade, exchange, nowFn) {
+  try {
+    var pnlData = await exchange.getPositionPnl(trade.pair);
+    if (pnlData && pnlData.realizedPnl != null && pnlData.realizedPnl !== '0') {
+      var result = calcPnl(trade, pnlData);
+      if (result.realizedPnl != null) {
+        trade.realizedPnl = result.realizedPnl;
+        trade.pnlPercent = result.pnlPercent;
+        trade.fees = result.fees || 0;
+        trade.pnlSource = result.fillMethod || 'bybit_api';
+        console.log('[position-monitor] PnL for ' + trade.pair + ': $' + result.realizedPnl.toFixed(2) + ' (' + result.pnlPercent.toFixed(2) + '%)');
+        return;
+      }
+    }
+    // Fallback: TP fill price
+    var tp0 = trade.tp && trade.tp[0];
+    if (tp0 && tp0.filledPrice && trade.entry?.filled) {
+      var dirMult = trade.direction === 'LONG' ? 1 : -1;
+      var pnl = dirMult * (tp0.filledPrice - trade.entry.filled) * trade.qty;
+      trade.realizedPnl = Math.round(pnl * 100) / 100;
+      trade.pnlSource = 'tp_fill_fallback';
+      console.log('[position-monitor] PnL (fallback) for ' + trade.pair + ': $' + trade.realizedPnl.toFixed(2));
+    }
+  } catch (err) {
+    console.warn('[position-monitor] PnL calc error for ' + trade.pair + ': ' + err.message);
+  }
+}
+
+// ── Reconcile ────────────────────────────────────────────────────────────
 
 async function _reconcile(exchange, cfg, nowFn) {
-  const trades = openTrades();
+  var trades = openTrades();
   if (trades.length === 0) return;
 
-  for (const trade of trades) {
+  for (var i = 0; i < trades.length; i++) {
+    var trade = trades[i];
     try {
-      const pos = await exchange.getPosition(trade.pair);
+      var pos = await exchange.getPosition(trade.pair);
       if (pos.size === 0 || pos.side === null) {
-        // File says open but exchange says closed
         trade.status       = 'closed';
         trade.closedAt     = nowFn();
         trade.closedReason = 'reconciled_missing';
+
+        await _calcPnl(trade, exchange, nowFn);
         closeTrade(trade);
-        console.warn(`[position-monitor] reconcile: ${trade.pair} ${trade.id} marked closed (not found on exchange)`);
+        console.warn('[position-monitor] reconcile: ' + trade.pair + ' ' + trade.id + ' marked closed (not on exchange)');
       }
     } catch (err) {
-      console.warn(`[position-monitor] reconcile ${trade.pair}: ${err.message}`);
+      console.warn('[position-monitor] reconcile ' + trade.pair + ': ' + err.message);
     }
   }
 
-  // adoptOrphans=false: we only log positions on exchange without a local record
   if (cfg.reconcile?.adoptOrphans !== true) return;
-  // (adoptOrphans=true logic would go here — not implemented per plan decision)
+  // adoptOrphans logic would go here
 }
 
-function _sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-// Allow resetting reconcile flag in tests
+function _sleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
 function _resetReconcileFlag() { _reconciled = false; }
 
 module.exports = { tick, _resetReconcileFlag };

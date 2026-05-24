@@ -155,51 +155,53 @@ async function handleRequest(req, res) {
 
   // ── GET /api/ledger ──────────────────────────────────────────────────────
   // Returns open + closed live trades from trade-store.js with summary stats
+  // PnL fallback: if realizedPnl is null, compute from entry/filled and tp[0].filledPrice
+  function _fallbackPnl(t) {
+    if (t.realizedPnl != null && typeof t.realizedPnl === 'number') return t.realizedPnl;
+    var e = t.entry?.filled ?? t.entry?.entryPrice ?? 0;
+    var tp = t.tp && t.tp[0];
+    var x = 0;
+    if (tp) { x = tp.filledPrice ?? tp.price ?? 0; }
+    if (!e || !x) return null;
+    var dir = t.direction === 'SHORT' ? -1 : 1;
+    return Math.round(dir * (x - e) * t.qty * 100) / 100;
+  }
   if (req.method === 'GET' && pathname === '/api/ledger') {
     try {
       const open  = openTrades();
-      // Cap limit at 50 to avoid blocking on large directories
       const limit = Math.min(
         url.searchParams.get('limit') ? parseInt(url.searchParams.get('limit'), 10) : 50,
         50
       );
       const closed = closedTrades(limit);
 
-      // Calculate summary stats
-      const closedWithPnl = closed.filter(t => t.realizedPnl != null && typeof t.realizedPnl === 'number');
-      const allClosedFiles = []; // count total without reading all
       let totalClosed = 0;
       try {
         totalClosed = fs.readdirSync(path.join(ROOT, 'trades', 'live', 'closed'))
           .filter(f => f.endsWith('.json') && !f.endsWith('.tmp')).length;
       } catch {}
 
-      // Also read a broader sample for stats (up to 200)
-      let stats = null;
-      if (closed.length > 0 || totalClosed > 0) {
-        let statsClosed = closed;
-        if (totalClosed > closed.length) {
-          try {
-            const broader = closedTrades(Math.min(totalClosed, 200));
-            statsClosed = broader;
-          } catch {}
-        }
-        const withPnl = statsClosed.filter(t => t.realizedPnl != null && typeof t.realizedPnl === 'number');
-        stats = {
-          totalTrades: totalClosed,
-          winRate: withPnl.length > 0
-            ? (withPnl.filter(t => t.realizedPnl > 0).length / withPnl.length * 100).toFixed(1)
-            : '—',
-          totalPnl: withPnl.length > 0
-            ? (withPnl.reduce((s, t) => s + t.realizedPnl, 0)).toFixed(2)
-            : '—',
-          avgPnl: withPnl.length > 0
-            ? (withPnl.reduce((s, t) => s + t.realizedPnl, 0) / withPnl.length).toFixed(2)
-            : '—',
-          wins: withPnl.filter(t => t.realizedPnl > 0).length,
-          losses: withPnl.filter(t => t.realizedPnl <= 0).length,
-        };
+      // Compute PnL (real or fallback) for stats
+      let statsClosed = closed;
+      if (totalClosed > closed.length) {
+        try { statsClosed = closedTrades(Math.min(totalClosed, 200)); } catch {}
       }
+      // Add fallback PnL to trades that don't have it
+      for (var i = 0; i < statsClosed.length; i++) {
+        if (statsClosed[i].realizedPnl == null) {
+          var fb = _fallbackPnl(statsClosed[i]);
+          if (fb != null) statsClosed[i].realizedPnl = fb;
+        }
+      }
+      const withPnl = statsClosed.filter(t => t.realizedPnl != null && typeof t.realizedPnl === 'number');
+      const stats = withPnl.length > 0 ? {
+        totalTrades: totalClosed,
+        winRate: (withPnl.filter(t => t.realizedPnl > 0).length / withPnl.length * 100).toFixed(1),
+        totalPnl: (withPnl.reduce((s, t) => s + t.realizedPnl, 0)).toFixed(2),
+        avgPnl: (withPnl.reduce((s, t) => s + t.realizedPnl, 0) / withPnl.length).toFixed(2),
+        wins: withPnl.filter(t => t.realizedPnl > 0).length,
+        losses: withPnl.filter(t => t.realizedPnl <= 0).length,
+      } : null;
 
       return jsonResponse(res, { open, closed, stats });
     } catch (err) {

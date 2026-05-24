@@ -331,3 +331,96 @@ class BybitExchange extends BaseExchange {
 function _sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 module.exports = { BybitExchange };
+
+// ── PnL 조회용 API (position-monitor + dashboard용) ──────────────────────────
+
+/**
+ * Get closed position PnL from Bybit position history.
+ * Returns { pnl, realizedPnl, closePrice, size, side } or null.
+ */
+async function getPositionPnl(symbol) {
+  try {
+    const data = await this._request('GET', '/v5/position/history', {
+      category: 'linear',
+      symbol,
+      settled: false,   // non-settled (realized_pnl = actual PnL)
+    }, true);
+    const pos = data?.list?.[0];
+    if (!pos) return null;
+    // For linear perpetuals:
+    // realized_pnl = actual realized PnL in quote currency (USDT)
+    // closed_size = position size when closed
+    // close_price = average exit price
+    return {
+      realizedPnl: parseFloat(pos.realizedPnl || 0),
+      closePrice:  parseFloat(pos.closePrice || 0),
+      size:        parseFloat(pos.closedSize || 0),
+      side:        pos.side === 'Buy' ? 'LONG' : pos.side === 'Sell' ? 'SHORT' : null,
+      avgEntry:    parseFloat(pos.avgPrice || 0),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Get fill price for a specific order ID from order history.
+ * Returns { filledPrice, filledQty } or null.
+ */
+async function getFillPrice(symbol, orderId) {
+  try {
+    const data = await this._request('GET', '/v5/order/history', {
+      category: 'linear',
+      symbol,
+      orderId: String(orderId),
+    }, true);
+    const o = data?.list?.[0];
+    if (!o || o.orderStatus !== 'Filled') return null;
+    return {
+      filledPrice: parseFloat(o.avgPrice ?? 0),
+      filledQty:   parseFloat(o.cumExecQty ?? 0),
+    };
+  } catch {
+    return null;
+  }
+}
+
+// Also expose via the module
+const _PnlMethods = { getPositionPnl, getFillPrice };
+// Attach to the class prototype so all instances get these methods
+Object.assign(BybitExchange.prototype, {
+  getPositionPnl,
+  getFillPrice,
+});
+
+// ── PnL 조회용 API ──────────────────────────────────────────────────────────
+BybitExchange.prototype.getPositionPnl = async function(symbol) {
+  try {
+    const data = await this._request('GET', '/v5/position/history', {
+      category: 'linear', symbol, settled: false,
+    }, true);
+    const pos = data?.list?.[0];
+    if (!pos) return null;
+    return {
+      realizedPnl: parseFloat(pos.realizedPnl || 0),
+      closePrice:  parseFloat(pos.closePrice || 0),
+      size:        parseFloat(pos.closedSize || 0),
+      side:        pos.side === 'Buy' ? 'LONG' : pos.side === 'Sell' ? 'SHORT' : null,
+      avgEntry:    parseFloat(pos.avgPrice || 0),
+    };
+  } catch { return null; }
+};
+
+BybitExchange.prototype.getFillPrice = async function(symbol, orderId) {
+  try {
+    const data = await this._request('GET', '/v5/order/history', {
+      category: 'linear', symbol, orderId: String(orderId),
+    }, true);
+    const o = data?.list?.[0];
+    if (!o || o.orderStatus !== 'Filled') return null;
+    return {
+      filledPrice: parseFloat(o.avgPrice || 0),
+      filledQty:   parseFloat(o.cumExecQty || 0),
+    };
+  } catch { return null; }
+};

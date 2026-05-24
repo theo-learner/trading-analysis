@@ -1516,25 +1516,24 @@ function renderHistory(trades, stats) {
   const table = document.getElementById('history-table');
   const count = document.getElementById('tradeCount');
 
-  // Update stats
   if (stats) {
     document.getElementById('statTotal').textContent = stats.totalTrades ?? '—';
-    document.getElementById('statWinRate').textContent = stats.winRate !== '—' ? `${stats.winRate}%` : '—';
+    document.getElementById('statWinRate').textContent = stats.winRate !== '—' ? stats.winRate + '%' : '—';
     const pnlEl = document.getElementById('statTotalPnl');
     const avgEl = document.getElementById('statAvgPnl');
     if (stats.totalPnl !== '—') {
       const pnl = parseFloat(stats.totalPnl);
-      pnlEl.textContent = `${pnl > 0 ? '+' : ''}${stats.totalPnl}%`;
-      pnlEl.className = `stat-value ${pnl >= 0 ? 'pos' : 'neg'}`;
+      pnlEl.textContent = (pnl >= 0 ? '+' : '') + '$' + stats.totalPnl;
+      pnlEl.className = 'stat-value ' + (pnl >= 0 ? 'pos' : 'neg');
     } else { pnlEl.textContent = '—'; pnlEl.className = 'stat-value muted'; }
     if (stats.avgPnl !== '—') {
       const avg = parseFloat(stats.avgPnl);
-      avgEl.textContent = `${avg > 0 ? '+' : ''}${stats.avgPnl}%`;
-      avgEl.className = `stat-value ${avg >= 0 ? 'pos' : 'neg'}`;
+      avgEl.textContent = (avg >= 0 ? '+' : '') + '$' + stats.avgPnl;
+      avgEl.className = 'stat-value ' + (avg >= 0 ? 'pos' : 'neg');
     } else { avgEl.textContent = '—'; avgEl.className = 'stat-value muted'; }
   }
 
-  count.textContent = `${trades.length} 건`;
+  count.textContent = trades.length + ' 건';
 
   if (!trades.length) {
     empty.style.display = 'block';
@@ -1549,22 +1548,25 @@ function renderHistory(trades, stats) {
     const isLong = t.direction === 'LONG';
     const pnl = t.realizedPnl != null ? t.realizedPnl.toFixed(2) : '—';
     const pnlClass = t.realizedPnl > 0 ? 'pos' : t.realizedPnl < 0 ? 'neg' : '';
-    const entryPrice = t.entry?.price ?? t.entry?.requested ?? t.entry;
-    const exitPrice = t.exit?.price ?? t.exit?.fillPrice ?? t.exit;
+    var entryPrice = t.entry?.filled ?? t.entry?.entryPrice ?? t.entry?.price ?? t.entry?.requested ?? t.entry;
+    var exitPrice = '—';
+    if (t.tp && t.tp[0] && t.tp[0].filledPrice) { exitPrice = formatPrice(t.tp[0].filledPrice); }
+    else if (t.tp && t.tp[0] && t.tp[0].price) { exitPrice = formatPrice(t.tp[0].price); }
+    else if (t.exit?.price) { exitPrice = formatPrice(t.exit.price); }
     const ts = t.entry?.requestedAt || t.closedAt || t.createdAt;
     const time = ts ? new Date(ts).toISOString().slice(11, 19) : '—';
     const modeLabel = t.exchange ? 'LIVE' : 'DRY';
     const statusLabel = t.status === 'open' ? 'OPEN' : (t.closedReason || t.status || 'closed');
-    return `<tr>
-      <td>${time}</td>
-      <td>${t.pair || '—'}</td>
-      <td class="${isLong ? 'td-long' : 'td-short'}">${t.direction || '—'}</td>
-      <td>${formatPrice(entryPrice)}</td>
-      <td>${formatPrice(exitPrice)}</td>
-      <td class="td-pnl ${pnlClass}">${pnl !== '—' ? (t.realizedPnl > 0 ? '+' : '') + pnl + '%' : '—'}</td>
-      <td class="${t.status === 'open' ? 'td-status-open' : 'td-status-closed'}">${statusLabel}</td>
-      <td><span class="td-mode">${modeLabel}</span></td>
-    </tr>`;
+    return '<tr>' +
+      '<td>' + time + '</td>' +
+      '<td>' + (t.pair || '—') + '</td>' +
+      '<td class="' + (isLong ? 'td-long' : 'td-short') + '">' + (t.direction || '—') + '</td>' +
+      '<td>' + formatPrice(entryPrice) + '</td>' +
+      '<td>' + exitPrice + '</td>' +
+      '<td class="td-pnl ' + pnlClass + '">' + (pnl !== '—' ? (t.realizedPnl > 0 ? '+' : '') + '$' + pnl : '—') + '</td>' +
+      '<td class="' + (t.status === 'open' ? 'td-status-open' : 'td-status-closed') + '">' + statusLabel + '</td>' +
+      '<td><span class="td-mode">' + modeLabel + '</span></td>' +
+    '</tr>';
   }).join('');
 }
 
