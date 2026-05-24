@@ -202,18 +202,17 @@ class BybitExchange extends BaseExchange {
   }
 
   async placeStopMarket(symbol, side, stopPrice, qty) {
-    // Unified account: set SL via /v5/position/trading-stop (Partial mode)
-    // Partial mode: qty-specific conditional orders (supports 3-way TP)
-    // Full mode only allows 1 SL + 1 TP total — no split
+    // Unified account (Full mode): set SL via /v5/position/trading-stop
+    // tpslMode MUST be 'Full' explicitly — without it Bybit returns error
+    // Full mode only supports 1 SL total
     try {
       await this._request('POST', '/v5/position/trading-stop', {
-        category:     'linear',
+        category:    'linear',
         symbol,
-        stopLoss:     String(stopPrice),
-        slTriggerBy:  'MarkPrice',
-        slOrderType:  'Market',
-        slSize:       String(qty),  // full qty for SL (closes entire position)
-        tpslMode:     'Partial',
+        stopLoss:    String(stopPrice),
+        slTriggerBy: 'MarkPrice',
+        slOrderType: 'Market',
+        tpslMode:    'Full',
       }, true);
       return { orderId: null };
     } catch (err) {
@@ -222,18 +221,17 @@ class BybitExchange extends BaseExchange {
   }
 
   async placeTakeProfitMarket(symbol, side, stopPrice, qty) {
-    // Unified account: set TP via /v5/position/trading-stop (Partial mode)
-    // Partial mode allows multiple independent TP orders at different prices
-    // Called 3x for TP1/TP2/TP3 with qty split 33/33/34
+    // Unified account (Full mode): set TP1 via /v5/position/trading-stop
+    // tpslMode MUST be 'Full' explicitly
+    // Full mode only supports 1 TP total — TP2/TP3 use placeConditionalMarket()
     try {
       await this._request('POST', '/v5/position/trading-stop', {
-        category:     'linear',
+        category:    'linear',
         symbol,
-        takeProfit:   String(stopPrice),
-        tpTriggerBy:  'MarkPrice',
-        tpOrderType:  'Market',
-        tpSize:       String(qty),  // partial qty per TP level
-        tpslMode:     'Partial',
+        takeProfit:  String(stopPrice),
+        tpTriggerBy: 'MarkPrice',
+        tpOrderType: 'Market',
+        tpslMode:    'Full',
       }, true);
       return { orderId: null };
     } catch (err) {
@@ -241,14 +239,40 @@ class BybitExchange extends BaseExchange {
     }
   }
 
+  async placeConditionalMarket(symbol, side, stopPrice, qty, positionSide) {
+    // Place a conditional (trigger) market order for TP2/TP3 in Full mode
+    // Full mode trading-stop only supports 1 SL + 1 TP, so extra levels use Order API
+    const posSide = positionSide === 'LONG' ? 'short' : 'long';
+    const data    = await this._request('POST', '/v5/order/create', {
+      category:      'linear',
+      symbol,
+      side:          side === 'BUY' ? 'Buy' : 'Sell',
+      orderType:     'Market',
+      qty:           String(qty),
+      timeInForce:   'GTC',
+      positionSide:  posSide,
+      triggerPrice:  String(stopPrice),
+      triggerBy:     'MarkPrice',
+      triggerDirection: side === 'BUY' ? 2 : 1,  // 1=Up, 2=Down
+      orderFilter:   'StopOrder',
+    }, true);
+    return { orderId: data?.orderId };
+  }
+
   async getPosition(symbol) {
     const data = await this._request('GET', '/v5/position/list', { category: 'linear', symbol }, true);
     const pos  = data?.list?.find(p => parseFloat(p.size) > 0);
-    if (!pos) return { size: 0, entryPrice: 0, side: null };
+    if (!pos) return { size: 0, entryPrice: 0, side: null, stopLoss: null, takeProfit: null };
+    // Full mode: stopLoss/takeProfit are empty strings when not set
+    // Treat empty string as null for trade-executor verification
+    const sl = pos.stopLoss && pos.stopLoss !== '' ? parseFloat(pos.stopLoss) : null;
+    const tp = pos.takeProfit && pos.takeProfit !== '' ? parseFloat(pos.takeProfit) : null;
     return {
-      size:       parseFloat(pos.size),
-      entryPrice: parseFloat(pos.avgPrice ?? pos.entryPrice ?? 0),
-      side:       pos.side === 'Buy' ? 'LONG' : pos.side === 'Sell' ? 'SHORT' : null,
+      size:         parseFloat(pos.size),
+      entryPrice:   parseFloat(pos.avgPrice ?? pos.entryPrice ?? 0),
+      side:         pos.side === 'Buy' ? 'LONG' : pos.side === 'Sell' ? 'SHORT' : null,
+      stopLoss:     sl,
+      takeProfit:   tp,
     };
   }
 

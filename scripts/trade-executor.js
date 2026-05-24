@@ -195,7 +195,8 @@ async function execute(signal, verdict, cfg, deps = {}) {
   }
   saveTrade(trade);
 
-  // 5. TP orders (33/33/34 — partial mode)
+  // 5. TP orders (33/33/34 — Full mode)
+  // Full mode: 1 TP via trading-stop API, TP2/TP3 via conditional market orders
   const info = await exchange.getSymbolInfo(signal.pair);
   const tpQtys = _splitQty(trade.qty, info.stepSize);
   for (let i = 0; i < trade.tp.length; i++) {
@@ -203,8 +204,16 @@ async function execute(signal, verdict, cfg, deps = {}) {
     trade.tp[i].price = tpPrice;
     trade.tp[i].qty   = tpQtys[i];
     try {
-      await exchange.placeTakeProfitMarket(signal.pair, closeSide, tpPrice, tpQtys[i]);
-      trade.tp[i].orderId = 'tp' + (i + 1) + '_trading-stop';  // marker for null-id APIs
+      if (i === 0) {
+        // TP1: trading-stop API (Full mode)
+        await exchange.placeTakeProfitMarket(signal.pair, closeSide, tpPrice, tpQtys[i]);
+        trade.tp[i].orderId = 'tp1_trading-stop';
+      } else {
+        // TP2/TP3: conditional market order
+        const posSide = signal.direction;  // 'LONG' or 'SHORT'
+        const r = await exchange.placeConditionalMarket(signal.pair, closeSide, tpPrice, tpQtys[i], posSide);
+        trade.tp[i].orderId = 'tp' + (i + 1) + '_conditional';
+      }
     } catch (err) {
       trade.errors.push({ at: nowFn(), stage: `tp${i + 1}`, message: err.message });
     }
