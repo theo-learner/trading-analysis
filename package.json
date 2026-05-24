@@ -29,7 +29,6 @@
     "pipeline": "bash scripts/run-pipeline.sh",
     "pipeline:capture": "bash scripts/run-pipeline.sh --capture",
     "pipeline:analyze": "bash scripts/run-pipeline.sh --analyze",
-
     "signal": "node scripts/signal.js",
     "ict": "node scripts/ict-engine.js",
     "judge": "node scripts/signal-judge.js",
@@ -42,6 +41,7 @@
     "test": "npm run test:unit && npm run test:dashboard"
   },
   "dependencies": {
+    "pg": "^8.21.0",
     "playwright": "^1.50.0"
   }
 }

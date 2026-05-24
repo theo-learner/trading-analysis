@@ -328,7 +328,7 @@ const API = (() => {
   const p = new URLSearchParams(location.search).get('api');
   if (p) { localStorage.setItem('ict_api', p); return p.replace(/\/$/, ''); }
   const s = localStorage.getItem('ict_api');
-  return s ? s.replace(/\/$/, '') : (location.hostname === 'localhost' ? 'http://localhost:3210' : '');
+  return s ? s.replace(/\/$/, '') : (location.hostname === 'localhost' ? 'http://localhost:3210' : 'https://trading-dashboard-w3p1.onrender.com');
 })();
 
 // Binance (BTC/ETH/SOL)
