@@ -96,9 +96,10 @@ async function main() {
   console.log(`  Qty: ${result.qty}`);
   console.log(`  SL: ${result.sl?.orderId || 'N/A'} (attempts: ${result.sl?.placementAttempts || 0})`);
   console.log(`  Errors: ${result.errors?.map(e => `${e.stage}: ${e.message}`).join(', ') || 'none'}`);
-  console.log(`  TP slots:`);
+  console.log(`  Entry method: ${result.entry?.fillMethod || "N/A"}
+  TP slots:`);
   for (const tp of result.tp) {
-    console.log(`    TP${tp.level}: $${tp.price} qty=${tp.qty} id=${tp.orderId}`);
+    console.log(`    TP${tp.level || "?"}: $${tp.price} qty=${tp.qty} id=${tp.orderId}`);
   }
 
   // 5. Verify on exchange
