@@ -143,8 +143,9 @@ class BybitExchange extends BaseExchange {
         sellLeverage: String(leverage),
       }, true);
     } catch (err) {
-      if (err.code === 110043) return;  // leverage not changed (already set)
-      throw err;
+      // All non-fatal: already set, position active, or Bybit rejects re-calls.
+      // These are idempotent setup calls — never abort trade entry.
+      console.warn(`[bybit] setLeverage ${symbol} L${leverage}: ${err.message}`);
     }
   }
 
@@ -158,8 +159,9 @@ class BybitExchange extends BaseExchange {
         sellLeverage: '2',
       }, true);
     } catch (err) {
-      if (err.code === 110026) return;  // margin mode not changed (already set)
-      throw err;
+      // All non-fatal: already set, position active, or Bybit rejects re-calls.
+      // These are idempotent setup calls — never abort trade entry.
+      console.warn(`[bybit] setMarginType ${symbol} ${marginType}: ${err.message}`);
     }
   }
 
