@@ -171,7 +171,8 @@ class BybitExchange extends BaseExchange {
   }
 
   async placeLimitOrder(symbol, side, price, qty) {
-    // Entry at signal POI — place a limit order, then cancel + market if unfilled
+    // Entry at signal POI — place a limit order (GTC). Returns order even if unfilled.
+    // Trade executor polls order history to check fill status.
     const bySide   = side === 'BUY' ? 'Buy' : 'Sell';
     const posSide  = side === 'BUY' ? 'long' : 'short';
     const data     = await this._request('POST', '/v5/order/create', {
@@ -181,56 +182,33 @@ class BybitExchange extends BaseExchange {
       orderType:    'Limit',
       price:        String(price),
       qty:          String(qty),
-      timeInForce:  'GTC',  // Good-Till-Cancel — wait for POI
+      timeInForce:  'GTC',
       positionSide: posSide,
     }, true);
     const orderId = data?.orderId;
 
-    // Poll for fill
-    let filledPrice = 0;
-    let filledQty   = qty;
+    // Poll up to 30s for fill
     for (let i = 0; i < 20; i++) {
       await _sleep(1500);
       try {
         const hist = await this._request('GET', '/v5/order/history', { category: 'linear', symbol, orderId }, true);
         const o = hist?.list?.[0];
-        if (o && o.orderStatus === 'Filled') {
-          filledPrice = parseFloat(o.avgPrice ?? 0);
-          filledQty   = parseFloat(o.cumExecQty ?? qty);
-          return { orderId, filledPrice, filledQty, fillMethod: 'limit' };
+        if (!o) continue;
+        if (o.orderStatus === 'Filled') {
+          const filledPrice = parseFloat(o.avgPrice ?? 0);
+          const filledQty   = parseFloat(o.cumExecQty ?? qty);
+          return { orderId, filledPrice, filledQty, fillMethod: 'limit', status: 'filled' };
         }
-        if (o && (o.orderStatus === 'Cancelled' || o.orderStatus === 'Rejected')) {
-          // Cancelled — unfilled, fall through to market
-          break;
+        if (['New', 'Untriggerred', 'Triggered'].includes(o.orderStatus)) {
+          return { orderId, filledPrice: 0, filledQty: 0, fillMethod: 'limit', status: 'open' };
+        }
+        if (o.orderStatus === 'Cancelled' || o.orderStatus === 'Rejected') {
+          return { orderId, filledPrice: 0, filledQty: 0, fillMethod: 'limit', status: 'unfilled' };
         }
       } catch {}
     }
-
-    // Unfilled — cancel + market order at current price
-    try { await this._request('POST', '/v5/order/cancel', { category: 'linear', symbol, orderId }, true); } catch {}
-    await _sleep(500);
-
-    const marketData = await this._request('POST', '/v5/order/create', {
-      category:     'linear',
-      symbol,
-      side:         bySide,
-      orderType:    'Market',
-      qty:          String(qty),
-      timeInForce:  'IOC',
-      positionSide: posSide,
-    }, true);
-    const marketId  = marketData?.orderId;
-    await _sleep(FILL_POLL_MS);
-
-    let mPrice = 0, mQty = qty;
-    try {
-      const mHist = await this._request('GET', '/v5/order/history', { category: 'linear', symbol, orderId: marketId }, true);
-      const mo = mHist?.list?.[0];
-      if (mo) { mPrice = parseFloat(mo.avgPrice ?? 0); mQty = parseFloat(mo.cumExecQty ?? qty); }
-    } catch {}
-    if (!mPrice) mPrice = await this.getMarkPrice(symbol);
-
-    return { orderId: marketId, filledPrice: mPrice, filledQty: mQty, fillMethod: 'market' };
+    // Timed out — order is still open in exchange
+    return { orderId, filledPrice: 0, filledQty: 0, fillMethod: 'limit', status: 'open' };
   }
 
   async placeMarketOrder(symbol, side, qty) {

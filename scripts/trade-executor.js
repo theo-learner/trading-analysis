@@ -134,7 +134,7 @@ async function execute(signal, verdict, cfg, deps = {}) {
     trade.errors.push({ at: nowFn(), stage: 'setup_warnings', message: setupWarnings.join('; ') });
   }
 
-  // 3. Entry at signal POI (limit order → market fallback if unfilled)
+  // 3. Entry at signal POI (limit order — unfilled stays in exchange orders)
   const entrySide = signal.direction === 'LONG' ? 'BUY' : 'SELL';
   const entryPrice = signal.entry.price;  // POI
   let filled;
@@ -150,12 +150,44 @@ async function execute(signal, verdict, cfg, deps = {}) {
     throw err;
   }
 
+  // Save order info regardless of fill status
   trade.entry.orderId     = filled.orderId;
+  trade.entry.entryPrice  = entryPrice;  // POI target
+  trade.entry.fillMethod  = filled.fillMethod || 'limit';
+  saveTrade(trade);
+
+  // 3b. Check fill status
+  if (filled.status === 'unfilled') {
+    trade.status = 'unfilled';
+    trade.closedReason = 'limit_unfilled';
+    trade.entry.filled      = 0;
+    trade.entry.filledQty   = 0;
+    trade.entry.confirmedAt = nowFn();
+    trade.entry.slippageBps = 0;
+    saveTrade(trade);
+    console.log(`  ⏸  Limit order unfilled — order active in exchange at $${entryPrice}`);
+    console.log(`  Order: ${filled.orderId} (watcher will cancel on signal expire)`);
+    return trade;
+  }
+
+  if (filled.status === 'open') {
+    trade.status = 'unfilled';
+    trade.closedReason = 'limit_open';
+    trade.entry.filled      = 0;
+    trade.entry.filledQty   = 0;
+    trade.entry.confirmedAt = nowFn();
+    trade.entry.slippageBps = 0;
+    saveTrade(trade);
+    console.log(`  ⏸  Limit order open in exchange at $${entryPrice}, not yet filled`);
+    console.log(`  Order: ${filled.orderId} (watcher will cancel on signal expire)`);
+    return trade;
+  }
+
+  // Filled — continue to SL/TP placement
   trade.entry.filled      = filled.filledPrice;
   trade.entry.filledQty   = filled.filledQty;
   trade.entry.confirmedAt = nowFn();
   trade.entry.slippageBps = _slippageBps(entryPrice, filled.filledPrice);
-  trade.entry.fillMethod  = filled.fillMethod || 'market';  // 'limit' or 'market'
   saveTrade(trade);
 
   // 4. SL placement (partial mode — returns null orderId on success for bybit)
