@@ -203,6 +203,13 @@ async function handleRequest(req, res) {
         losses: withPnl.filter(t => t.realizedPnl <= 0).length,
       } : null;
 
+      // Apply fallback PnL to closed array for frontend
+      for (let i = 0; i < closed.length; i++) {
+        if (closed[i].realizedPnl == null) {
+          var fb = _fallbackPnl(closed[i]);
+          if (fb != null) closed[i].realizedPnl = fb;
+        }
+      }
       return jsonResponse(res, { open, closed, stats });
     } catch (err) {
       console.error('Ledger error:', err.message);
