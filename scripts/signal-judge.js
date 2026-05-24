@@ -44,6 +44,9 @@ function judgeSignal(signal, cfg = traderConfig) {
   if (signal.rr < cfg.risk.minRR) {
     return { approved: false, reason: `R:R ${signal.rr.toFixed(2)} — 최소 ${cfg.risk.minRR} 미달` };
   }
+  if (signal.rr > cfg.risk.maxRR) {
+    return { approved: false, reason: `R:R ${signal.rr.toFixed(2)} — 최대 ${cfg.risk.maxRR} 초과` };
+  }
 
   // ── 사이즈 필터 ────────────────────────────────────────────────────────
   // sizeMultiplier가 1이 아니면 (0.5x 또는 0) Telegram 메시지 건너뜀

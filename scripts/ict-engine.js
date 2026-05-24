@@ -436,6 +436,11 @@ function analyzeICT(params) {
     return buildNeutral(params.pair, `R:R 미달 (${rr.toFixed(2)})`, alignment.tier, currentPrice,
       { alignmentScore: alignment.score, structure: neutralStructure, levels: neutralLevels, mss: taggedMSS, bos: taggedBOS, displacements, swingRanges });
   }
+  // R:R 최대 상한 초과 → NEUTRAL
+  if (rr > cfg.signal.maxRR) {
+    return buildNeutral(params.pair, `R:R 초과 (${rr.toFixed(2)}) — 최대 ${cfg.signal.maxRR}`, alignment.tier, currentPrice,
+      { alignmentScore: alignment.score, structure: neutralStructure, levels: neutralLevels, mss: taggedMSS, bos: taggedBOS, displacements, swingRanges });
+  }
 
   // [26] 신뢰도
   const lastSweep = [...htfSweeps, ...ltfSweeps].filter(s => s.confirmed).slice(-1)[0];
