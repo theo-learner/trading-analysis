@@ -165,19 +165,19 @@ async function notifySignal(signal, traderConfig, opts = {}) {
       return { sent: false, skipped: 'env_gate' };
     }
 
-    // 2.5. Size gate — only send 1x signals (0.5x / 0x are no-trade)
-    const size = signal?.scorecard?.sizeMultiplier;
-    if (size != null && size !== 1) {
-      return { sent: false, skipped: 'size', reason: `Size ${size}x — 알림 제외` };
-    }
-
-    // 3. Signal quality gate (use pre-computed verdict if provided)
+    // 2.5. Signal quality gate first (use pre-computed verdict if provided)
     const verdict = precomputedVerdict ?? judgeFn(signal);
     if (!verdict.approved) {
       return { sent: false, skipped: 'rejected', reason: verdict.reason };
     }
 
-    // 4. Dedup check
+    // 2.6. Size gate — only send 1x signals (0.5x / 0x are no-trade)
+    const size = signal?.scorecard?.sizeMultiplier;
+    if (size != null && size !== 1) {
+      return { sent: false, skipped: 'size', reason: `Size ${size}x — 알림 제외` };
+    }
+
+    // 3. Dedup check
     const key = dedupKey(signal);
     if (hasRecentNotification(key)) {
       return { sent: false, skipped: 'duplicate' };
