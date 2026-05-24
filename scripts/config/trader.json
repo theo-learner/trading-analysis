@@ -22,7 +22,8 @@
     "maxRiskPerTradePct": 1.0,
     "maxTotalExposurePct": 5.0,
     "maxDailyLossPct": 3.0,
-    "minRR": 2.0
+    "minRR": 2.0,
+    "maxRR": 8
   },
 
   "execution": {
@@ -90,7 +91,8 @@
   "signal": {
     "minConfidence": "MEDIUM",
     "_confidenceOptions": ["HIGH", "MEDIUM", "LOW"],
-    "maxTier": 3,
-    "requireKillzone": true
+    "maxTier": 2,
+    "requireKillzone": true,
+    "maxRR": 8
   }
 }

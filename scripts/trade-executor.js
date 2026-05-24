@@ -134,13 +134,14 @@ async function execute(signal, verdict, cfg, deps = {}) {
     trade.errors.push({ at: nowFn(), stage: 'setup_warnings', message: setupWarnings.join('; ') });
   }
 
-  // 3. Market entry
+  // 3. Entry at signal POI (limit order → market fallback if unfilled)
   const entrySide = signal.direction === 'LONG' ? 'BUY' : 'SELL';
+  const entryPrice = signal.entry.price;  // POI
   let filled;
   try {
     const info = await exchange.getSymbolInfo(signal.pair);
-    trade.qty = _roundQty(verdict.order.rawQty ?? (notionalUsd / signal.entry.price), info.stepSize);
-    filled = await exchange.placeMarketOrder(signal.pair, entrySide, trade.qty);
+    trade.qty = _roundQty(verdict.order.rawQty ?? (notionalUsd / entryPrice), info.stepSize);
+    filled = await exchange.placeLimitOrder(signal.pair, entrySide, entryPrice, trade.qty);
   } catch (err) {
     trade.status = 'failed';
     trade.closedReason = 'entry_failed';
@@ -153,7 +154,8 @@ async function execute(signal, verdict, cfg, deps = {}) {
   trade.entry.filled      = filled.filledPrice;
   trade.entry.filledQty   = filled.filledQty;
   trade.entry.confirmedAt = nowFn();
-  trade.entry.slippageBps = _slippageBps(signal.entry.price, filled.filledPrice);
+  trade.entry.slippageBps = _slippageBps(entryPrice, filled.filledPrice);
+  trade.entry.fillMethod  = filled.fillMethod || 'market';  // 'limit' or 'market'
   saveTrade(trade);
 
   // 4. SL placement (partial mode — returns null orderId on success for bybit)

@@ -170,9 +170,73 @@ class BybitExchange extends BaseExchange {
     return parseFloat(data?.list?.[0]?.markPrice ?? 0);
   }
 
-  async placeMarketOrder(symbol, side, qty) {
+  async placeLimitOrder(symbol, side, price, qty) {
+    // Entry at signal POI — place a limit order, then cancel + market if unfilled
     const bySide   = side === 'BUY' ? 'Buy' : 'Sell';
-    const posSide  = side === 'BUY' ? 'long' : 'short';  // unified account: Buy→long, Sell→short
+    const posSide  = side === 'BUY' ? 'long' : 'short';
+    const data     = await this._request('POST', '/v5/order/create', {
+      category:     'linear',
+      symbol,
+      side:         bySide,
+      orderType:    'Limit',
+      price:        String(price),
+      qty:          String(qty),
+      timeInForce:  'GTC',  // Good-Till-Cancel — wait for POI
+      positionSide: posSide,
+    }, true);
+    const orderId = data?.orderId;
+
+    // Poll for fill
+    let filledPrice = 0;
+    let filledQty   = qty;
+    for (let i = 0; i < 20; i++) {
+      await _sleep(1500);
+      try {
+        const hist = await this._request('GET', '/v5/order/history', { category: 'linear', symbol, orderId }, true);
+        const o = hist?.list?.[0];
+        if (o && o.orderStatus === 'Filled') {
+          filledPrice = parseFloat(o.avgPrice ?? 0);
+          filledQty   = parseFloat(o.cumExecQty ?? qty);
+          return { orderId, filledPrice, filledQty, fillMethod: 'limit' };
+        }
+        if (o && (o.orderStatus === 'Cancelled' || o.orderStatus === 'Rejected')) {
+          // Cancelled — unfilled, fall through to market
+          break;
+        }
+      } catch {}
+    }
+
+    // Unfilled — cancel + market order at current price
+    try { await this._request('POST', '/v5/order/cancel', { category: 'linear', symbol, orderId }, true); } catch {}
+    await _sleep(500);
+
+    const marketData = await this._request('POST', '/v5/order/create', {
+      category:     'linear',
+      symbol,
+      side:         bySide,
+      orderType:    'Market',
+      qty:          String(qty),
+      timeInForce:  'IOC',
+      positionSide: posSide,
+    }, true);
+    const marketId  = marketData?.orderId;
+    await _sleep(FILL_POLL_MS);
+
+    let mPrice = 0, mQty = qty;
+    try {
+      const mHist = await this._request('GET', '/v5/order/history', { category: 'linear', symbol, orderId: marketId }, true);
+      const mo = mHist?.list?.[0];
+      if (mo) { mPrice = parseFloat(mo.avgPrice ?? 0); mQty = parseFloat(mo.cumExecQty ?? qty); }
+    } catch {}
+    if (!mPrice) mPrice = await this.getMarkPrice(symbol);
+
+    return { orderId: marketId, filledPrice: mPrice, filledQty: mQty, fillMethod: 'market' };
+  }
+
+  async placeMarketOrder(symbol, side, qty) {
+    // Fallback pure market order — no limit attempt
+    const bySide   = side === 'BUY' ? 'Buy' : 'Sell';
+    const posSide  = side === 'BUY' ? 'long' : 'short';
     const data     = await this._request('POST', '/v5/order/create', {
       category:     'linear',
       symbol,
@@ -183,22 +247,15 @@ class BybitExchange extends BaseExchange {
       positionSide: posSide,
     }, true);
     const orderId = data?.orderId;
-
-    // Bybit MARKET create response has no fill details — poll order history after delay
     await _sleep(FILL_POLL_MS);
-    let filledPrice = 0;
-    let filledQty   = qty;
+    let filledPrice = 0, filledQty = qty;
     try {
       const hist = await this._request('GET', '/v5/order/history', { category: 'linear', symbol, orderId }, true);
-      const o    = hist?.list?.[0];
-      if (o) {
-        filledPrice = parseFloat(o.avgPrice    ?? 0);
-        filledQty   = parseFloat(o.cumExecQty  ?? qty);
-      }
+      const o = hist?.list?.[0];
+      if (o) { filledPrice = parseFloat(o.avgPrice ?? 0); filledQty = parseFloat(o.cumExecQty ?? qty); }
     } catch {}
-
     if (!filledPrice) filledPrice = await this.getMarkPrice(symbol);
-    return { orderId, filledPrice, filledQty };
+    return { orderId, filledPrice, filledQty, fillMethod: 'market' };
   }
 
   async placeStopMarket(symbol, side, stopPrice, qty) {
