@@ -21,9 +21,7 @@ function formatMessage(signal, verdict, tradeResult) {
   const dirEmoji = direction === 'LONG' ? '📈' : direction === 'SHORT' ? '📉' : '➡️';
   const ep = entry?.price ?? 0;
 
-  // Use actual filled price if trade already executed — avoids signal vs fill confusion
-  const displayEntry = (tradeResult?.entry?.filled != null && tradeResult.entry.filled > 0)
-    ? tradeResult.entry.filled : ep;
+  // All display prices use signal entry price — actual filled shown in trade lines below
 
   // 천 단위 쉼표, 불필요한 .0 제거
   function fmt(n) {
@@ -33,24 +31,24 @@ function formatMessage(signal, verdict, tradeResult) {
   }
 
   function pct(target) {
-    if (!displayEntry || !target) return '';
-    const d = (target - displayEntry) / displayEntry * 100;
+    if (!ep || !target) return '';
+    const d = (target - ep) / ep * 100;
     return ` (${d >= 0 ? '+' : ''}${d.toFixed(1)}%)`;
   }
 
   // 현재가 → 진입가 방향 표시
-  // LONG: 화살표 항상 ↓ (리미트 진입 방향). displayEntry > currentPrice면 이미 POI 내 진입.
-  // SHORT: 화살표 항상 ↑. displayEntry < currentPrice면 이미 POI 내 진입.
+  // LONG: arrow always ↓ (limit entry direction). Already in POI if current < entry.
+  // SHORT: arrow always ↑. Already in POI if current > entry.
   function distToEntry() {
-    if (!currentPrice || !displayEntry) return '';
-    const absPct = Math.abs((displayEntry - currentPrice) / currentPrice * 100).toFixed(1);
+    if (!currentPrice || !ep) return '';
+    const absPct = Math.abs((ep - currentPrice) / currentPrice * 100).toFixed(1);
     if (direction === 'LONG') {
-      return displayEntry <= currentPrice ? `  ↓${absPct}% 진입까지` : `  ↓${absPct}% 진입 중`;
+      return ep <= currentPrice ? `  ↓${absPct}% 진입까지` : `  ↓${absPct}% 진입 중`;
     }
     if (direction === 'SHORT') {
-      return displayEntry >= currentPrice ? `  ↑${absPct}% 진입까지` : `  ↑${absPct}% 진입 중`;
+      return ep >= currentPrice ? `  ↑${absPct}% 진입까지` : `  ↑${absPct}% 진입 중`;
     }
-    const arrow = displayEntry >= currentPrice ? '↑' : '↓';
+    const arrow = ep >= currentPrice ? '↑' : '↓';
     return `  ${arrow}${absPct}% 진입까지`;
   }
 
@@ -113,7 +111,7 @@ function formatMessage(signal, verdict, tradeResult) {
     `${dirEmoji} *${direction}  ${esc(pair)}*  \\|  Tier ${esc(String(tier))} · ${esc(confidence)}`,
     `_${tierLabel(tier)}_  \\|  Grade *${esc(grade)}*  \\|  Size ${esc(String(size))}x`,
     '',
-    `${curLine}진입    \\\\$${esc(fmt(displayEntry))}`,
+    `${curLine}진입    \\\\$${esc(fmt(ep))}`,
     `SL      \\\\$${esc(fmt(sl ?? 0))}${esc(pct(sl))}`,
     tpLines,
     `${rrLabel}`,
