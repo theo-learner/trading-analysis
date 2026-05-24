@@ -202,53 +202,40 @@ class BybitExchange extends BaseExchange {
   }
 
   async placeStopMarket(symbol, side, stopPrice, qty) {
-    // Unified account: set SL via /v5/position/trading-stop (Full mode)
-    // Full mode: stopLoss/takeProfit are price strings (not booleans)
+    // Unified account: set SL via /v5/position/trading-stop (Partial mode)
+    // Partial mode: qty-specific conditional orders (supports 3-way TP)
+    // Full mode only allows 1 SL + 1 TP total — no split
     try {
       await this._request('POST', '/v5/position/trading-stop', {
         category:     'linear',
         symbol,
         stopLoss:     String(stopPrice),
         slTriggerBy:  'MarkPrice',
-        tpslMode:     'Full',
+        slOrderType:  'Market',
+        slSize:       String(qty),  // full qty for SL (closes entire position)
+        tpslMode:     'Partial',
       }, true);
-      return { orderId: null };  // Full mode returns no orderId
+      return { orderId: null };
     } catch (err) {
       throw err;
     }
   }
 
   async placeTakeProfitMarket(symbol, side, stopPrice, qty) {
-    // Unified account: set TP via /v5/position/trading-stop (Full mode)
-    // If SL already set, include both; otherwise TP only
+    // Unified account: set TP via /v5/position/trading-stop (Partial mode)
+    // Partial mode allows multiple independent TP orders at different prices
+    // Called 3x for TP1/TP2/TP3 with qty split 33/33/34
     try {
-      // First check if SL is already set on this position
-      const posData = await this._request('GET', '/v5/position/list', { category: 'linear', symbol }, true);
-      const pos = posData?.list?.[0];
-      const hasSL = pos?.stopLoss;
-
-      if (hasSL) {
-        // Both SL + TP
-        await this._request('POST', '/v5/position/trading-stop', {
-          category:     'linear',
-          symbol,
-          stopLoss:     String(hasSL),   // keep existing SL
-          slTriggerBy:  'MarkPrice',
-          takeProfit:   String(stopPrice),
-          tpTriggerBy:  'MarkPrice',
-          tpslMode:     'Full',
-        }, true);
-      } else {
-        // TP only
-        await this._request('POST', '/v5/position/trading-stop', {
-          category:     'linear',
-          symbol,
-          takeProfit:   String(stopPrice),
-          tpTriggerBy:  'MarkPrice',
-          tpslMode:     'Full',
-        }, true);
-      }
-      return { orderId: null };  // Full mode returns no orderId
+      await this._request('POST', '/v5/position/trading-stop', {
+        category:     'linear',
+        symbol,
+        takeProfit:   String(stopPrice),
+        tpTriggerBy:  'MarkPrice',
+        tpOrderType:  'Market',
+        tpSize:       String(qty),  // partial qty per TP level
+        tpslMode:     'Partial',
+      }, true);
+      return { orderId: null };
     } catch (err) {
       throw err;
     }

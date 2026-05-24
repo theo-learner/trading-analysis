@@ -156,18 +156,22 @@ async function execute(signal, verdict, cfg, deps = {}) {
   trade.entry.slippageBps = _slippageBps(signal.entry.price, filled.filledPrice);
   saveTrade(trade);
 
-  // 4. SL placement
+  // 4. SL placement (partial mode — returns null orderId on success for bybit)
   const closeSide = signal.direction === 'LONG' ? 'SELL' : 'BUY';
   trade.sl.price = signal.sl;
   let slPlaced = false;
   for (let attempt = 1; attempt <= (cfg.retry?.orderMaxAttempts ?? 3); attempt++) {
     trade.sl.placementAttempts = attempt;
     try {
-      const { orderId } = await exchange.placeStopMarket(signal.pair, closeSide, signal.sl, trade.qty);
-      if (!orderId) throw new Error('SL order returned null orderId');
-      trade.sl.orderId = orderId;
-      slPlaced = true;
-      break;
+      await exchange.placeStopMarket(signal.pair, closeSide, signal.sl, trade.qty);
+      // bybit trading-stop API returns null orderId on success — verify position has SL
+      await _sleep(500);
+      const posCheck = await exchange.getPosition(signal.pair);
+      if (posCheck.stopLoss) {
+        slPlaced = true;
+        trade.sl.orderId = 'sl_trading-stop';  // marker for null-id APIs
+        break;
+      }
     } catch (err) {
       trade.errors.push({ at: nowFn(), stage: `sl_attempt_${attempt}`, message: err.message });
       const delays = cfg.retry?.backoffMs ?? [250, 750, 2000];
@@ -191,7 +195,7 @@ async function execute(signal, verdict, cfg, deps = {}) {
   }
   saveTrade(trade);
 
-  // 5. TP orders (33/33/34)
+  // 5. TP orders (33/33/34 — partial mode)
   const info = await exchange.getSymbolInfo(signal.pair);
   const tpQtys = _splitQty(trade.qty, info.stepSize);
   for (let i = 0; i < trade.tp.length; i++) {
@@ -199,8 +203,8 @@ async function execute(signal, verdict, cfg, deps = {}) {
     trade.tp[i].price = tpPrice;
     trade.tp[i].qty   = tpQtys[i];
     try {
-      const { orderId } = await exchange.placeTakeProfitMarket(signal.pair, closeSide, tpPrice, tpQtys[i]);
-      trade.tp[i].orderId = orderId;
+      await exchange.placeTakeProfitMarket(signal.pair, closeSide, tpPrice, tpQtys[i]);
+      trade.tp[i].orderId = 'tp' + (i + 1) + '_trading-stop';  // marker for null-id APIs
     } catch (err) {
       trade.errors.push({ at: nowFn(), stage: `tp${i + 1}`, message: err.message });
     }
