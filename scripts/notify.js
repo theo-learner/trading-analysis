@@ -106,8 +106,8 @@ function formatMessage(signal, verdict, tradeResult) {
   const tradeLines = _buildTradeLines(tradeResult, esc, fmt);
 
   return [
-    `${dirEmoji} *${direction}  ${esc(pair)}*  \\\\|  Tier ${esc(String(tier))} · ${esc(confidence)}`,
-    `_${tierLabel(tier)}_  \\\\|  Grade *${esc(grade)}*  \\\\|  Size ${esc(String(size))}x`,
+    `${dirEmoji} *${direction}  ${esc(pair)}*  \\|  Tier ${esc(String(tier))} · ${esc(confidence)}`,
+    `_${tierLabel(tier)}_  \\|  Grade *${esc(grade)}*  \\|  Size ${esc(String(size))}x`,
     '',
     `${curLine}진입    \\\\$${esc(fmt(ep))}`,
     `SL      \\\\$${esc(fmt(sl ?? 0))}${esc(pct(sl))}`,

@@ -288,18 +288,6 @@ async function _preflight(signal, cfg, exchange, marginUsd, notionalUsd) {
       return { ok: false, reason: `below_min_notional (${notionalUsd} < ${info.minNotional})`, snapshot: snap };
     }
 
-    // Slippage check
-    if (cfg.slippage?.useMarkPrice !== false) {
-      const markPrice = await exchange.getMarkPrice(signal.pair);
-      const slipBps = _slippageBps(signal.entry.price, markPrice);
-      snap.markPrice   = markPrice;
-      snap.slippageBps = slipBps;
-      const maxBps = cfg.slippage?.maxBps ?? 30;
-      if (slipBps > maxBps) {
-        return { ok: false, reason: `slippage_exceeded (${slipBps}bps > ${maxBps}bps)`, snapshot: snap };
-      }
-    }
-
     // marginUsd minimum
     const marginUsdMin = cfg.execution?.marginUsdMin ?? 10;
     if (marginUsd < marginUsdMin) {

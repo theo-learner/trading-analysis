@@ -4,8 +4,9 @@ module.exports = {
       name: 'trading-dashboard',
       script: 'scripts/dashboard-server.js',
       cwd: '/home/theo/dev/trading-analysis',
-      watch: false,
-      restart_delay: 3000,
+      watch: true,
+      watch_delay: 1000,
+      restart_delay: 2000,
       max_restarts: 10,
       env: {
         PORT: 3210,
