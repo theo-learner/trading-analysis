@@ -43,6 +43,19 @@ async function tick(cfg, deps = {}) {
     _reconciled = true;
   }
 
+  // Cancel unfilled GTC limit orders first
+  var uncancelCfg2 = cfg.uncancel || {};
+  if (uncancelCfg2.breachPct || uncancelCfg2.maxSignalAgeSec || cfg.execution && cfg.execution.gtcTimeoutSec) {
+    try {
+      var cancelledCount = await cancelUnfilledOrders(exchange, cfg, nowFn);
+      if (cancelledCount > 0) {
+        console.log('[position-monitor] cancelled ' + cancelledCount + ' unfilled GTC limit order(s)');
+      }
+    } catch (err) {
+      console.warn('[position-monitor] cancelUnfilledOrders error: ' + err.message);
+    }
+  }
+
   const trades = openTrades();
   for (const trade of trades) {
     try {
@@ -51,6 +64,90 @@ async function tick(cfg, deps = {}) {
       console.warn(`[position-monitor] ${trade.pair} check failed: ${err.message}`);
     }
   }
+}
+
+
+/**
+ * Cancel unfilled GTC limit orders that match any of:
+ *  1. POI breach — current price moved past POI + breachPct
+ *  2. Signal stale — signal last_update exceeded maxSignalAgeSec
+ *  3. GTC timeout — unfilled > gtcTimeoutSec
+ */
+async function cancelUnfilledOrders(exchange, cfg, nowFn) {
+  var uncancelCfg = cfg.uncancel || {};
+  var breachPct = uncancelCfg.breachPct || 0.03;
+  var maxAgeSec = uncancelCfg.maxSignalAgeSec || 7200;
+  var gtcSec    = (cfg.execution && cfg.execution.gtcTimeoutSec) || 3600;
+
+  var openTradesList = openTrades();
+  var cancelled = 0;
+
+  for (var ti = 0; ti < openTradesList.length; ti++) {
+    var trade = openTradesList[ti];
+    if (trade.status !== 'unfilled') continue;
+    if (!trade.entry || trade.entry.fillMethod !== 'limit') continue;
+    if (!trade.entry.orderId) continue;
+
+    var signal = trade.signal;
+    if (!signal || !signal.entry) continue;
+
+    var poi = signal.entry.price;
+    var unfilledAt = trade.entry.unfilledAt;
+    if (!unfilledAt) continue;
+
+    var ageSec = (new Date(nowFn()) - new Date(unfilledAt)) / 1000;
+
+    // Get current mark price
+    var currentPrice;
+    try {
+      var ticker = await exchange.getTicker(trade.pair);
+      currentPrice = ticker.markPrice || ticker.lastPrice || 0;
+    } catch (err) {
+      console.warn('[position-monitor] cancel: ' + trade.pair + ' ticker fetch failed: ' + err.message);
+      continue;
+    }
+    if (!currentPrice || currentPrice <= 0) continue;
+
+    // Check POI breach
+    var reason = null;
+    var direction = signal.direction;
+    if (direction === 'long') {
+      var deviation = (currentPrice - poi) / poi;
+      if (deviation >= breachPct) reason = 'poi_breach';
+    } else {
+      var deviation2 = (poi - currentPrice) / poi;
+      if (deviation2 >= breachPct) reason = 'poi_breach';
+    }
+
+    // Check signal staleness
+    if (!reason && signal.lastUpdate) {
+      var sigAge = (new Date(nowFn()) - new Date(signal.lastUpdate)) / 1000;
+      if (sigAge > maxAgeSec) reason = 'signal_stale';
+    }
+
+    // Check GTC timeout
+    if (!reason && ageSec >= gtcSec) reason = 'gtc_timeout';
+
+    if (reason) {
+      try {
+        await exchange.cancelOrder(trade.pair, trade.entry.orderId);
+        console.log('[position-monitor] cancelled ' + trade.pair + ' limit order (' + reason + ') — ' + trade.entry.orderId);
+      } catch (err) {
+        console.warn('[position-monitor] cancel failed for ' + trade.pair + ': ' + err.message);
+      }
+      trade.status = 'cancelled';
+      trade.closedAt = nowFn();
+      trade.closedReason = reason;
+      trade.uncancelReason = reason;
+      trade.uncancelPrice = currentPrice;
+      trade.uncancelPoi = poi;
+      trade.uncancelAgeSec = Math.round(ageSec);
+      saveTrade(trade);
+      cancelled++;
+    }
+  }
+
+  return cancelled;
 }
 
 // ── Per-trade check ───────────────────────────────────────────────────────

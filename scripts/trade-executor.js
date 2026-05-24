@@ -160,6 +160,8 @@ async function execute(signal, verdict, cfg, deps = {}) {
   if (filled.status === 'unfilled') {
     trade.status = 'unfilled';
     trade.closedReason = 'limit_unfilled';
+    trade.entry.entryType = 'limit';
+    trade.entry.unfilledAt = Date.now();
     trade.entry.filled      = 0;
     trade.entry.filledQty   = 0;
     trade.entry.confirmedAt = nowFn();
@@ -173,6 +175,8 @@ async function execute(signal, verdict, cfg, deps = {}) {
   if (filled.status === 'open') {
     trade.status = 'unfilled';
     trade.closedReason = 'limit_open';
+    trade.entry.entryType = 'limit';
+    trade.entry.unfilledAt = Date.now();
     trade.entry.filled      = 0;
     trade.entry.filledQty   = 0;
     trade.entry.confirmedAt = nowFn();

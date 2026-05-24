@@ -1,11 +1,16 @@
 {
   "_comment": "trader.js 실행 설정 — 실제 API 키는 sessions/ 폴더에서 로드",
   "mode": "live",
-  "_modeOptions": ["dry-run", "live"],
-
+  "_modeOptions": [
+    "dry-run",
+    "live"
+  ],
   "exchange": {
     "default": "binance",
-    "_options": ["bybit", "binance"],
+    "_options": [
+      "bybit",
+      "binance"
+    ],
     "bybit": {
       "baseUrl": "https://api.bybit.com",
       "testnetUrl": "https://api-testnet.bybit.com",
@@ -17,15 +22,13 @@
       "useTestnet": false
     }
   },
-
   "risk": {
-    "maxRiskPerTradePct": 1.0,
-    "maxTotalExposurePct": 5.0,
-    "maxDailyLossPct": 3.0,
-    "minRR": 2.0,
+    "maxRiskPerTradePct": 1,
+    "maxTotalExposurePct": 5,
+    "maxDailyLossPct": 3,
+    "minRR": 2,
     "maxRR": 8
   },
-
   "execution": {
     "_comment": "주문 실행 설정 — marginUsd × leverage = notionalUsd",
     "exchange": "bybit",
@@ -34,52 +37,73 @@
     "marginUsdMin": 10,
     "notionalUsd": 20,
     "minBalanceUsd": 15,
-    "enabled": true
+    "enabled": true,
+    "gtcTimeoutSec": 3600
   },
-
   "position": {
     "leverage": 2,
     "marginType": "cross",
-    "_marginOptions": ["isolated", "cross"],
+    "_marginOptions": [
+      "isolated",
+      "cross"
+    ],
     "maxConcurrent": 4,
     "maxPerPair": 2
   },
-
   "trailing": {
     "enabled": true,
     "tp1ToBE": true,
     "tp2ToTP1": true,
     "moveOnFillConfirmDelayMs": 1500
   },
-
   "slippage": {
     "maxBps": 100,
     "useMarkPrice": true
   },
-
   "retry": {
     "orderMaxAttempts": 3,
-    "backoffMs": [250, 750, 2000]
+    "backoffMs": [
+      250,
+      750,
+      2000
+    ]
   },
-
   "reconcile": {
     "onStartup": true,
     "adoptOrphans": false
   },
-
   "safety": {
     "maxDailyTrades": 12
   },
-
   "pairs": [
-    { "symbol": "BTCUSDT",    "exchange": "binance" },
-    { "symbol": "ETHUSDT",    "exchange": "binance" },
-    { "symbol": "SOLUSDT",    "exchange": "binance" },
-    { "symbol": "HYPEUSDT",   "exchange": "binance", "chartSource": "bybit" },
-    { "symbol": "ZECUSDT",    "exchange": "binance", "skipOnError": true },
-    { "symbol": "MORPHOUSDT", "exchange": "binance", "skipOnError": true }
+    {
+      "symbol": "BTCUSDT",
+      "exchange": "binance"
+    },
+    {
+      "symbol": "ETHUSDT",
+      "exchange": "binance"
+    },
+    {
+      "symbol": "SOLUSDT",
+      "exchange": "binance"
+    },
+    {
+      "symbol": "HYPEUSDT",
+      "exchange": "binance",
+      "chartSource": "bybit"
+    },
+    {
+      "symbol": "ZECUSDT",
+      "exchange": "binance",
+      "skipOnError": true
+    },
+    {
+      "symbol": "MORPHOUSDT",
+      "exchange": "binance",
+      "skipOnError": true
+    }
   ],
-
   "notifications": {
     "telegram": {
       "enabled": true,
@@ -87,12 +111,19 @@
       "disableNotificationForNeutral": false
     }
   },
-
   "signal": {
     "minConfidence": "MEDIUM",
-    "_confidenceOptions": ["HIGH", "MEDIUM", "LOW"],
+    "_confidenceOptions": [
+      "HIGH",
+      "MEDIUM",
+      "LOW"
+    ],
     "maxTier": 2,
     "requireKillzone": true,
     "maxRR": 8
+  },
+  "uncancel": {
+    "breachPct": 0.03,
+    "maxSignalAgeSec": 7200
   }
 }
