@@ -77,13 +77,11 @@ function formatMessage(signal, verdict, tradeResult) {
     return esc(`HTF ${htfStr} / LTF ${ltfStr} / ${oteStr} / ${kzStr} / ${liqStr} / ${pdStr}`);
   }
 
-  const tpBasis = signal.tpBasis ?? [];
-  const tpLines = Array.isArray(tp)
-    ? tp.map((t, i) => {
-        const tag = tpBasis[i] === 'RR' ? ' · RR' : tpBasis[i] === 'ERL' ? ' · ERL' : '';
-        return `TP${i + 1}    \\$${esc(fmt(t))}${esc(pct(t))}${esc(tag)}`;
-      }).join('\n')
-    : `TP      \\$${esc(fmt(tp))}`;
+  // Single TP (full position)
+  const tpPrice = tp?.[0] ?? tp;
+  const tpBasis = Array.isArray(signal.tpBasis) ? signal.tpBasis[0] : signal.tpBasis;
+  const tpTag = tpBasis === 'RR' ? ' · RR' : tpBasis === 'ERL' ? ' · ERL' : '';
+  const tpLines = tpPrice != null ? `TP      \\$${esc(fmt(tpPrice))}${esc(pct(tpPrice))}${esc(tpTag)}` : '';
 
   const poi = entry?.basis?.trim() ? esc(entry.basis) : 'POI_RETEST';
   const kz  = entry?.killzone

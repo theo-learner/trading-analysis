@@ -80,7 +80,7 @@ async function execute(signal, verdict, cfg, deps = {}) {
     qty:         0,
     entry:       { requested: signal.entry.price, requestedAt },
     sl:          { price: signal.sl, orderId: null, placementAttempts: 0 },
-    tp:          _buildTpSlots(signal.tp),
+    tp:          [{ price: signal.tp?.[0] ?? 0, orderId: null, status: 'pending', filledAt: null, filledPrice: null, qty: 0 }],
     slMoves:     [],
     riskCheck:   {},
     errors:      [],
@@ -195,27 +195,15 @@ async function execute(signal, verdict, cfg, deps = {}) {
   }
   saveTrade(trade);
 
-  // 5. TP orders (33/33/34 — Full mode)
-  // Full mode: 1 TP via trading-stop API, TP2/TP3 via conditional market orders
-  const info = await exchange.getSymbolInfo(signal.pair);
-  const tpQtys = _splitQty(trade.qty, info.stepSize);
-  for (let i = 0; i < trade.tp.length; i++) {
-    const tpPrice = _roundPrice(signal.tp[i], info.tickSize);
-    trade.tp[i].price = tpPrice;
-    trade.tp[i].qty   = tpQtys[i];
+  // 5. TP placement (full position via trading-stop API)
+  const tpPrice = trade.tp?.[0]?.price ?? signal.tp?.[0];
+  if (tpPrice > 0) {
     try {
-      if (i === 0) {
-        // TP1: trading-stop API (Full mode)
-        await exchange.placeTakeProfitMarket(signal.pair, closeSide, tpPrice, tpQtys[i]);
-        trade.tp[i].orderId = 'tp1_trading-stop';
-      } else {
-        // TP2/TP3: conditional market order
-        const posSide = signal.direction;  // 'LONG' or 'SHORT'
-        const r = await exchange.placeConditionalMarket(signal.pair, closeSide, tpPrice, tpQtys[i], posSide);
-        trade.tp[i].orderId = 'tp' + (i + 1) + '_conditional';
-      }
+      await exchange.placeTakeProfitMarket(signal.pair, closeSide, tpPrice, trade.qty);
+      trade.tp[0].orderId = 'tp_trading-stop';
+      trade.tp[0].qty = trade.qty;
     } catch (err) {
-      trade.errors.push({ at: nowFn(), stage: `tp${i + 1}`, message: err.message });
+      trade.errors.push({ at: nowFn(), stage: 'tp', message: err.message });
     }
   }
 
@@ -230,11 +218,7 @@ function _tradeId(signal) {
   return crypto.createHash('sha1').update(`${signal.pair}_${epoch}`).digest('hex').slice(0, 12);
 }
 
-function _buildTpSlots(tpArr) {
-  return (tpArr ?? []).map((price, i) => ({
-    level: i + 1, price, qty: 0, orderId: null, status: 'pending', filledAt: null, filledPrice: null,
-  }));
-}
+// No longer used — TP is now single full-position
 
 function _roundQty(qty, stepSize) {
   if (!stepSize || stepSize <= 0) return parseFloat(qty.toFixed(8));
@@ -250,16 +234,7 @@ function _roundPrice(price, tickSize) {
   return parseFloat(price.toFixed(precision));
 }
 
-/**
- * Split total qty into 3 parts (33/33/34) respecting stepSize.
- * Third slice gets the remainder to avoid rounding loss.
- */
-function _splitQty(totalQty, stepSize) {
-  const precision = Math.max(0, Math.round(-Math.log10(stepSize ?? 0.001)));
-  const part = parseFloat((totalQty * 0.33).toFixed(precision));
-  const remainder = parseFloat((totalQty - part * 2).toFixed(precision));
-  return [part, part, remainder];
-}
+// No longer used — TP is now single full-position
 
 function _slippageBps(requested, filled) {
   if (!requested || !filled) return 0;
@@ -297,11 +272,9 @@ async function _preflight(signal, cfg, exchange, marginUsd, notionalUsd) {
 
 function _assignFakeOrders(trade) {
   trade.sl.orderId = _fakeId();
-  const tpQtys = _splitQty(trade.qty, 0.00000001);  // 8자리 precision for dry-run
-  for (let i = 0; i < trade.tp.length; i++) {
-    trade.tp[i].orderId = _fakeId();
-    trade.tp[i].qty     = tpQtys[i];
-  }
+  // Single full-position TP — no split
+  trade.tp[0].orderId = _fakeId();
+  trade.tp[0].qty     = trade.qty;
 }
 
 function _fakeId() {

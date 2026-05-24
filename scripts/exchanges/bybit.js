@@ -204,7 +204,7 @@ class BybitExchange extends BaseExchange {
   async placeStopMarket(symbol, side, stopPrice, qty) {
     // Unified account (Full mode): set SL via /v5/position/trading-stop
     // tpslMode MUST be 'Full' explicitly — without it Bybit returns error
-    // Full mode only supports 1 SL total
+    // Full mode supports 1 SL only
     try {
       await this._request('POST', '/v5/position/trading-stop', {
         category:    'linear',
@@ -221,9 +221,9 @@ class BybitExchange extends BaseExchange {
   }
 
   async placeTakeProfitMarket(symbol, side, stopPrice, qty) {
-    // Unified account (Full mode): set TP1 via /v5/position/trading-stop
+    // Unified account (Full mode): set TP via /v5/position/trading-stop
     // tpslMode MUST be 'Full' explicitly
-    // Full mode only supports 1 TP total — TP2/TP3 use placeConditionalMarket()
+    // Full mode supports 1 TP only (full position close)
     try {
       await this._request('POST', '/v5/position/trading-stop', {
         category:    'linear',
@@ -237,26 +237,6 @@ class BybitExchange extends BaseExchange {
     } catch (err) {
       throw err;
     }
-  }
-
-  async placeConditionalMarket(symbol, side, stopPrice, qty, positionSide) {
-    // Place a conditional (trigger) market order for TP2/TP3 in Full mode
-    // Full mode trading-stop only supports 1 SL + 1 TP, so extra levels use Order API
-    const posSide = positionSide === 'LONG' ? 'short' : 'long';
-    const data    = await this._request('POST', '/v5/order/create', {
-      category:      'linear',
-      symbol,
-      side:          side === 'BUY' ? 'Buy' : 'Sell',
-      orderType:     'Market',
-      qty:           String(qty),
-      timeInForce:   'GTC',
-      positionSide:  posSide,
-      triggerPrice:  String(stopPrice),
-      triggerBy:     'MarkPrice',
-      triggerDirection: side === 'BUY' ? 2 : 1,  // 1=Up, 2=Down
-      orderFilter:   'StopOrder',
-    }, true);
-    return { orderId: data?.orderId };
   }
 
   async getPosition(symbol) {

@@ -2,7 +2,7 @@
 'use strict';
 
 /**
- * Full live entry test via trade-executor: entry + SL + TP1/2/3 (Partial mode)
+ * Full live entry test via trade-executor: entry + SL + TP (full position)
  * Usage: TRADING_LIVE=1 node test-full-flow.js [PAIR] [DIRECTION]
  * Example: TRADING_LIVE=1 node test-full-flow.js ZECUSDT LONG
  */
@@ -33,15 +33,19 @@ const signal = {
   pair, direction, tier: 1, confidence: 'HIGH',
   entry: { price, basis: 'POI_RETEST', killzone: 'New_London' },
   sl: isLong ? price * 0.95 : price * 1.05,
-  tp: isLong
-    ? [price * 1.15, price * 1.20, price * 1.25]
-    : [price * 0.85, price * 0.80, price * 0.75],
-  rr: 3.0,
+  tp: [],  // filled below with R:R = 2 calculation
+  rr: 2.0,
   currentPrice: price,
   scorecard: { sizeMultiplier: 1, grade: 'A', oteZone: 'OTE' },
   tradeBlocked: false,
   structure: { htfTrend: isLong ? 'bull' : 'bear', ltfTrend: isLong ? 'bull' : 'bear' },
 };
+
+// Single TP at R:R = 2.0 (distance to TP = 2 × distance to SL)
+const slDist = isLong ? (price - signal.sl) : (signal.sl - price);
+const tpDist = slDist * 2;
+const tpPrice = isLong ? (price + tpDist) : (price - tpDist);
+signal.tp = [tpPrice];
 
 async function main() {
   console.log('═══════════════════════════════════════════════════');
@@ -80,7 +84,7 @@ async function main() {
 
   // 4. Execute trade (via trade-executor — full flow: entry → SL → TP1/2/3)
   console.log(`\n4. Executing trade (LIVE)...`);
-  console.log(`  Entry: $${price} | SL: $${signal.sl} | TP: [${signal.tp.join(', ')}]`);
+  console.log(`  Entry: $${price} | SL: $${signal.sl} | TP: $${tpPrice}`);
   console.log(`  Notional: $${traderConfig.execution.notionalUsd} | Leverage: ${traderConfig.execution.leverage}x\n`);
 
   const result = await tradeExecutor.execute(signal, verdict, traderConfig, { env: process.env });
@@ -126,7 +130,7 @@ async function main() {
   if (result.status === 'closed' && result.closedReason === 'sl_placement_failed') {
     console.log(`  ⚠️  EMERGENCY CLOSE triggered — SL not placed`);
   } else if (result.status === 'open') {
-    console.log(`  ✅ TRADE ACTIVE — SL + TP1/2/3 set`);
+    console.log(`  ✅ TRADE ACTIVE — SL + TP set`);
   } else {
     console.log(`  ℹ️  Trade: ${result.status} (${result.closedReason || 'unknown'})`);
   }
