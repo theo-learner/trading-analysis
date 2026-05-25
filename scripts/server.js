@@ -153,6 +153,12 @@ function broadcast(event, data) {
 }
 
 function startSSE(res) {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'Access-Control-Allow-Origin': '*',
+  });
   res.on('close', () => sseClients.delete(res));
   sseClients.add(res);
   // Flush queued events
