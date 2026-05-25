@@ -103,7 +103,7 @@ function formatTradeRow(t) {
 async function getLedger() {
   // closed_at 기준 정렬 — orphan 레코드(closed_at 없음)는 최하단
   const { rows: trades } = await runSQL(
-    `SELECT * FROM trades ORDER BY COALESCE(closed_at, created_at) DESC`
+    `SELECT * FROM trades ORDER BY closed_at DESC NULLS LAST, created_at DESC`
   );
   const closedRows = trades.filter(t => t.status === 'closed');
   const openRows   = trades.filter(t => t.status === 'open');
