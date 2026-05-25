@@ -51,6 +51,8 @@ function dedupKey(signal) {
  */
 function hasRecentNotification(key, windowMs = WINDOW_MS) {
   const { entries } = readLedger();
+  // entries가 배열이 아닌 경우 (깨진 JSON / corrupt state) — safe fallback
+  if (!Array.isArray(entries)) return false;
   const cutoff = Date.now() - windowMs;
   return entries.some(e => e.key === key && e.sentAt > cutoff);
 }

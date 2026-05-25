@@ -1583,6 +1583,31 @@ async function loadTrades() {
   } catch (_) {}
 }
 
+// ── Sync 버튼 ────────────────────────────────
+(function() {
+  const syncBtn = document.getElementById('sync-btn');
+  if (!syncBtn) return;
+  syncBtn.addEventListener('click', async () => {
+    const original = syncBtn.textContent;
+    syncBtn.textContent = '⏳ Syncing...';
+    syncBtn.disabled = true;
+    try {
+      const resp = await fetch(`${API}/api/sync`, { method: 'POST' });
+      const data = await resp.json();
+      if (resp.ok) {
+        syncBtn.textContent = `✅ ${data.imported} imported`;
+        // 데이터 새로고침
+        await loadTrades();
+      } else {
+        syncBtn.textContent = `❌ ${data.message || 'sync failed'}`;
+      }
+    } catch (e) {
+      syncBtn.textContent = '❌ Network error';
+    }
+    setTimeout(() => { syncBtn.textContent = original; syncBtn.disabled = false; }, 5000);
+  });
+})();
+
 function refreshHistoryTab() {
   const { open, closed, stats } = allTradesData;
   let trades;

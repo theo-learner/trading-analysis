@@ -61,7 +61,7 @@ class BybitExchange extends BaseExchange {
         headers['X-BAPI-RECV-WINDOW'] = String(RECV_WINDOW);
       }
 
-      const fetchOpts = { method, headers, signal: AbortSignal.timeout(8000) };
+      const fetchOpts = { method, headers, signal: AbortSignal.timeout(15000) };
       if (body) fetchOpts.body = body;
 
       try {
@@ -143,8 +143,15 @@ class BybitExchange extends BaseExchange {
         sellLeverage: String(leverage),
       }, true);
     } catch (err) {
-      // All non-fatal: already set, position active, or Bybit rejects re-calls.
-      // These are idempotent setup calls — never abort trade entry.
+      // UTA (Unified Trading Account): leverage may be per-account, not per-symbol.
+      // Error 110043 = leverage not modified (already at target).
+      // Error 100028 = UTA mode — account-level leverage, not symbol-level.
+      // All non-fatal — leverage is already correct or UTA-managed.
+      const code = err.code;
+      if (code === 110043 || code === 100028) {
+        // Already at target or UTA-managed — silent skip
+        return;
+      }
       console.warn(`[bybit] setLeverage ${symbol} L${leverage}: ${err.message}`);
     }
   }
@@ -159,8 +166,15 @@ class BybitExchange extends BaseExchange {
         sellLeverage: '2',
       }, true);
     } catch (err) {
-      // All non-fatal: already set, position active, or Bybit rejects re-calls.
+      // UTA (Unified Trading Account) does not support switch-isolated API.
+      // UTA accounts are always cross-margin — marginType is irrelevant.
+      // Also catches "position active" — can't switch mode while position exists.
       // These are idempotent setup calls — never abort trade entry.
+      const code = err.code;
+      if (code === 100028 || code === 110043) {
+        // UTA or already in correct mode — silent skip
+        return;
+      }
       console.warn(`[bybit] setMarginType ${symbol} ${marginType}: ${err.message}`);
     }
   }
@@ -392,35 +406,3 @@ Object.assign(BybitExchange.prototype, {
   getPositionPnl,
   getFillPrice,
 });
-
-// ── PnL 조회용 API ──────────────────────────────────────────────────────────
-BybitExchange.prototype.getPositionPnl = async function(symbol) {
-  try {
-    const data = await this._request('GET', '/v5/position/history', {
-      category: 'linear', symbol, settled: false,
-    }, true);
-    const pos = data?.list?.[0];
-    if (!pos) return null;
-    return {
-      realizedPnl: parseFloat(pos.realizedPnl || 0),
-      closePrice:  parseFloat(pos.closePrice || 0),
-      size:        parseFloat(pos.closedSize || 0),
-      side:        pos.side === 'Buy' ? 'LONG' : pos.side === 'Sell' ? 'SHORT' : null,
-      avgEntry:    parseFloat(pos.avgPrice || 0),
-    };
-  } catch { return null; }
-};
-
-BybitExchange.prototype.getFillPrice = async function(symbol, orderId) {
-  try {
-    const data = await this._request('GET', '/v5/order/history', {
-      category: 'linear', symbol, orderId: String(orderId),
-    }, true);
-    const o = data?.list?.[0];
-    if (!o || o.orderStatus !== 'Filled') return null;
-    return {
-      filledPrice: parseFloat(o.avgPrice || 0),
-      filledQty:   parseFloat(o.cumExecQty || 0),
-    };
-  } catch { return null; }
-};

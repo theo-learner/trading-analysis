@@ -49,7 +49,7 @@ class BinanceExchange extends BaseExchange {
     const fetchOpts = {
       method,
       headers: { 'X-MBX-APIKEY': this.apiKey, 'Content-Type': 'application/x-www-form-urlencoded' },
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(15000),
     };
     if (method !== 'GET') fetchOpts.body = qs;
 

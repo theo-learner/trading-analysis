@@ -33,9 +33,9 @@
     "_comment": "주문 실행 설정 — marginUsd × leverage = notionalUsd",
     "exchange": "bybit",
     "leverage": 2,
-    "marginUsd": 10,
-    "marginUsdMin": 10,
-    "notionalUsd": 20,
+    "marginUsd": 50,
+    "marginUsdMin": 50,
+    "notionalUsd": 100,
     "minBalanceUsd": 15,
     "enabled": true,
     "gtcTimeoutSec": 3600
