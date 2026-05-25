@@ -3,7 +3,6 @@ const { Client } = require('pg');
 let client = null;
 
 function parseDSN(dsn) {
-  // postgresql://user:pass@host:port/db
   const url = new URL(dsn);
   return {
     host: url.hostname,
@@ -18,13 +17,18 @@ async function initDB() {
   if (client) return client;
   const dsn = parseDSN(process.env.DATABASE_URL);
   client = new Client({
-    host: dsn.host,       // explicit host bypasses DNS race
+    host: dsn.host,
     port: dsn.port,
     user: dsn.user,
     password: dsn.password,
     database: dsn.database,
     ssl: { rejectUnauthorized: false },
-    family: 4              // force IPv4 — Render free tier can't reach Supabase IPv6
+    family: 4,              // prefer IPv4
+    lookup: (hostname, _opts, cb) => {
+      // Force IPv4 lookup — bypass IPv6 DNS on Render free tier
+      const dns = require('dns');
+      dns.lookup(hostname, { family: 4 }, (err, address) => cb(err, address || hostname, 4));
+    }
   });
   await client.connect();
   console.log('✅ Supabase connected');
