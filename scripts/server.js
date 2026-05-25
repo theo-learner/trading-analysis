@@ -487,6 +487,9 @@ const srv = http.createServer(async (req, res) => {
     if (pathname === '/api/stats') return json(res, await getStats());
     if (pathname === '/api/ledger') return json(res, await getLedger());
 
+    // Health check for Render
+    if (pathname === '/health') return json(res, { status: 'ok' });
+
     json(res, { error: 'Not found' }, 404);
   } catch (e) {
     console.error('Server error:', e);
