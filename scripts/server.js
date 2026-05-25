@@ -123,20 +123,18 @@ async function syncFromBybit(req, res) {
       return json(res, { message: 'Bybit API credentials not configured', imported: 0 }, 500);
     }
     
-    // USDT Perpetual category (spot이 아닌 perp)
     const url = 'https://api.bybit.com/v5/position/list?category=linear&limit=100';
     const timestamp = Date.now().toString();
-    // Bybit V5 signature
-    const signStr = `GET\/v5\/position\/list?category=linear\u0026limit=100\u0026timestamp=${timestamp}`;
+    // Bybit V5 signature format
+    const signStr = `apikey=${apiKey}&timestamp=${timestamp}&receiveWindow=5000`;
     const crypto = require('crypto');
     const signature = crypto.createHmac('sha256', apiSecret).update(signStr).digest('hex');
     
-    const resp = await fetch(url, {
+    const resp = await fetch(`${url}&signature=${signature}`, {
       signal: AbortSignal.timeout(10_000),
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
         'X-Bit-Api-Key': apiKey,
-        'X-Bit-Api-Sign': signature,
         'X-Bit-Api-Timestamp': timestamp,
       },
     });
