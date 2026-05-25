@@ -1586,7 +1586,7 @@ function renderHistory(trades, stats) {
     else if (t.tp && t.tp[0] && t.tp[0].price) { exitPrice = formatPrice(t.tp[0].price); }
     else if (t.exit?.price) { exitPrice = formatPrice(t.exit.price); }
     const ts = t.entry?.requestedAt || t.closedAt || t.createdAt;
-    const time = ts ? new Date(ts).toISOString().slice(11, 19) : '—';
+    const time = ts ? new Date(ts).toISOString().slice(0, 10) + ' ' + new Date(ts).toISOString().slice(11, 19) : '—';
     const modeLabel = t.exchange ? 'LIVE' : 'DRY';
     const statusLabel = t.status === 'open' ? 'OPEN' : (t.closedReason || t.status || 'closed');
     return '<tr>' +
