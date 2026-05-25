@@ -123,19 +123,24 @@ async function syncFromBybit(req, res) {
       return json(res, { message: 'Bybit API credentials not configured', imported: 0 }, 500);
     }
     
-    const url = 'https://api.bybit.com/v5/position/list?category=linear&limit=100';
     const timestamp = Date.now().toString();
-    // Bybit V5 signature format
-    const signStr = `apikey=${apiKey}&timestamp=${timestamp}&receiveWindow=5000`;
+    const recvWindow = '5000';
+    
+    // Bybit V5 signature: GET/v5/order/history?category=linear&limit=100&timestamp=xxx&recvWindow=xxx
+    const queryString = `category=linear&limit=100&timestamp=${timestamp}&recvWindow=${recvWindow}`;
+    const signStr = `GET/v5/order/history?${queryString}`;
     const crypto = require('crypto');
     const signature = crypto.createHmac('sha256', apiSecret).update(signStr).digest('hex');
     
-    const resp = await fetch(`${url}&signature=${signature}`, {
+    const url = `https://api.bybit.com/v5/order/history?${queryString}&signature=${signature}`;
+    
+    const resp = await fetch(url, {
       signal: AbortSignal.timeout(10_000),
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
         'X-Bit-Api-Key': apiKey,
         'X-Bit-Api-Timestamp': timestamp,
+        'X-Bit-Api-Sign': signature,
       },
     });
     if (!resp.ok) {
@@ -143,7 +148,9 @@ async function syncFromBybit(req, res) {
       return json(res, { message: `Bybit API error: ${resp.status} - ${errText}`, imported: 0 }, resp.status);
     }
     const data = await resp.json();
-    if (data.retCode !== 0) return json(res, { message: `Bybit: ${data.retMsg}`, imported: 0 }, 400);
+    if (data.retCode !== 0) {
+      return json(res, { message: `Bybit API: ${data.retMsg}`, imported: 0 }, 400);
+    }
 
     const orders = data.result?.list || [];
     let imported = 0, skipped = 0;
@@ -153,19 +160,19 @@ async function syncFromBybit(req, res) {
       const exists = await runSQL('SELECT 1 FROM trades WHERE id=$1', [o.orderId]);
       if (exists.rows.length > 0) { skipped++; continue; }
 
-      const pair = (o.symbol || '').replace('USDT', 'USDT');
+      const pair = o.symbol || '';
       const direction = o.side === 'Buy' ? 'LONG' : 'SHORT';
       const status = (o.orderStatus === 'Filled' || o.orderStatus === 'Closed') ? 'closed' : 'open';
       const realizedPnl = parseFloat(o.realizedPnl || 0);
       const isWin = status === 'closed' && realizedPnl > 0;
       const closedReason = isWin ? 'TP' : (o.closeReason || null);
-      const entryPrice = parseFloat(o.avgPrice || o.price || 0);
-      const qty = parseFloat(o.cumExecQty || o.qty || 0);
+      const avgPrice = parseFloat(o.avgPrice || o.price || o.execPrice || 0);
+      const qty = parseFloat(o.execQty || o.qty || 0);
 
       await runSQL(
         `INSERT INTO trades (id, pair, direction, entry_price, qty, status, mode, realized_pnl, closed_reason, created_at)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW())`,
-        [o.orderId, pair, direction, entryPrice, qty, status, 'LIVE', realizedPnl, closedReason]
+        [o.orderId, pair, direction, avgPrice, qty, status, 'LIVE', realizedPnl, closedReason]
       );
       imported++;
     }
