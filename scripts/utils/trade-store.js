@@ -31,7 +31,8 @@ function writeIndex(entries) {
 /** Upsert a single trade (routes to open/ or closed/ based on trade.status). */
 function saveTrade(trade) {
   ensureDirs();
-  const isOpen   = trade.status === 'open';
+  // 'unfilled' stays in OPEN_DIR so position-monitor can track and cancel it
+  const isOpen   = trade.status === 'open' || trade.status === 'unfilled';
   const dir      = isOpen ? OPEN_DIR : CLOSED_DIR;
   const filePath = path.join(dir, `${trade.id}.json`);
   atomicWrite(filePath, trade);
