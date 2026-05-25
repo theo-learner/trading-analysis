@@ -88,25 +88,38 @@ async function getLatestDiary(pair) {
 }
 
 // ── trades (existing) ────────────────────────────────────────────────────────
-async function getLedger() {
-  const { rows: trades } = await runSQL('SELECT * FROM trades ORDER BY created_at DESC');
-  const closed = trades.filter(t => t.status === 'closed');
-  const open = trades.filter(t => t.status === 'open');
-  const total = closed.length;
-  const wins = closed.filter(t => t.realized_pnl > 0).length;
-  const losses = closed.filter(t => t.realized_pnl <= 0).length;
-  const totalPnL = Math.round(closed.reduce((s, t) => s + (t.realized_pnl || 0), 0) * 100) / 100;
-  const avgPnL = total > 0 ? Math.round((totalPnL / total) * 100) / 100 : 0;
-  const winRate = total > 0 ? Math.round((wins / total) * 10000) / 100 : 0;
-  const formatted = closed.map(t => ({
+function formatTradeRow(t) {
+  return {
     id: t.id, pair: t.pair, direction: t.direction,
     entry: { filled: t.entry_filled, price: t.entry_price },
     tp: [{ filledPrice: t.tp_filled, price: t.tp_price }],
     realizedPnl: t.realized_pnl, status: t.status, mode: t.mode,
+    exchange: t.exchange,
     closedAt: t.closed_at, createdAt: t.created_at,
-    closedReason: t.closed_reason, leverage: t.leverage, sl: t.sl
-  }));
-  return { closed: formatted, open, stats: { total, wins, losses, winRate, totalPnL, avgPnL } };
+    closedReason: t.closed_reason, leverage: t.leverage, sl: t.sl,
+  };
+}
+
+async function getLedger() {
+  const { rows: trades } = await runSQL('SELECT * FROM trades ORDER BY created_at DESC');
+  const closedRows = trades.filter(t => t.status === 'closed');
+  const openRows   = trades.filter(t => t.status === 'open');
+  const total    = closedRows.length;
+  const wins     = closedRows.filter(t => parseFloat(t.realized_pnl) > 0).length;
+  const losses   = closedRows.filter(t => parseFloat(t.realized_pnl) <= 0).length;
+  const totalPnL = Math.round(closedRows.reduce((s, t) => s + (parseFloat(t.realized_pnl) || 0), 0) * 100) / 100;
+  const avgPnL   = total > 0 ? Math.round((totalPnL / total) * 100) / 100 : 0;
+  const winRate  = total > 0 ? Math.round((wins / total) * 10000) / 100 : 0;
+  return {
+    closed: closedRows.map(formatTradeRow),
+    open:   openRows.map(formatTradeRow),
+    stats: {
+      total, totalTrades: total,
+      wins, losses, winRate,
+      totalPnL, totalPnl: totalPnL,
+      avgPnL,   avgPnl:   avgPnL,
+    },
+  };
 }
 
 async function getStats() {
@@ -117,65 +130,109 @@ async function getStats() {
 // ── Sync from Bybit ───────────────────────────────────────────────────────────
 async function syncFromBybit(req, res) {
   try {
-    const apiKey = process.env.BYBIT_API_KEY;
+    const apiKey    = process.env.BYBIT_API_KEY;
     const apiSecret = process.env.BYBIT_API_SECRET;
     if (!apiKey || !apiSecret) {
       return json(res, { message: 'Bybit API credentials not configured', imported: 0 }, 500);
     }
 
     const crypto = require('crypto');
-    const timestamp = Date.now().toString();
-    const recvWindow = '5000';
-    const queryString = 'category=linear&limit=100';
-    const signStr = `${timestamp}${apiKey}${recvWindow}${queryString}`;
-    const signature = crypto.createHmac('sha256', apiSecret).update(signStr).digest('hex');
-
-    const url = `https://api.bybit.com/v5/order/history?${queryString}`;
-    const resp = await fetch(url, {
-      signal: AbortSignal.timeout(10_000),
-      headers: {
-        'Content-Type': 'application/json',
-        'X-BAPI-API-KEY': apiKey,
-        'X-BAPI-TIMESTAMP': timestamp,
-        'X-BAPI-SIGN': signature,
-        'X-BAPI-RECV-WINDOW': recvWindow,
-      },
-    });
-    if (!resp.ok) {
-      const errText = await resp.text();
-      return json(res, { message: `Bybit API error: ${resp.status} - ${errText}`, imported: 0 }, resp.status);
-    }
-    const data = await resp.json();
-    if (data.retCode !== 0) {
-      return json(res, { message: `Bybit API: ${data.retMsg}`, imported: 0 }, 400);
+    function bybitSign(qs) {
+      const ts = Date.now().toString();
+      const recvWindow = '5000';
+      const sig = crypto.createHmac('sha256', apiSecret)
+        .update(`${ts}${apiKey}${recvWindow}${qs}`).digest('hex');
+      return { ts, recvWindow, sig };
     }
 
-    const orders = data.result?.list || [];
-    let imported = 0, skipped = 0;
+    async function bybitFetch(path, qs) {
+      const { ts, recvWindow, sig } = bybitSign(qs);
+      const resp = await fetch(`https://api.bybit.com${path}?${qs}`, {
+        signal: AbortSignal.timeout(10_000),
+        headers: {
+          'Content-Type': 'application/json',
+          'X-BAPI-API-KEY': apiKey,
+          'X-BAPI-TIMESTAMP': ts,
+          'X-BAPI-SIGN': sig,
+          'X-BAPI-RECV-WINDOW': recvWindow,
+        },
+      });
+      if (!resp.ok) throw new Error(`Bybit ${path}: HTTP ${resp.status}`);
+      const d = await resp.json();
+      if (d.retCode !== 0) throw new Error(`Bybit ${path}: ${d.retMsg}`);
+      return d.result?.list || [];
+    }
 
-    for (const o of orders) {
-      if (!o.orderId) continue;
-      const exists = await runSQL('SELECT 1 FROM trades WHERE id=$1', [o.orderId]);
-      if (exists.rows.length > 0) { skipped++; continue; }
+    // ── 1. Closed positions (진입가 / 청산가 / 실현 PnL 포함) ───────────────
+    const closedList = await bybitFetch('/v5/position/closed-pnl', 'category=linear&limit=100');
+    let closedUpserted = 0;
 
-      const pair = o.symbol || '';
-      const direction = o.side === 'Buy' ? 'LONG' : 'SHORT';
-      const status = (o.orderStatus === 'Filled' || o.orderStatus === 'Closed') ? 'closed' : 'open';
-      const realizedPnl = parseFloat(o.realizedPnl || 0);
-      const isWin = status === 'closed' && realizedPnl > 0;
-      const closedReason = isWin ? 'TP' : (o.closeReason || null);
-      const avgPrice = parseFloat(o.avgPrice || o.price || o.execPrice || 0);
-      const qty = parseFloat(o.execQty || o.qty || 0);
+    for (const p of closedList) {
+      if (!p.orderId) continue;
+      const direction   = p.side === 'Buy' ? 'LONG' : 'SHORT';
+      const entryPrice  = parseFloat(p.avgEntryPrice || 0);
+      const exitPrice   = parseFloat(p.avgExitPrice  || 0);
+      const pnl         = parseFloat(p.closedPnl     || 0);
+      const qty         = parseFloat(p.qty            || 0);
+      const leverage    = parseFloat(p.leverage       || 1);
+      const closedAt    = p.updatedTime ? new Date(parseInt(p.updatedTime)).toISOString() : null;
+      const createdAt   = p.createdTime ? new Date(parseInt(p.createdTime)).toISOString() : null;
+      const closedReason = pnl > 0 ? 'TP' : 'SL';
 
       await runSQL(
-        `INSERT INTO trades (id, pair, direction, entry_price, qty, status, mode, realized_pnl, closed_reason, created_at)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW())`,
-        [o.orderId, pair, direction, avgPrice, qty, status, 'LIVE', realizedPnl, closedReason]
+        `INSERT INTO trades
+           (id, pair, direction, entry_price, tp_price, qty, leverage,
+            realized_pnl, status, mode, exchange, closed_at, created_at, closed_reason)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'closed','LIVE','bybit',$9,$10,$11)
+         ON CONFLICT (id) DO UPDATE SET
+           entry_price  = EXCLUDED.entry_price,
+           tp_price     = EXCLUDED.tp_price,
+           realized_pnl = EXCLUDED.realized_pnl,
+           leverage     = EXCLUDED.leverage,
+           status       = 'closed',
+           closed_at    = EXCLUDED.closed_at,
+           closed_reason = EXCLUDED.closed_reason`,
+        [p.orderId, p.symbol, direction, entryPrice, exitPrice, qty, leverage,
+         pnl, closedAt, createdAt, closedReason]
       );
-      imported++;
+      closedUpserted++;
     }
 
-    return json(res, { message: 'Sync complete', imported, skipped, total: orders.length });
+    // ── 2. Open positions (현재 실시간 포지션으로 교체) ──────────────────────
+    await runSQL(`DELETE FROM trades WHERE status='open' AND exchange='bybit'`);
+
+    const openList = await bybitFetch('/v5/position/list', 'category=linear&settleCoin=USDT');
+    let openImported = 0;
+
+    for (const p of openList) {
+      if (!p.symbol || parseFloat(p.size || 0) === 0) continue;
+      const id         = `bybit_open_${p.symbol}_${p.side}`;
+      const direction  = p.side === 'Buy' ? 'LONG' : 'SHORT';
+      const entryPrice = parseFloat(p.avgPrice      || 0);
+      const unrealPnl  = parseFloat(p.unrealisedPnl || 0);
+      const qty        = parseFloat(p.size          || 0);
+      const leverage   = parseFloat(p.leverage      || 1);
+
+      await runSQL(
+        `INSERT INTO trades
+           (id, pair, direction, entry_price, qty, leverage, realized_pnl, status, mode, exchange, created_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,'open','LIVE','bybit',NOW())
+         ON CONFLICT (id) DO UPDATE SET
+           entry_price  = EXCLUDED.entry_price,
+           qty          = EXCLUDED.qty,
+           leverage     = EXCLUDED.leverage,
+           realized_pnl = EXCLUDED.realized_pnl`,
+        [id, p.symbol, direction, entryPrice, qty, leverage, unrealPnl]
+      );
+      openImported++;
+    }
+
+    return json(res, {
+      message: 'Sync complete',
+      closed: closedUpserted,
+      open: openImported,
+      total: closedList.length + openList.length,
+    });
   } catch (e) {
     console.error('Bybit sync failed:', e);
     return json(res, { message: e.message, imported: 0 }, 500);
