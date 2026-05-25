@@ -5,6 +5,8 @@ const path = require('node:path');
 
 const DEFAULT_LEDGER_PATH = path.join(__dirname, '..', '..', 'sessions', 'notifications-sent.json');
 const WINDOW_MS = 15 * 60 * 1000; // 15분 dedup window (매분 신호 재생성 대응)
+const ENTRY_PRICE_WINDOW_MS = 60 * 60 * 1000; // 1시간 — 동일 진입가 시그널 중복 방지
+const PRUNE_WINDOW_MS = Math.max(WINDOW_MS, ENTRY_PRICE_WINDOW_MS);
 
 function getLedgerPath() {
   return process.env._TEST_LEDGER_PATH || DEFAULT_LEDGER_PATH;
@@ -34,13 +36,22 @@ function priceDecimalsFor(pair) {
   return 3;
 }
 
-/** Returns the dedup key for a signal. */
+/** Returns the dedup key for a signal (tier + date included). */
 function dedupKey(signal) {
   const price = Number(signal?.entry?.price ?? NaN);
   const priceKey = Number.isFinite(price)
     ? price.toFixed(priceDecimalsFor(signal.pair))
     : 'NA';
   return `${signal.pair}_${signal.analysisDate}_${signal.direction}_${signal.tier}_${priceKey}`;
+}
+
+/** Returns the entry-price dedup key — pair + direction + price only (no date/tier). */
+function entryPriceDedupKey(signal) {
+  const price = Number(signal?.entry?.price ?? NaN);
+  const priceKey = Number.isFinite(price)
+    ? price.toFixed(priceDecimalsFor(signal.pair))
+    : 'NA';
+  return `${signal.pair}_${signal.direction}_ep_${priceKey}`;
 }
 
 /**
@@ -65,10 +76,10 @@ function hasRecentNotification(key, windowMs = WINDOW_MS) {
  */
 function recordNotification(key, meta) {
   const { entries } = readLedger();
-  const cutoff = Date.now() - WINDOW_MS;
+  const cutoff = Date.now() - PRUNE_WINDOW_MS;
   const fresh = entries.filter(e => e.sentAt > cutoff);
   fresh.push({ key, sentAt: Date.now(), ...meta });
   writeLedger({ entries: fresh });
 }
 
-module.exports = { dedupKey, hasRecentNotification, recordNotification, priceDecimalsFor };
+module.exports = { dedupKey, entryPriceDedupKey, hasRecentNotification, recordNotification, priceDecimalsFor, ENTRY_PRICE_WINDOW_MS };

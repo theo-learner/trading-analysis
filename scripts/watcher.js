@@ -1,7 +1,7 @@
 'use strict';
 
 const { normalizePair } = require('./utils/pair-config');
-const { dedupKey, hasRecentNotification } = require('./utils/notification-ledger');
+const { dedupKey, entryPriceDedupKey, hasRecentNotification, recordNotification, ENTRY_PRICE_WINDOW_MS } = require('./utils/notification-ledger');
 const { loadTradeEnv } = require('./utils/load-env');
 
 function _mergeEnv(base, tenv) {
@@ -63,6 +63,13 @@ async function run(deps = {}) {
 
         // Judge signal once here — result injected into notifySignal to avoid double call
         const verdict = judgeSignal(signal, cfg);
+        const sig = `${signal.direction} | Tier${signal.tier} | ${signal.confidence} | RR ${signal.rr?.toFixed(2) ?? '?'} | kz:${signal.entry?.killzone ?? 'none'}`;
+
+        // 1시간 이내 동일 진입가 dedup — trade + notification 모두 스킵
+        if (verdict.approved && hasRecentNotification(entryPriceDedupKey(signal), ENTRY_PRICE_WINDOW_MS)) {
+          logger.log(`[watcher] ${pairCfg.symbol}: ${sig} → ⏭ entry_price_dedup (1h)`);
+          continue;
+        }
 
         let tradeResult = null;
         const tradeKey = dedupKey(signal);
@@ -78,11 +85,9 @@ async function run(deps = {}) {
 
         // Only send Telegram if verdict.approved; rejected signals skip notifySignal entirely
         if (!verdict.approved) {
-          const sig = `${signal.direction} | Tier${signal.tier} | ${signal.confidence} | RR ${signal.rr?.toFixed(2) ?? '?'} | kz:${signal.entry?.killzone ?? 'none'}`;
           logger.log(`[watcher] ${pairCfg.symbol}: ${sig} → ⏭ rejected — ${verdict.reason}`);
         } else {
           const result = await notifySignal(signal, cfg, { verdict, tradeResult, env });
-          const sig = `${signal.direction} | Tier${signal.tier} | ${signal.confidence} | RR ${signal.rr?.toFixed(2) ?? '?'} | kz:${signal.entry?.killzone ?? 'none'}`;
           let outcome;
           if (result.sent) {
             outcome = '✅ SENT';
@@ -92,6 +97,8 @@ async function run(deps = {}) {
             outcome = `⏭ ${result.skipped}${result.reason ? ' — ' + result.reason : ''}`;
           }
           logger.log(`[watcher] ${pairCfg.symbol}: ${sig} → ${outcome}`);
+          // 진입가 기반 dedup 기록 — 다음 1시간 내 동일 진입가 시그널 차단
+          recordNotification(entryPriceDedupKey(signal), { pair: signal.pair, direction: signal.direction });
         }
       } catch (err) {
         logger.warn(`[watcher] ${pairCfg.symbol} failed: ${err.message}`);

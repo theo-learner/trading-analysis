@@ -139,7 +139,29 @@ async function _checkUnfilledTrade(trade, exchange, cfg, nowFn) {
     return;
   }
 
-  if (pos.size === 0 || pos.side === null) return;  // still waiting — cancel logic handles expiry
+  if (pos.size === 0 || pos.side === null) {
+    // No position — check if the limit order was externally cancelled
+    if (trade.entry.orderId) {
+      var openOrders;
+      try {
+        openOrders = await exchange.getOpenOrders(trade.pair);
+      } catch (_e) {
+        return;  // can't determine order status — leave for next tick
+      }
+      var orderStillOpen = openOrders.some(function(o) {
+        return String(o.orderId) === String(trade.entry.orderId);
+      });
+      if (!orderStillOpen) {
+        // Order gone and no position — externally cancelled
+        trade.status      = 'cancelled';
+        trade.closedAt    = nowFn();
+        trade.closedReason = 'externally_cancelled';
+        closeTrade(trade);
+        console.log('[position-monitor] ' + trade.pair + ' unfilled order externally cancelled — cleaned up');
+      }
+    }
+    return;
+  }
 
   // Position exists — limit order filled; place SL/TP now
   console.log('[position-monitor] ' + trade.pair + ' unfilled limit order filled — placing SL/TP');
