@@ -24,7 +24,6 @@ function jsonStream(res, s = 200) {
 }
 
 // ── pairs ────────────────────────────────────────────────────────────────────
-// Server-side pairs config (canonical source of truth)
 const DEFAULT_PAIRS = [
   { symbol: 'BTCUSDT',   exchange: 'binance', chartSource: 'binance', skipOnError: false },
   { symbol: 'ETHUSDT',   exchange: 'binance', chartSource: 'binance', skipOnError: false },
@@ -36,9 +35,7 @@ const DEFAULT_PAIRS = [
 
 async function getPairs() {
   try {
-    const { rows } = await runSQL(
-      'SELECT * FROM pairs_config ORDER BY sort_order ASC'
-    );
+    const { rows } = await runSQL('SELECT * FROM pairs_config ORDER BY sort_order ASC');
     if (rows.length > 0) return rows.map(r => ({
       symbol: r.pair,
       exchange: r.exchange,
@@ -51,17 +48,16 @@ async function getPairs() {
 
 async function upsertPairs(pairs) {
   for (const p of pairs) {
-    const sql = `INSERT INTO pairs_config (pair, exchange, chart_source, skip_on_error, sort_order)
-                 VALUES ($1,$2,$3,$4,$5)
-                 ON CONFLICT (pair) DO UPDATE SET
-                   exchange=EXCLUDED.exchange,
-                   chart_source=EXCLUDED.chart_source,
-                   skip_on_error=EXCLUDED.skip_on_error,
-                   sort_order=EXCLUDED.sort_order`;
-    await runSQL(sql, [
-      p.symbol, p.exchange, p.chartSource || 'binance',
-      !!p.skipOnError, p.sortOrder || 0
-    ]);
+    await runSQL(
+      `INSERT INTO pairs_config (pair, exchange, chart_source, skip_on_error, sort_order)
+       VALUES ($1,$2,$3,$4,$5)
+       ON CONFLICT (pair) DO UPDATE SET
+         exchange=EXCLUDED.exchange,
+         chart_source=EXCLUDED.chart_source,
+         skip_on_error=EXCLUDED.skip_on_error,
+         sort_order=EXCLUDED.sort_order`,
+      [p.symbol, p.exchange, p.chartSource || 'binance', !!p.skipOnError, p.sortOrder || 0]
+    );
   }
 }
 
@@ -75,29 +71,19 @@ async function getConfig() {
 }
 
 async function updateConfig(updates) {
-  await runSQL(
-    `INSERT INTO dashboard_config (mode) VALUES ($1)
-     ON CONFLICT DO NOTHING`,
-    [updates.mode || 'DRY-RUN']
-  );
+  await runSQL(`INSERT INTO dashboard_config (mode) VALUES ($1) ON CONFLICT DO NOTHING`, [updates.mode || 'DRY-RUN']);
   return await getConfig();
 }
 
 // ── signals ──────────────────────────────────────────────────────────────────
 async function getLatestSignal(pair) {
-  const { rows } = await runSQL(
-    `SELECT * FROM signals WHERE pair=$1 ORDER BY created_at DESC LIMIT 1`,
-    [pair.toUpperCase()]
-  );
+  const { rows } = await runSQL(`SELECT * FROM signals WHERE pair=$1 ORDER BY created_at DESC LIMIT 1`, [pair.toUpperCase()]);
   return rows[0] || null;
 }
 
 // ── diary ────────────────────────────────────────────────────────────────────
 async function getLatestDiary(pair) {
-  const { rows } = await runSQL(
-    `SELECT * FROM diaries WHERE pair=$1 ORDER BY created_at DESC LIMIT 1`,
-    [pair.toUpperCase()]
-  );
+  const { rows } = await runSQL(`SELECT * FROM diaries WHERE pair=$1 ORDER BY created_at DESC LIMIT 1`, [pair.toUpperCase()]);
   return rows[0] || null;
 }
 
@@ -109,18 +95,18 @@ async function getLedger() {
   const total = closed.length;
   const wins = closed.filter(t => t.realized_pnl > 0).length;
   const losses = closed.filter(t => t.realized_pnl <= 0).length;
-  const totalPnL = Math.round(closed.reduce((s,t) => s + (t.realized_pnl||0), 0)*100)/100;
-  const avgPnL = total > 0 ? Math.round((totalPnL/total)*100)/100 : 0;
-  const winRate = total > 0 ? Math.round((wins/total)*10000)/100 : 0;
+  const totalPnL = Math.round(closed.reduce((s, t) => s + (t.realized_pnl || 0), 0) * 100) / 100;
+  const avgPnL = total > 0 ? Math.round((totalPnL / total) * 100) / 100 : 0;
+  const winRate = total > 0 ? Math.round((wins / total) * 10000) / 100 : 0;
   const formatted = closed.map(t => ({
-    id:t.id, pair:t.pair, direction:t.direction,
-    entry:{filled:t.entry_filled, price:t.entry_price},
-    tp:[{filledPrice:t.tp_filled, price:t.tp_price}],
-    realizedPnl:t.realized_pnl, status:t.status, mode:t.mode,
-    closedAt:t.closed_at, createdAt:t.created_at,
-    closedReason:t.closed_reason, leverage:t.leverage, sl:t.sl
+    id: t.id, pair: t.pair, direction: t.direction,
+    entry: { filled: t.entry_filled, price: t.entry_price },
+    tp: [{ filledPrice: t.tp_filled, price: t.tp_price }],
+    realizedPnl: t.realized_pnl, status: t.status, mode: t.mode,
+    closedAt: t.closed_at, createdAt: t.created_at,
+    closedReason: t.closed_reason, leverage: t.leverage, sl: t.sl
   }));
-  return { closed: formatted, open, stats:{total,wins,losses,winRate,totalPnL,avgPnL} };
+  return { closed: formatted, open, stats: { total, wins, losses, winRate, totalPnL, avgPnL } };
 }
 
 async function getStats() {
@@ -128,28 +114,56 @@ async function getStats() {
   return { closed: l.closed.length, stats: l.stats };
 }
 
+// ── Sync from Bybit (public API — no auth needed for closed trades) ──────
+async function syncFromBybit(req, res) {
+  try {
+    const url = 'https://api.bybit.com/v5/order/history?category=spot&limit=100&closed_only=true';
+    const resp = await fetch(url, {
+      signal: AbortSignal.timeout(10_000),
+      headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)' },
+    });
+    if (!resp.ok) return json(res, { message: `Bybit API error: ${resp.status}`, imported: 0 }, resp.status);
+    const data = await resp.json();
+    if (data.retCode !== 0) return json(res, { message: `Bybit: ${data.retMsg}`, imported: 0 }, 400);
+
+    const orders = data.result?.list || [];
+    let imported = 0, skipped = 0;
+
+    for (const o of orders) {
+      if (!o.orderId) continue;
+      const exists = await runSQL('SELECT 1 FROM trades WHERE id=$1', [o.orderId]);
+      if (exists.rows.length > 0) { skipped++; continue; }
+
+      const pair = (o.symbol || '').replace('USDT', 'USDT');
+      const direction = o.side === 'Buy' ? 'LONG' : 'SHORT';
+      const status = (o.orderStatus === 'Filled' || o.orderStatus === 'Closed') ? 'closed' : 'open';
+      const realizedPnl = parseFloat(o.realizedPnl || 0);
+      const isWin = status === 'closed' && realizedPnl > 0;
+      const closedReason = isWin ? 'TP' : (o.closeReason || null);
+      const entryPrice = parseFloat(o.avgPrice || o.price || 0);
+      const qty = parseFloat(o.cumExecQty || o.qty || 0);
+
+      await runSQL(
+        `INSERT INTO trades (id, pair, direction, entry_price, qty, status, mode, realized_pnl, closed_reason, created_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW())`,
+        [o.orderId, pair, direction, entryPrice, qty, status, 'LIVE', realizedPnl, closedReason]
+      );
+      imported++;
+    }
+
+    return json(res, { message: 'Sync complete', imported, skipped, total: orders.length });
+  } catch (e) {
+    console.error('Bybit sync failed:', e);
+    return json(res, { message: e.message, imported: 0 }, 500);
+  }
+}
+
 // ── SSE event broadcast ──────────────────────────────────────────────────────
-// Track connected SSE clients
 const sseClients = new Set();
-let broadcastQueue = [];
-let broadcastTimer = null;
 
 function broadcast(event, data) {
   const line = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
-  // Send immediately to connected clients
-  for (const res of sseClients) {
-    try { res.write(line); } catch (_) { /* dead client, cleaned up below */ }
-  }
-  // Clean dead clients
-  if (sseClients.size > 0) {
-    const alive = new Set();
-    for (const res of sseClients) {
-      // Try a tiny write — if it errors, client is dead
-      try { res.write(':\n\n'); alive.add(res); } catch(_) {}
-    }
-    // Reset — actually writing ':' breaks clients. Skip health check.
-    // Instead, only track errors on data writes.
-  }
+  for (const res of sseClients) { try { res.write(line); } catch (_) {} }
 }
 
 function startSSE(res) {
@@ -161,10 +175,6 @@ function startSSE(res) {
   });
   res.on('close', () => sseClients.delete(res));
   sseClients.add(res);
-  // Flush queued events
-  for (const line of broadcastQueue) {
-    try { res.write(line); } catch (_) { break; }
-  }
   return res;
 }
 
@@ -179,12 +189,10 @@ async function handleAnalyze(req, res) {
     const { fetchCandleSet } = require('./utils/binance');
     const { htf, ltf, d1 } = await fetchCandleSet(pair);
     const signal = await analyzeICT({ htfCandles: htf, ltfCandles: ltf, d1Candles: d1, pair });
-    // Save to DB
     try {
-      const details = JSON.stringify(signal, null, 2);
       await runSQL(
         'INSERT INTO signals (pair, direction, confidence, summary, details) VALUES ($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING',
-        [pair, signal.direction, signal.confidence, signal.summary, details]
+        [pair, signal.direction, signal.confidence, signal.summary, JSON.stringify(signal, null, 2)]
       );
     } catch (_) {}
     return json(res, signal);
@@ -207,15 +215,11 @@ async function handleDiary(req, res) {
     const { htf, ltf, d1 } = await fetchCandleSet(pair);
     const signal = await analyzeICT({ htfCandles: htf, ltfCandles: ltf, d1Candles: d1, pair });
     const diary = buildDiary(signal, { returnStruct: false });
-    // Save to DB
     try {
       const diaryText = typeof diary === 'string' ? diary : JSON.stringify(diary);
-      await runSQL(
-        'INSERT INTO diaries (pair, diary) VALUES ($1,$2) ON CONFLICT DO NOTHING',
-        [pair, diaryText]
-      );
+      await runSQL('INSERT INTO diaries (pair, diary) VALUES ($1,$2) ON CONFLICT DO NOTHING', [pair, diaryText]);
     } catch (_) {}
-    return json(res, { ok: true, diary: diary });
+    return json(res, { ok: true, diary });
   } catch (e) {
     console.error(`diary ${pair} failed:`, e);
     return json(res, { message: e.message }, 500);
@@ -227,8 +231,6 @@ let analyzeLock = false;
 
 async function analyzeAll(req, res) {
   if (analyzeLock) return json(res, { message: 'already running' }, 409);
-
-  // Read body (optional pair filter)
   const chunks = [];
   for await (const chunk of req) chunks.push(chunk);
   let body = {};
@@ -236,7 +238,6 @@ async function analyzeAll(req, res) {
 
   const pairs = body.pairs || DEFAULT_PAIRS.map(p => p.symbol);
   analyzeLock = true;
-
   broadcast('analyze-start', { pairs, timestamp: new Date().toISOString() });
 
   const results = [];
@@ -256,46 +257,27 @@ async function analyzeAll(req, res) {
 
   analyzeLock = false;
   broadcast('analyze-complete', { total: results.length, timestamp: new Date().toISOString() });
-
   json(res, { results });
 }
 
 // ── ensure tables ────────────────────────────────────────────────────────────
 async function ensureTables() {
-  await runSQL(`
-    CREATE TABLE IF NOT EXISTS trades (
-      id TEXT PRIMARY KEY,
-      pair TEXT NOT NULL,
-      direction TEXT NOT NULL,
-      entry_price NUMERIC,
-      entry_filled NUMERIC,
-      qty NUMERIC,
-      tp_price NUMERIC,
-      tp_filled NUMERIC,
-      realized_pnl NUMERIC,
-      status TEXT DEFAULT 'open',
-      mode TEXT DEFAULT 'LIVE',
-      exchange TEXT DEFAULT 'bybit',
-      closed_at TIMESTAMPTZ,
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      closed_reason TEXT,
-      leverage NUMERIC,
-      sl TEXT,
-      data JSONB
-    );
-  `);
+  await runSQL(`CREATE TABLE IF NOT EXISTS trades (
+    id TEXT PRIMARY KEY, pair TEXT NOT NULL, direction TEXT NOT NULL,
+    entry_price NUMERIC, entry_filled NUMERIC, qty NUMERIC,
+    tp_price NUMERIC, tp_filled NUMERIC, realized_pnl NUMERIC,
+    status TEXT DEFAULT 'open', mode TEXT DEFAULT 'LIVE',
+    exchange TEXT DEFAULT 'bybit', closed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(), closed_reason TEXT,
+    leverage NUMERIC, sl TEXT, data JSONB
+  );`);
 
-  await runSQL(`
-    CREATE TABLE IF NOT EXISTS pairs_config (
-      pair TEXT PRIMARY KEY,
-      exchange TEXT NOT NULL DEFAULT 'binance',
-      chart_source TEXT NOT NULL DEFAULT 'binance',
-      skip_on_error BOOLEAN DEFAULT FALSE,
-      sort_order INTEGER DEFAULT 0
-    );
-  `);
+  await runSQL(`CREATE TABLE IF NOT EXISTS pairs_config (
+    pair TEXT PRIMARY KEY, exchange TEXT NOT NULL DEFAULT 'binance',
+    chart_source TEXT NOT NULL DEFAULT 'binance',
+    skip_on_error BOOLEAN DEFAULT FALSE, sort_order INTEGER DEFAULT 0
+  );`);
 
-  // Seed default pairs if empty
   const { rows: existing } = await runSQL('SELECT COUNT(*) as cnt FROM pairs_config');
   if (existing[0].cnt === 0) {
     for (const p of DEFAULT_PAIRS) {
@@ -306,42 +288,26 @@ async function ensureTables() {
     }
   }
 
-  await runSQL(`
-    CREATE TABLE IF NOT EXISTS dashboard_config (
-      id INTEGER PRIMARY KEY CHECK (id = 1),
-      mode TEXT DEFAULT 'DRY-RUN'
-    );
-  `);
-  // Seed config if empty
+  await runSQL(`CREATE TABLE IF NOT EXISTS dashboard_config (
+    id INTEGER PRIMARY KEY CHECK (id = 1), mode TEXT DEFAULT 'DRY-RUN'
+  );`);
   const { rows: cfgRows } = await runSQL('SELECT COUNT(*) as cnt FROM dashboard_config');
   if (cfgRows[0].cnt === 0) {
     await runSQL('INSERT INTO dashboard_config (id, mode) VALUES (1, $1)', ['DRY-RUN']);
   }
 
-  await runSQL(`
-    CREATE TABLE IF NOT EXISTS signals (
-      id SERIAL PRIMARY KEY,
-      pair TEXT NOT NULL,
-      direction TEXT NOT NULL,
-      confidence NUMERIC,
-      summary TEXT,
-      details JSONB,
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE INDEX IF NOT EXISTS idx_signals_pair_time ON signals(pair, created_at DESC);
-  `);
+  await runSQL(`CREATE TABLE IF NOT EXISTS signals (
+    id SERIAL PRIMARY KEY, pair TEXT NOT NULL, direction TEXT NOT NULL,
+    confidence NUMERIC, summary TEXT, details JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+  );
+  CREATE INDEX IF NOT EXISTS idx_signals_pair_time ON signals(pair, created_at DESC);`);
 
-  await runSQL(`
-    CREATE TABLE IF NOT EXISTS diaries (
-      id SERIAL PRIMARY KEY,
-      pair TEXT NOT NULL,
-      diary TEXT NOT NULL,
-      level TEXT,
-      timeframe TEXT,
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE INDEX IF NOT EXISTS idx_diaries_pair_time ON diaries(pair, created_at DESC);
-  `);
+  await runSQL(`CREATE TABLE IF NOT EXISTS diaries (
+    id SERIAL PRIMARY KEY, pair TEXT NOT NULL, diary TEXT NOT NULL,
+    level TEXT, timeframe TEXT, created_at TIMESTAMPTZ DEFAULT NOW()
+  );
+  CREATE INDEX IF NOT EXISTS idx_diaries_pair_time ON diaries(pair, created_at DESC);`);
 
   console.log('✅ All tables ready');
 }
@@ -362,84 +328,58 @@ const srv = http.createServer(async (req, res) => {
     const u = new URL(req.url, `http://${req.headers.host}`);
     const pathname = u.pathname;
 
-    // ── Health / Config ──
     if (pathname === '/api/config') {
       if (req.method === 'GET') return json(res, await getConfig());
       if (req.method === 'PUT') {
         const chunks = [];
         for await (const chunk of req) chunks.push(chunk);
-        const updates = JSON.parse(Buffer.concat(chunks).toString());
-        return json(res, await updateConfig(updates));
+        return json(res, await updateConfig(JSON.parse(Buffer.concat(chunks).toString())));
       }
       return json(res, { error: 'method not allowed' }, 405);
     }
 
-    // ── Pairs ──
     if (pathname === '/api/pairs') {
       if (req.method === 'GET') return json(res, { pairs: await getPairs() });
       if (req.method === 'PUT' || req.method === 'POST') {
         const chunks = [];
         for await (const chunk of req) chunks.push(chunk);
         const body = JSON.parse(Buffer.concat(chunks).toString());
-        if (body.pairs) {
-          await upsertPairs(body.pairs);
-          return json(res, { pairs: await getPairs() });
-        }
+        if (body.pairs) { await upsertPairs(body.pairs); return json(res, { pairs: await getPairs() }); }
         return json(res, await getPairs());
       }
       return json(res, { pairs: await getPairs() });
     }
 
-    // ── Signals ──
     if (pathname === '/api/latest-signal') {
       const pair = u.searchParams.get('pair');
       if (!pair) return json(res, { error: 'pair required' }, 400);
-      const signal = await getLatestSignal(pair);
-      return json(res, { ok: !!signal, signal: signal || null });
+      return json(res, { ok: !!await getLatestSignal(pair), signal: await getLatestSignal(pair) || null });
     }
 
-    // ── Diaries ──
     if (pathname === '/api/latest-diary') {
       const pair = u.searchParams.get('pair');
       if (!pair) return json(res, { error: 'pair required' }, 400);
       const diary = await getLatestDiary(pair);
-      return json(res, { ok: !!diary, diary: diary || null });
+      return json(res, { ok: !!diary, diary });
     }
 
-    // ── Events (SSE) ──
-    if (pathname === '/api/events') {
-      return startSSE(res);
-    }
+    if (pathname === '/api/events') return startSSE(res);
 
-    // ── Analyze (single pair) ──
-    if (pathname === '/api/analyze' && req.method === 'POST') {
-      return handleAnalyze(req, res);
-    }
+    if (pathname === '/api/analyze' && req.method === 'POST') return handleAnalyze(req, res);
+    if (pathname === '/api/diary' && req.method === 'POST') return handleDiary(req, res);
+    if (pathname === '/api/analyze-all' && req.method === 'POST') return analyzeAll(req, res);
+    if (pathname === '/api/sync' && req.method === 'POST') return syncFromBybit(req, res);
 
-    // ── Diary (single pair) ──
-    if (pathname === '/api/diary' && req.method === 'POST') {
-      return handleDiary(req, res);
-    }
-
-    // ── Analyze All ──
-    if (pathname === '/api/analyze-all' && req.method === 'POST') {
-      return analyzeAll(req, res);
-    }
-
-    // ── Trades (legacy) ──
     if (pathname === '/api/trades') {
       const pair = u.searchParams.get('pair');
       let q = 'SELECT * FROM trades ORDER BY created_at DESC';
       const p = [];
       if (pair) { q = 'SELECT * FROM trades WHERE pair=$1 ORDER BY created_at DESC'; p.push(pair.toUpperCase()); }
-      const {rows} = await runSQL(q, p);
+      const { rows } = await runSQL(q, p);
       return json(res, rows);
     }
 
-    // ── Stats ──
     if (pathname === '/api/stats') return json(res, await getStats());
-
-    // ── Ledger ──
     if (pathname === '/api/ledger') return json(res, await getLedger());
 
     json(res, { error: 'Not found' }, 404);
@@ -449,19 +389,12 @@ const srv = http.createServer(async (req, res) => {
   }
 });
 
-// ── start ────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3210;
 
 async function start() {
   await ensureTables();
-  srv.listen(PORT, '0.0.0.0', () => {
-    console.log(`✅ Dashboard API on :${PORT}`);
-  });
+  srv.listen(PORT, '0.0.0.0', () => console.log(`✅ Dashboard API on :${PORT}`));
 }
 start().catch(console.error);
 
-process.on('SIGTERM', async () => {
-  srv.close();
-  closeDB();
-  process.exit(0);
-});
+process.on('SIGTERM', async () => { srv.close(); closeDB(); process.exit(0); });
