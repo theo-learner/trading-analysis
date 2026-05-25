@@ -490,6 +490,12 @@ const srv = http.createServer(async (req, res) => {
     // Health check for Render
     if (pathname === '/health') return json(res, { status: 'ok' });
 
+    // TEMP: full DB reset — remove after use
+    if (req.method === 'POST' && pathname === '/api/reset-all') {
+      const r = await runSQL('DELETE FROM trades');
+      return json(res, { deleted: r.rowCount });
+    }
+
     json(res, { error: 'Not found' }, 404);
   } catch (e) {
     console.error('Server error:', e);
