@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: trading-dashboard
+    env: node
+    plan: free
+    region: oregon
+    buildCommand: npm install
+    startCommand: node scripts/server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
