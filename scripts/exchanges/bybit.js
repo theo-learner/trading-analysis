@@ -147,11 +147,8 @@ class BybitExchange extends BaseExchange {
       // Error 110043 = leverage not modified (already at target).
       // Error 100028 = UTA mode — account-level leverage, not symbol-level.
       // All non-fatal — leverage is already correct or UTA-managed.
-      const code = err.code;
-      if (code === 110043 || code === 100028) {
-        // Already at target or UTA-managed — silent skip
-        return;
-      }
+      const code = err.retCode ?? err.code;
+      if (code === 110043 || code === 100028) return;
       console.warn(`[bybit] setLeverage ${symbol} L${leverage}: ${err.message}`);
     }
   }
@@ -170,11 +167,8 @@ class BybitExchange extends BaseExchange {
       // UTA accounts are always cross-margin — marginType is irrelevant.
       // Also catches "position active" — can't switch mode while position exists.
       // These are idempotent setup calls — never abort trade entry.
-      const code = err.code;
-      if (code === 100028 || code === 110043) {
-        // UTA or already in correct mode — silent skip
-        return;
-      }
+      const code = err.retCode ?? err.code;
+      if (code === 100028 || code === 110043) return;
       console.warn(`[bybit] setMarginType ${symbol} ${marginType}: ${err.message}`);
     }
   }
