@@ -2,12 +2,29 @@
 const { Client } = require('pg');
 let client = null;
 
+function parseDSN(dsn) {
+  // postgresql://user:pass@host:port/db
+  const url = new URL(dsn);
+  return {
+    host: url.hostname,
+    port: parseInt(url.port, 10),
+    user: url.username,
+    password: url.password,
+    database: url.pathname.slice(1),
+  };
+}
+
 async function initDB() {
   if (client) return client;
+  const dsn = parseDSN(process.env.DATABASE_URL);
   client = new Client({
-    connectionString: process.env.DATABASE_URL,
+    host: dsn.host,       // explicit host bypasses DNS race
+    port: dsn.port,
+    user: dsn.user,
+    password: dsn.password,
+    database: dsn.database,
     ssl: { rejectUnauthorized: false },
-    family: 4  // force IPv4 — Render free tier can't resolve Supabase IPv6
+    family: 4              // force IPv4 — Render free tier can't reach Supabase IPv6
   });
   await client.connect();
   console.log('✅ Supabase connected');
