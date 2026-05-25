@@ -1578,7 +1578,7 @@ function renderHistory(trades, stats) {
 
   tbody.innerHTML = trades.map(t => {
     const isLong = t.direction === 'LONG';
-    const pnl = t.realizedPnl != null ? t.realizedPnl.toFixed(2) : '—';
+    const pnl = t.realizedPnl != null ? parseFloat(t.realizedPnl).toFixed(2) : '—';
     const pnlClass = t.realizedPnl > 0 ? 'pos' : t.realizedPnl < 0 ? 'neg' : '';
     var entryPrice = t.entry?.filled ?? t.entry?.entryPrice ?? t.entry?.price ?? t.entry?.requested ?? t.entry;
     var exitPrice = '—';
