@@ -50,7 +50,11 @@ async function tick(cfg, deps) {
   var trades = openTrades();
   for (var i = 0; i < trades.length; i++) {
     try {
-      await _checkTrade(trades[i], exchange, cfg, nowFn);
+      if (trades[i].status === 'unfilled') {
+        await _checkUnfilledTrade(trades[i], exchange, cfg, nowFn);
+      } else {
+        await _checkTrade(trades[i], exchange, cfg, nowFn);
+      }
     } catch (err) {
       console.warn('[position-monitor] ' + trades[i].pair + ' check failed: ' + err.message);
     }
@@ -80,8 +84,7 @@ async function cancelUnfilledOrders(exchange, cfg, nowFn) {
     var ageSec = (new Date(nowFn()) - new Date(unfilledAt)) / 1000;
     var currentPrice;
     try {
-      var ticker = await exchange.getTicker(trade.pair);
-      currentPrice = ticker.markPrice || ticker.lastPrice || 0;
+      currentPrice = await exchange.getMarkPrice(trade.pair);
     } catch (err) {
       console.warn('[position-monitor] cancel: ' + trade.pair + ' ticker fetch failed: ' + err.message);
       continue;
@@ -117,11 +120,93 @@ async function cancelUnfilledOrders(exchange, cfg, nowFn) {
       trade.uncancelPrice = currentPrice;
       trade.uncancelPoi = poi;
       trade.uncancelAgeSec = Math.round(ageSec);
-      saveTrade(trade);
+      closeTrade(trade);  // moves from OPEN_DIR to CLOSED_DIR
       cancelled++;
     }
   }
   return cancelled;
+}
+
+// ── Unfilled limit order fill detection ──────────────────────────────────
+
+async function _checkUnfilledTrade(trade, exchange, cfg, nowFn) {
+  // Detect if the GTC limit order has since filled by checking for an open position
+  var pos;
+  try {
+    pos = await exchange.getPosition(trade.pair);
+  } catch (err) {
+    console.warn('[position-monitor] unfilled check getPosition failed for ' + trade.pair + ': ' + err.message);
+    return;
+  }
+
+  if (pos.size === 0 || pos.side === null) return;  // still waiting — cancel logic handles expiry
+
+  // Position exists — limit order filled; place SL/TP now
+  console.log('[position-monitor] ' + trade.pair + ' unfilled limit order filled — placing SL/TP');
+
+  trade.entry.filled      = pos.entryPrice || trade.entry.requested;
+  trade.entry.confirmedAt = nowFn();
+  if (trade.entry.requested && trade.entry.filled) {
+    trade.entry.slippageBps = parseFloat(
+      (Math.abs(trade.entry.filled - trade.entry.requested) / trade.entry.requested * 10000).toFixed(2)
+    );
+  }
+  trade.qty    = pos.size;
+  trade.status = 'open';
+  saveTrade(trade);
+
+  var closeSide = trade.direction === 'LONG' ? 'SELL' : 'BUY';
+
+  // SL placement
+  var slPlaced = false;
+  if (trade.sl && trade.sl.price > 0) {
+    var maxAttempts = (cfg.retry && cfg.retry.orderMaxAttempts) || 3;
+    for (var attempt = 1; attempt <= maxAttempts; attempt++) {
+      trade.sl.placementAttempts = (trade.sl.placementAttempts || 0) + 1;
+      try {
+        await exchange.placeStopMarket(trade.pair, closeSide, trade.sl.price, trade.qty);
+        await _sleep(500);
+        var posCheck = await exchange.getPosition(trade.pair);
+        if (posCheck.stopLoss) {
+          slPlaced = true;
+          trade.sl.orderId = 'sl_trading-stop';
+          break;
+        }
+      } catch (err) {
+        trade.errors.push({ at: nowFn(), stage: 'sl_attempt_' + attempt + '_postfill', message: err.message });
+        var delays = (cfg.retry && cfg.retry.backoffMs) || [250, 750, 2000];
+        if (attempt < delays.length) await _sleep(delays[attempt - 1]);
+      }
+    }
+  }
+
+  if (!slPlaced) {
+    trade.errors.push({ at: nowFn(), stage: 'sl_failed_postfill', message: 'SL exhausted after delayed fill — emergency close' });
+    try {
+      await exchange.closePosition(trade.pair, trade.direction);
+    } catch (closeErr) {
+      trade.errors.push({ at: nowFn(), stage: 'emergency_close', message: closeErr.message });
+    }
+    trade.status      = 'closed';
+    trade.closedAt    = nowFn();
+    trade.closedReason = 'sl_placement_failed_postfill';
+    saveTrade(trade);
+    return;
+  }
+
+  // TP placement
+  var tpPrice = trade.tp && trade.tp[0] && trade.tp[0].price;
+  if (tpPrice > 0) {
+    try {
+      await exchange.placeTakeProfitMarket(trade.pair, closeSide, tpPrice, trade.qty);
+      trade.tp[0].orderId = 'tp_trading-stop';
+      trade.tp[0].qty = trade.qty;
+    } catch (err) {
+      trade.errors.push({ at: nowFn(), stage: 'tp_postfill', message: err.message });
+    }
+  }
+
+  saveTrade(trade);
 }
 
 // ── Per-trade check ──────────────────────────────────────────────────────
@@ -253,6 +338,7 @@ async function _reconcile(exchange, cfg, nowFn) {
 
   for (var i = 0; i < trades.length; i++) {
     var trade = trades[i];
+    if (trade.status === 'unfilled') continue;  // unfilled limit orders have no position yet
     try {
       var pos = await exchange.getPosition(trade.pair);
       if (pos.size === 0 || pos.side === null) {
@@ -276,4 +362,4 @@ async function _reconcile(exchange, cfg, nowFn) {
 function _sleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
 function _resetReconcileFlag() { _reconciled = false; }
 
-module.exports = { tick, _resetReconcileFlag };
+module.exports = { tick, _resetReconcileFlag, _checkUnfilledTrade };
