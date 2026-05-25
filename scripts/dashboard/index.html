@@ -1674,11 +1674,7 @@ async function init() {
   await loadCandles();
   connectWS();
   connectSSE();
-  // 기존 데이터 즉시 표시 후 Bybit 자동 sync
   loadTrades();
-  fetch(`${API}/api/sync`, { method: 'POST', signal: AbortSignal.timeout(15_000) })
-    .then(() => loadTrades())
-    .catch(() => {});
   await loadLatestSignal();
   await loadLatestDiary();
   setInterval(loadTrades, 15_000);
