@@ -215,8 +215,8 @@ async function handleAnalyze(req, res) {
     const signal = await analyzeICT({ htfCandles: htf, ltfCandles: ltf, d1Candles: d1, pair });
     try {
       await runSQL(
-        'INSERT INTO signals (pair, direction, confidence, summary, details) VALUES ($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING',
-        [pair, signal.direction, signal.confidence, signal.summary, JSON.stringify(signal, null, 2)]
+        'INSERT INTO signals (pair, direction, details) VALUES ($1,$2,$3)',
+        [pair, signal.direction, JSON.stringify(signal, null, 2)]
       );
     } catch (_) {}
     return json(res, signal);
@@ -273,8 +273,8 @@ async function analyzeAll(req, res) {
       const result = await analyzeICT({ htfCandles: htf, ltfCandles: ltf, d1Candles: d1, pair });
       try {
         await runSQL(
-          'INSERT INTO signals (pair, direction, confidence, summary, details) VALUES ($1,$2,$3,$4,$5)',
-          [pair, result.direction, result.confidence, result.summary, JSON.stringify(result, null, 2)]
+          'INSERT INTO signals (pair, direction, details) VALUES ($1,$2,$3)',
+          [pair, result.direction, JSON.stringify(result, null, 2)]
         );
       } catch (_) {}
       broadcast('analyze-done', { pair, ok: true, result });
