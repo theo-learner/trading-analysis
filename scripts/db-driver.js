@@ -6,7 +6,8 @@ async function initDB() {
   if (client) return client;
   client = new Client({
     connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
+    ssl: { rejectUnauthorized: false },
+    family: 4  // force IPv4 — Render free tier can't resolve Supabase IPv6
   });
   await client.connect();
   console.log('✅ Supabase connected');
