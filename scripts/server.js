@@ -128,8 +128,8 @@ async function syncFromBybit(req, res) {
     
     // Bybit V5 signature: GET/v5/order/history?category=linear&limit=100&timestamp=xxx&recvWindow=xxx
     const queryString = `category=linear&limit=100&timestamp=${timestamp}&recvWindow=${recvWindow}`;
-    const signStr = `GET/v5/order/history?${queryString}`;
-    const crypto = require('crypto');
+    const queryString = `category=linearu0026limit=100u0026timestamp=${timestamp}u0026recvWindow=${recvWindow}`;
+    const signStr = `GET/v5/order/history?${encodeURIComponent(queryString)}`;
     const signature = crypto.createHmac('sha256', apiSecret).update(signStr).digest('hex');
     
     const url = `https://api.bybit.com/v5/order/history?${queryString}&signature=${signature}`;
