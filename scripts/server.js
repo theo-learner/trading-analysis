@@ -101,13 +101,18 @@ function formatTradeRow(t) {
 }
 
 async function getLedger() {
-  const { rows: trades } = await runSQL('SELECT * FROM trades ORDER BY created_at DESC');
+  // closed_at 기준 정렬 — orphan 레코드(closed_at 없음)는 최하단
+  const { rows: trades } = await runSQL(
+    `SELECT * FROM trades ORDER BY COALESCE(closed_at, created_at) DESC`
+  );
   const closedRows = trades.filter(t => t.status === 'closed');
   const openRows   = trades.filter(t => t.status === 'open');
-  const total    = closedRows.length;
-  const wins     = closedRows.filter(t => parseFloat(t.realized_pnl) > 0).length;
-  const losses   = closedRows.filter(t => parseFloat(t.realized_pnl) <= 0).length;
-  const totalPnL = Math.round(closedRows.reduce((s, t) => s + (parseFloat(t.realized_pnl) || 0), 0) * 100) / 100;
+  // 통계는 실제 PnL 데이터가 있는 레코드만 (orphan 제외)
+  const validClosed = closedRows.filter(t => t.closed_at !== null);
+  const total    = validClosed.length;
+  const wins     = validClosed.filter(t => parseFloat(t.realized_pnl) > 0).length;
+  const losses   = validClosed.filter(t => parseFloat(t.realized_pnl) <= 0).length;
+  const totalPnL = Math.round(validClosed.reduce((s, t) => s + (parseFloat(t.realized_pnl) || 0), 0) * 100) / 100;
   const avgPnL   = total > 0 ? Math.round((totalPnL / total) * 100) / 100 : 0;
   const winRate  = total > 0 ? Math.round((wins / total) * 10000) / 100 : 0;
   return {
