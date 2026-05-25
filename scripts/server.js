@@ -168,6 +168,60 @@ function startSSE(res) {
   return res;
 }
 
+// ── analyze (single pair) ───────────────────────────────────────────────────
+async function handleAnalyze(req, res) {
+  const chunks = [];
+  for await (const chunk of req) chunks.push(chunk);
+  const body = JSON.parse(Buffer.concat(chunks).toString());
+  const pair = (body.pair || 'BTCUSDT').toUpperCase();
+  try {
+    const { analyzeICT } = require('./ict-engine');
+    const { fetchCandleSet } = require('./utils/binance');
+    const { htf, ltf, d1 } = await fetchCandleSet(pair);
+    const signal = await analyzeICT({ htfCandles: htf, ltfCandles: ltf, d1Candles: d1, pair });
+    // Save to DB
+    try {
+      const details = JSON.stringify(signal, null, 2);
+      await runSQL(
+        'INSERT INTO signals (pair, direction, confidence, summary, details) VALUES ($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING',
+        [pair, signal.direction, signal.confidence, signal.summary, details]
+      );
+    } catch (_) {}
+    return json(res, signal);
+  } catch (e) {
+    console.error(`analyze ${pair} failed:`, e);
+    return json(res, { message: e.message }, 500);
+  }
+}
+
+// ── diary (single pair) ─────────────────────────────────────────────────────
+async function handleDiary(req, res) {
+  const chunks = [];
+  for await (const chunk of req) chunks.push(chunk);
+  const body = JSON.parse(Buffer.concat(chunks).toString());
+  const pair = (body.pair || 'BTCUSDT').toUpperCase();
+  try {
+    const { analyzeICT } = require('./ict-engine');
+    const { buildDiary } = require('./modules/diary');
+    const { fetchCandleSet } = require('./utils/binance');
+    const { htf, ltf, d1 } = await fetchCandleSet(pair);
+    const signal = await analyzeICT({ htfCandles: htf, ltfCandles: ltf, d1Candles: d1, pair });
+    const diary = buildDiary(signal, { returnStruct: false });
+    // Save to DB
+    try {
+      const diaryText = typeof diary === 'string' ? diary : JSON.stringify(diary);
+      await runSQL(
+        'INSERT INTO diaries (pair, diary) VALUES ($1,$2) ON CONFLICT DO NOTHING',
+        [pair, diaryText]
+      );
+    } catch (_) {}
+    return json(res, { ok: true, diary: diary });
+  } catch (e) {
+    console.error(`diary ${pair} failed:`, e);
+    return json(res, { message: e.message }, 500);
+  }
+}
+
 // ── analyze-all ──────────────────────────────────────────────────────────────
 let analyzeLock = false;
 
@@ -355,6 +409,16 @@ const srv = http.createServer(async (req, res) => {
     // ── Events (SSE) ──
     if (pathname === '/api/events') {
       return startSSE(res);
+    }
+
+    // ── Analyze (single pair) ──
+    if (pathname === '/api/analyze' && req.method === 'POST') {
+      return handleAnalyze(req, res);
+    }
+
+    // ── Diary (single pair) ──
+    if (pathname === '/api/diary' && req.method === 'POST') {
+      return handleDiary(req, res);
     }
 
     // ── Analyze All ──
