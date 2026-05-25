@@ -5,16 +5,22 @@ const assert = require('node:assert/strict');
 describe('binance', () => {
   const { fetchKlines, fetchCandleSet } = require('../../utils/binance');
 
-  const mockRaw = [
-    [1700000000000, '40000', '41000', '39000', '40500', '100'],
-    [1700003600000, '40500', '42000', '40000', '41000', '200'],
-  ];
-  const mockFetch = async (url) => ({
+  const mockBybitRaw = {
+    retCode: 0,
+    retMsg: 'OK',
+    result: {
+      list: [
+        ['1700000000000', '40000', '41000', '39000', '40500', '100'],
+        ['1700003600000', '40500', '42000', '40000', '41000', '200'],
+      ],
+    },
+  };
+  const mockFetch = async () => ({
     ok: true,
-    json: async () => mockRaw,
+    json: async () => mockBybitRaw,
   });
 
-  it('fetchKlines maps raw binance array to candle objects', async () => {
+  it('fetchKlines maps bybit array to candle objects', async () => {
     const candles = await fetchKlines('BTCUSDT', '4h', 300, mockFetch);
     assert.equal(candles.length, 2);
     assert.equal(candles[0].open, 40000);
@@ -29,7 +35,18 @@ describe('binance', () => {
     const badFetch = async () => ({ ok: false, status: 429 });
     await assert.rejects(
       () => fetchKlines('BTCUSDT', '4h', 300, badFetch),
-      /Binance API error/
+      /Bybit API error/
+    );
+  });
+
+  it('fetchKlines throws on bybit retCode !== 0', async () => {
+    const mockErr = async () => ({
+      ok: true,
+      json: async () => ({ retCode: 10001, retMsg: 'Invalid param' }),
+    });
+    await assert.rejects(
+      () => fetchKlines('BTCUSDT', '4h', 300, mockErr),
+      /Bybit API error.*Invalid param/
     );
   });
 

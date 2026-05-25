@@ -1,0 +1,225 @@
+{
+  "generatedAt": "2026-05-25T04:25:12.387Z",
+  "summary": {
+    "total": 38,
+    "passed": 34,
+    "failed": 4,
+    "passRate": "89.5%"
+  },
+  "results": [
+    {
+      "name": "FVG [HTF 4H] — 모든 감지 FVG 가 3-캔들 갭 조건을 만족한다",
+      "status": "PASS",
+      "duration": 1
+    },
+    {
+      "name": "FVG [LTF 15m] — 모든 감지 FVG 가 3-캔들 갭 조건을 만족한다",
+      "status": "PASS",
+      "duration": 0
+    },
+    {
+      "name": "FVG — mitigated 상태인 FVG 는 이후 캔들 close 가 gap 내에 있다",
+      "status": "FAIL",
+      "duration": 0,
+      "error": "Mitigated FVG (idx=9): gap 내 close 캔들을 찾을 수 없음"
+    },
+    {
+      "name": "OB [HTF 4H] — Bull OB 는 직전 캔들이 음봉이다",
+      "status": "PASS",
+      "duration": 0
+    },
+    {
+      "name": "OB [HTF 4H] — Bear OB 는 직전 캔들이 양봉이다",
+      "status": "PASS",
+      "duration": 0
+    },
+    {
+      "name": "OB [HTF 4H] — OB high/low 가 해당 캔들의 open/close 범위와 일치한다",
+      "status": "PASS",
+      "duration": 0
+    },
+    {
+      "name": "OB [HTF 4H] — invalidated OB 는 이후 캔들 close 가 범위를 벗어난다",
+      "status": "PASS",
+      "duration": 0
+    },
+    {
+      "name": "시그널 — 필수 필드가 모두 존재한다 (direction, tier, entry, sl, tp, rr)",
+      "status": "PASS",
+      "duration": 0
+    },
+    {
+      "name": "시그널 — entry 객체 구조가 올바르다 (entry.price)",
+      "status": "PASS",
+      "duration": 0
+    },
+    {
+      "name": "시그널 [LONG] — SL < entry.price 이다",
+      "status": "PASS",
+      "duration": 0
+    },
+    {
+      "name": "시그널 [SHORT] — SL > entry.price 이다",
+      "status": "PASS",
+      "duration": 0
+    },
+    {
+      "name": "시그널 [LONG] — TP1 > entry.price 이다",
+      "status": "PASS",
+      "duration": 0
+    },
+    {
+      "name": "시그널 [SHORT] — TP1 < entry.price 이다",
+      "status": "PASS",
+      "duration": 0
+    },
+    {
+      "name": "시그널 — R:R 계산이 minRR 이상이다",
+      "status": "PASS",
+      "duration": 0
+    },
+    {
+      "name": "시그널 — TP 공식 검증 (risk * minRR 배수)",
+      "status": "FAIL",
+      "duration": 0,
+      "error": "TP1 공식 불일치: 76103.1 vs 76996.18741492946 (허용오차 0.01)"
+    },
+    {
+      "name": "시그널 — levels.fvgs 가 배열이다",
+      "status": "PASS",
+      "duration": 0
+    },
+    {
+      "name": "시그널 — levels.obs 가 배열이다",
+      "status": "PASS",
+      "duration": 0
+    },
+    {
+      "name": "시그널 — scorecard 구조가 올바르다",
+      "status": "PASS",
+      "duration": 0
+    },
+    {
+      "name": "가격 표시 — BTC 현재가가 Binance REST 대비 ±0.5% 이내이다",
+      "status": "PASS",
+      "duration": 69
+    },
+    {
+      "name": "가격 변화율 — priceChange 엘리먼트가 up 또는 dn 클래스를 가진다",
+      "status": "PASS",
+      "duration": 3
+    },
+    {
+      "name": "킬존 배지 — UTC 4시: 킬존 대기 상태여야 한다",
+      "status": "PASS",
+      "duration": 7
+    },
+    {
+      "name": "오버레이 토글 — FVG 버튼 클릭 시 state.overlays.fvg 이 false 로 바뀐다",
+      "status": "PASS",
+      "duration": 274
+    },
+    {
+      "name": "오버레이 토글 — FVG 버튼 재클릭 시 state.overlays.fvg 이 true 로 복구된다",
+      "status": "PASS",
+      "duration": 252
+    },
+    {
+      "name": "오버레이 토글 — OB 버튼 클릭 시 state.overlays.ob 이 false 로 바뀐다",
+      "status": "PASS",
+      "duration": 253
+    },
+    {
+      "name": "오버레이 토글 — OB 버튼 재클릭 시 state.overlays.ob 이 true 로 복구된다",
+      "status": "PASS",
+      "duration": 248
+    },
+    {
+      "name": "오버레이 토글 — BB 버튼 클릭 시 state.overlays.bb 이 false 로 바뀐다",
+      "status": "PASS",
+      "duration": 251
+    },
+    {
+      "name": "오버레이 토글 — BB 버튼 재클릭 시 state.overlays.bb 이 true 로 복구된다",
+      "status": "PASS",
+      "duration": 248
+    },
+    {
+      "name": "오버레이 토글 — SWEEP 버튼 클릭 시 state.overlays.sweep 이 false 로 바뀐다",
+      "status": "PASS",
+      "duration": 251
+    },
+    {
+      "name": "오버레이 토글 — SWEEP 버튼 재클릭 시 state.overlays.sweep 이 true 로 복구된다",
+      "status": "PASS",
+      "duration": 248
+    },
+    {
+      "name": "오버레이 토글 — FVG off 상태에서 overlayData.fvgs 는 보존된다",
+      "status": "PASS",
+      "duration": 418
+    },
+    {
+      "name": "분석 실행 — 버튼 클릭 시 로딩 상태가 됐다가 완료된다",
+      "status": "PASS",
+      "duration": 319
+    },
+    {
+      "name": "분석 후 overlayData — fvgs 배열이 존재한다",
+      "status": "PASS",
+      "duration": 11
+    },
+    {
+      "name": "분석 후 overlayData — fvgs 각 항목이 high > low 를 만족한다",
+      "status": "PASS",
+      "duration": 8
+    },
+    {
+      "name": "분석 후 overlayData — obs 배열이 존재한다",
+      "status": "PASS",
+      "duration": 7
+    },
+    {
+      "name": "분석 후 overlayData — obs 각 항목이 high > low 를 만족한다",
+      "status": "PASS",
+      "duration": 5
+    },
+    {
+      "name": "분석 후 — 시그널 패널 또는 NEUTRAL 메시지가 표시된다",
+      "status": "FAIL",
+      "duration": 4,
+      "error": "시그널 카드와 플레이스홀더 모두 없음 — 분석 결과가 표시되지 않음",
+      "screenshot": "/home/theo/dev/trading-analysis/reports/fn-fail-1779683112232.png"
+    },
+    {
+      "name": "분석 후 FVG overlay — FVG levels 가 시그널의 FVG 범위 내에 있다",
+      "status": "PASS",
+      "duration": 42
+    },
+    {
+      "name": "브라우저 콘솔 — 기능 테스트 중 JS 오류 없음",
+      "status": "FAIL",
+      "duration": 0,
+      "error": "콘솔 JS 오류 1건:\nFailed to load resource: the server responded with a status of 409 (Conflict)",
+      "screenshot": "/home/theo/dev/trading-analysis/reports/fn-fail-1779683112314.png"
+    }
+  ],
+  "issues": [
+    {
+      "test": "FVG — mitigated 상태인 FVG 는 이후 캔들 close 가 gap 내에 있다",
+      "error": "Mitigated FVG (idx=9): gap 내 close 캔들을 찾을 수 없음"
+    },
+    {
+      "test": "시그널 — TP 공식 검증 (risk * minRR 배수)",
+      "error": "TP1 공식 불일치: 76103.1 vs 76996.18741492946 (허용오차 0.01)"
+    },
+    {
+      "test": "분석 후 — 시그널 패널 또는 NEUTRAL 메시지가 표시된다",
+      "error": "시그널 카드와 플레이스홀더 모두 없음 — 분석 결과가 표시되지 않음"
+    },
+    {
+      "test": "브라우저 콘솔 — 기능 테스트 중 JS 오류 없음",
+      "error": "콘솔 JS 오류 1건:\nFailed to load resource: the server responded with a status of 409 (Conflict)"
+    }
+  ]
+}
