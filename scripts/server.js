@@ -491,7 +491,7 @@ const srv = http.createServer(async (req, res) => {
     if (pathname === '/health') return json(res, { status: 'ok' });
 
     // TEMP: full DB reset — remove after use
-    if (method === 'POST' && pathname === '/api/reset-all') {
+    if (req.method === 'POST' && pathname === '/api/reset-all') {
       const { runSQL } = require('./db-driver');
       const r = await runSQL('DELETE FROM trades');
       return json(res, { deleted: r.rowCount });
