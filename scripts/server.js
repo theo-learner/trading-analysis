@@ -123,10 +123,11 @@ async function syncFromBybit(req, res) {
       return json(res, { message: 'Bybit API credentials not configured', imported: 0 }, 500);
     }
     
-    const url = 'https://api.bybit.com/v5/order/history?category=spot&limit=100&closed_only=true';
+    // USDT Perpetual category (spot이 아닌 perp)
+    const url = 'https://api.bybit.com/v5/position/list?category=linear&limit=100';
     const timestamp = Date.now().toString();
-    const signStr = `ORDER\n${timestamp}`;
-    // Simple HMAC-SHA256 signature
+    // Bybit V5 signature
+    const signStr = `GET\/v5\/position\/list?category=linear\u0026limit=100\u0026timestamp=${timestamp}`;
     const crypto = require('crypto');
     const signature = crypto.createHmac('sha256', apiSecret).update(signStr).digest('hex');
     
@@ -139,7 +140,10 @@ async function syncFromBybit(req, res) {
         'X-Bit-Api-Timestamp': timestamp,
       },
     });
-    if (!resp.ok) return json(res, { message: `Bybit API error: ${resp.status}`, imported: 0 }, resp.status);
+    if (!resp.ok) {
+      const errText = await resp.text();
+      return json(res, { message: `Bybit API error: ${resp.status} - ${errText}`, imported: 0 }, resp.status);
+    }
     const data = await resp.json();
     if (data.retCode !== 0) return json(res, { message: `Bybit: ${data.retMsg}`, imported: 0 }, 400);
 
