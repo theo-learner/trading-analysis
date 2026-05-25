@@ -393,6 +393,7 @@ let state = {
   useBoxOverlays: true,
   signal:       null,
   signals:      {},   // 페어별 캐시: { 'BTCUSDT': signalObj, ... }
+  diaries:      {},   // 페어별 다이어리 캐시: { 'BTCUSDT': markdownStr, ... }
   analyzing:    false,
   diaryLoading: false,
   trades:    [],
@@ -1275,6 +1276,7 @@ function renderDiary(md) {
     el.innerHTML = '<div class="sc-placeholder">구조 확인 대기 중</div>';
     return;
   }
+  if (state.pair) state.diaries[state.pair] = md;
   const clean = md.replace(/^---[\s\S]*?---\n*/, '');
   const div = document.createElement('div');
   div.className = 'diary-rendered';
@@ -1421,11 +1423,18 @@ document.getElementById('pairTabs').addEventListener('click', (e) => {
   btn.classList.add('active');
   state.pair = btn.dataset.pair;
 
-  // 차트/다이어리는 항상 새 페어로 갱신
-  renderDiary(null);
-  loadLatestDiary();
+  // 차트 갱신
   loadCandles();
   connectWS();
+
+  // 다이어리: 캐시가 있으면 즉시 복원, 없으면 서버 조회
+  const cachedDiary = state.diaries[state.pair];
+  if (cachedDiary) {
+    renderDiary(cachedDiary);
+  } else {
+    renderDiary(null);
+    loadLatestDiary();
+  }
 
   // 캐시가 있으면 즉시 복원, 없으면 서버에서 조회
   const cached = state.signals[state.pair];
