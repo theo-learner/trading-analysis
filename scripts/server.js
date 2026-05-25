@@ -123,22 +123,23 @@ async function syncFromBybit(req, res) {
       return json(res, { message: 'Bybit API credentials not configured', imported: 0 }, 500);
     }
 
-    const crypto = require('crypto');
     const timestamp = Date.now().toString();
     const recvWindow = '5000';
-    const queryString = 'category=linear&limit=100';
-    const signStr = `${timestamp}${apiKey}${recvWindow}${queryString}`;
+    
+    // Bybit V5 signature: GET/v5/order/history?category=linear&limit=100&timestamp=xxx&recvWindow=xxx
+    const queryString = `category=linear&limit=100&timestamp=${timestamp}&recvWindow=${recvWindow}`;
+    const signStr = `GET/v5/order/history?${queryString}`;
+    const crypto = require('crypto');
     const signature = crypto.createHmac('sha256', apiSecret).update(signStr).digest('hex');
-
-    const url = `https://api.bybit.com/v5/order/history?${queryString}`;
+    
+    const url = `https://api.bybit.com/v5/order/history?${queryString}&signature=${signature}`;
     const resp = await fetch(url, {
       signal: AbortSignal.timeout(10_000),
       headers: {
-        'Content-Type': 'application/json',
-        'X-BAPI-API-KEY': apiKey,
-        'X-BAPI-TIMESTAMP': timestamp,
-        'X-BAPI-SIGN': signature,
-        'X-BAPI-RECV-WINDOW': recvWindow,
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
+        'X-Bit-Api-Key': apiKey,
+        'X-Bit-Api-Timestamp': timestamp,
+        'X-Bit-Api-Sign': signature,
       },
     });
     if (!resp.ok) {
