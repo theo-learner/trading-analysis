@@ -182,9 +182,10 @@ async function analyzeAll(req, res) {
   const results = [];
   for (const pair of pairs) {
     try {
-      // Try to load and run the analyze script
-      const { analyzePair } = require('./ict-engine');
-      const result = await analyzePair(pair);
+      const { analyzeICT } = require('./ict-engine');
+      const { fetchCandleSet } = require('./utils/binance');
+      const { htf, ltf, d1 } = await fetchCandleSet(pair);
+      const result = await analyzeICT({ htfCandles: htf, ltfCandles: ltf, d1Candles: d1, pair });
       broadcast('analyze-done', { pair, ok: true, result });
       results.push({ pair, ok: true });
     } catch (e) {
