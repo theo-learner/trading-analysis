@@ -38,6 +38,8 @@ screenshots/YYYYMMDD/
 |------|------|------|
 | `references/2026-04-13-ICT-trading-brief.md` | ICT 이론 종합 브리핑 (유동성, POI, 킬존, 진입 체인 등) | ICT 탭 분석 기준 |
 | `references/2026-04-13-Elliot-wave-basic.md` | Elliott Wave 기초 이론 (파동 구조, 규칙, 가이드라인 등) | EW 탭 분석 기준 |
+| `references/20260514-ICT-knowledge-base.md` | ICT 거래 지식 Q&A 총정리 (NotebookLM 기반) | ICT 심화 참조 |
+| `references/ict-engine-spec.md` | ICT Engine 알고리즘 스펙 v0.2.0 (모듈별 파라미터) | 엔진 수정 시 참조 |
 
 **읽은 후 적용 규칙:**
 - 레퍼런스의 모든 개념(BOS, MSS, FVG, OB, BSL/SSL, 킬존, 파동 규칙 등)을 차트 분석에 직접 적용한다
@@ -137,7 +139,7 @@ screenshots/YYYYMMDD/
 - **중복 방지**: `sessions/notifications-sent.json` 파일 기반 24h 윈도우 ledger (`pair_date_direction_tier_price` 키 — entry price rounded 포함)
 - **장애 처리**: 알림 실패는 트레이딩 플로우를 절대 차단하지 않음 (try/catch swallow)
 - **실시간 감시**: `scripts/watcher.js` 가 PM2 (`ict-watcher` 프로세스) 로 매 분 4페어 × 15m ICT 분석을 실행한다. 알림은 `judgeSignal()` + dedup ledger (24h, entry-price 단위) 를 통과한 시그널만 발사.
-- **PM2 프로세스**: `ict-dashboard` (대시보드 서버), `ict-watcher` (실시간 감시) 두 프로세스를 PM2로 관리한다.
+- **PM2 프로세스**: `trading-dashboard` (대시보드 서버), `ict-watcher` (실시간 감시) 두 프로세스를 PM2로 관리한다. (`ecosystem.config.js` 정의)
 
 | 작업 | 명령 |
 |------|------|
@@ -159,7 +161,8 @@ screenshots/YYYYMMDD/
 - **주의**: `judgeSignal`의 notional은 `cfg.execution?.notionalUsd` 사용 (`cfg.test?.notionalUsd` 아님 — 해당 필드 없음)
 
 ## 서버 성능 기준
-- **Binance API 타임아웃**: `scripts/utils/binance.js` `AbortSignal.timeout(5_000)` — 5초 내 미응답 시 해당 페어 분석 실패
+- **캔들 데이터**: `scripts/utils/binance.js` — Bybit 우선, 미응답(5초 timeout) 시 Binance 자동 폴백. 파일명과 달리 Bybit이 primary.
+- **대시보드 포트**: `3210` (`ecosystem.config.js` → `dashboard-server.js` PORT 환경변수)
 - **analyze-all 응답 구조**: 페어 일부 실패 시에도 HTTP 200 반환. `results[i].error` 유무로 성공/실패 구분
 - **정상 분석 소요**: 1~3초 (4페어 × 4인터벌 병렬). 최악 5초 (타임아웃 발생 시)
 

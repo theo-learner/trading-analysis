@@ -117,10 +117,27 @@ async function getStats() {
 // ── Sync from Bybit (public API — no auth needed for closed trades) ──────
 async function syncFromBybit(req, res) {
   try {
+    const apiKey = process.env.BYBIT_API_KEY;
+    const apiSecret = process.env.BYBIT_API_SECRET;
+    if (!apiKey || !apiSecret) {
+      return json(res, { message: 'Bybit API credentials not configured', imported: 0 }, 500);
+    }
+    
     const url = 'https://api.bybit.com/v5/order/history?category=spot&limit=100&closed_only=true';
+    const timestamp = Date.now().toString();
+    const signStr = `ORDER\n${timestamp}`;
+    // Simple HMAC-SHA256 signature
+    const crypto = require('crypto');
+    const signature = crypto.createHmac('sha256', apiSecret).update(signStr).digest('hex');
+    
     const resp = await fetch(url, {
       signal: AbortSignal.timeout(10_000),
-      headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)' },
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
+        'X-Bit-Api-Key': apiKey,
+        'X-Bit-Api-Sign': signature,
+        'X-Bit-Api-Timestamp': timestamp,
+      },
     });
     if (!resp.ok) return json(res, { message: `Bybit API error: ${resp.status}`, imported: 0 }, resp.status);
     const data = await resp.json();
