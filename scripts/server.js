@@ -114,7 +114,7 @@ async function getStats() {
   return { closed: l.closed.length, stats: l.stats };
 }
 
-// ── Sync from Bybit (public API — no auth needed for closed trades) ──────
+// ── Sync from Bybit ───────────────────────────────────────────────────────────
 async function syncFromBybit(req, res) {
   try {
     const apiKey = process.env.BYBIT_API_KEY;
@@ -122,25 +122,23 @@ async function syncFromBybit(req, res) {
     if (!apiKey || !apiSecret) {
       return json(res, { message: 'Bybit API credentials not configured', imported: 0 }, 500);
     }
-    
+
+    const crypto = require('crypto');
     const timestamp = Date.now().toString();
     const recvWindow = '5000';
-    
-    // Bybit V5 signature: GET/v5/order/history?category=linear&limit=100&timestamp=xxx&recvWindow=xxx
-    const queryString = `category=linear&limit=100&timestamp=${timestamp}&recvWindow=${recvWindow}`;
-    const queryString = `category=linearu0026limit=100u0026timestamp=${timestamp}u0026recvWindow=${recvWindow}`;
-    const signStr = `GET/v5/order/history?${encodeURIComponent(queryString)}`;
+    const queryString = 'category=linear&limit=100';
+    const signStr = `${timestamp}${apiKey}${recvWindow}${queryString}`;
     const signature = crypto.createHmac('sha256', apiSecret).update(signStr).digest('hex');
-    
-    const url = `https://api.bybit.com/v5/order/history?${queryString}&signature=${signature}`;
-    
+
+    const url = `https://api.bybit.com/v5/order/history?${queryString}`;
     const resp = await fetch(url, {
       signal: AbortSignal.timeout(10_000),
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
-        'X-Bit-Api-Key': apiKey,
-        'X-Bit-Api-Timestamp': timestamp,
-        'X-Bit-Api-Sign': signature,
+        'Content-Type': 'application/json',
+        'X-BAPI-API-KEY': apiKey,
+        'X-BAPI-TIMESTAMP': timestamp,
+        'X-BAPI-SIGN': signature,
+        'X-BAPI-RECV-WINDOW': recvWindow,
       },
     });
     if (!resp.ok) {
@@ -273,6 +271,12 @@ async function analyzeAll(req, res) {
       const { fetchCandleSet } = require('./utils/binance');
       const { htf, ltf, d1 } = await fetchCandleSet(pair);
       const result = await analyzeICT({ htfCandles: htf, ltfCandles: ltf, d1Candles: d1, pair });
+      try {
+        await runSQL(
+          'INSERT INTO signals (pair, direction, confidence, summary, details) VALUES ($1,$2,$3,$4,$5)',
+          [pair, result.direction, result.confidence, result.summary, JSON.stringify(result, null, 2)]
+        );
+      } catch (_) {}
       broadcast('analyze-done', { pair, ok: true, result });
       results.push({ pair, ok: true });
     } catch (e) {
@@ -379,7 +383,12 @@ const srv = http.createServer(async (req, res) => {
     if (pathname === '/api/latest-signal') {
       const pair = u.searchParams.get('pair');
       if (!pair) return json(res, { error: 'pair required' }, 400);
-      return json(res, { ok: !!await getLatestSignal(pair), signal: await getLatestSignal(pair) || null });
+      const row = await getLatestSignal(pair);
+      if (!row) return json(res, null, 404);
+      let signal;
+      try { signal = typeof row.details === 'string' ? JSON.parse(row.details) : (row.details || row); }
+      catch (_) { signal = row; }
+      return json(res, signal);
     }
 
     if (pathname === '/api/latest-diary') {

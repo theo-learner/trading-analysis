@@ -201,7 +201,6 @@
   </div>
   <div class="header-spacer"></div>
   <div id="analyze-all-badge"><span class="spin"></span><span id="analyze-all-text">전체 분석 중...</span></div>
-  <button id="sync-btn" title="Bybit 트레이딩 이력 동기화" style="padding:4px 8px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:12px;">🔄 Sync</button>
   <div class="kz-badge inactive" id="kzBadge">킬존 대기</div>
   <div class="mode-badge" id="modeBadge">DRY-RUN</div>
   <div class="status-dot" id="statusDot"></div>
@@ -393,6 +392,7 @@ let state = {
   overlays: { fvg: true, ob: true, bb: true, sweep: true },
   useBoxOverlays: true,
   signal:       null,
+  signals:      {},   // 페어별 캐시: { 'BTCUSDT': signalObj, ... }
   analyzing:    false,
   diaryLoading: false,
   trades:    [],
@@ -1315,6 +1315,8 @@ function applySignal(signal) {
   if (!signal) return;
   state.signal = signal;
   state.lastSignal = signal;
+  const cacheKey = signal.pair || state.pair;
+  if (cacheKey) state.signals[cacheKey] = signal;
   state.overlayData.fvgs   = signal.levels?.fvgs   ?? [];
   state.overlayData.obs    = signal.levels?.obs    ?? [];
   state.overlayData.bbs    = signal.levels?.bbs    ?? [];
@@ -1363,8 +1365,13 @@ function connectSSE() {
 
   evtSource.addEventListener('analyze-done', (e) => {
     try {
-      const { code, pair, tf } = JSON.parse(e.data);
-      // tf가 있으면 단일 분석 (POST /api/analyze), 없으면 analyze-all 진행 중
+      const { code, pair, tf, ok, result } = JSON.parse(e.data);
+      // analyzeAll SSE: ok=true, result=signal — 페어별 캐시에 저장
+      if (ok && result && pair) {
+        state.signals[pair] = result;
+        if (pair === state.pair) applySignal(result);
+      }
+      // 단일 분석(POST /api/analyze): code=0
       if (tf) resetAnalyzeBtn();
       if (code === 0) {
         if (pair === state.pair) {
@@ -1413,17 +1420,24 @@ document.getElementById('pairTabs').addEventListener('click', (e) => {
   document.querySelectorAll('.pair-tab').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   state.pair = btn.dataset.pair;
-  state.signal = null;
-  clearOverlayLines();
-  renderScorecard(null);
-  renderAMD(null);
+
+  // 차트/다이어리는 항상 새 페어로 갱신
   renderDiary(null);
+  loadLatestDiary();
   loadCandles();
   connectWS();
-  loadLatestSignal();
-  loadLatestDiary();
-  // 페어 전환 시 분석 결과 다시 로드
-  runAnalysis();
+
+  // 캐시가 있으면 즉시 복원, 없으면 서버에서 조회
+  const cached = state.signals[state.pair];
+  if (cached) {
+    applySignal(cached);
+  } else {
+    state.signal = null;
+    clearOverlayLines();
+    renderScorecard(null);
+    renderAMD(null);
+    loadLatestSignal();
+  }
 });
 
 // TF 탭
@@ -1583,30 +1597,6 @@ async function loadTrades() {
   } catch (_) {}
 }
 
-// ── Sync 버튼 ────────────────────────────────
-(function() {
-  const syncBtn = document.getElementById('sync-btn');
-  if (!syncBtn) return;
-  syncBtn.addEventListener('click', async () => {
-    const original = syncBtn.textContent;
-    syncBtn.textContent = '⏳ Syncing...';
-    syncBtn.disabled = true;
-    try {
-      const resp = await fetch(`${API}/api/sync`, { method: 'POST' });
-      const data = await resp.json();
-      if (resp.ok) {
-        syncBtn.textContent = `✅ ${data.imported} imported`;
-        // 데이터 새로고침
-        await loadTrades();
-      } else {
-        syncBtn.textContent = `❌ ${data.message || 'sync failed'}`;
-      }
-    } catch (e) {
-      syncBtn.textContent = '❌ Network error';
-    }
-    setTimeout(() => { syncBtn.textContent = original; syncBtn.disabled = false; }, 5000);
-  });
-})();
 
 function refreshHistoryTab() {
   const { open, closed, stats } = allTradesData;
@@ -1669,7 +1659,11 @@ async function init() {
   await loadCandles();
   connectWS();
   connectSSE();
+  // 기존 데이터 즉시 표시 후 Bybit 자동 sync
   loadTrades();
+  fetch(`${API}/api/sync`, { method: 'POST', signal: AbortSignal.timeout(15_000) })
+    .then(() => loadTrades())
+    .catch(() => {});
   await loadLatestSignal();
   await loadLatestDiary();
   setInterval(loadTrades, 15_000);
