@@ -1645,7 +1645,15 @@ async function init() {
   await loadLatestSignal();
   await loadLatestDiary();
   setInterval(loadTrades, 15_000);
-  runAnalyzeAll();
+
+  // 자동 분석 (비동기 — 에러는 silent)
+  try {
+    await runAnalysis();
+  } catch (_) {}
+  try {
+    await runDiary();
+  } catch (_) {}
+  runAnalyzeAll(); // 전체 분석은 비동기 & 토스트 표시
 }
 
 init();
