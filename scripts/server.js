@@ -265,10 +265,12 @@ async function analyzeAll(req, res) {
   broadcast('analyze-start', { pairs, timestamp: new Date().toISOString() });
 
   const results = [];
+  const { analyzeICT } = require('./ict-engine');
+  const { buildDiary } = require('./modules/diary');
+  const { fetchCandleSet } = require('./utils/binance');
+
   for (const pair of pairs) {
     try {
-      const { analyzeICT } = require('./ict-engine');
-      const { fetchCandleSet } = require('./utils/binance');
       const { htf, ltf, d1 } = await fetchCandleSet(pair);
       const result = await analyzeICT({ htfCandles: htf, ltfCandles: ltf, d1Candles: d1, pair });
       try {
@@ -277,7 +279,13 @@ async function analyzeAll(req, res) {
           [pair, result.direction, JSON.stringify(result, null, 2)]
         );
       } catch (_) {}
-      broadcast('analyze-done', { pair, ok: true, result });
+      let diary = null;
+      try {
+        diary = buildDiary(result, { returnStruct: false });
+        const diaryText = typeof diary === 'string' ? diary : JSON.stringify(diary);
+        await runSQL('INSERT INTO diaries (pair, diary) VALUES ($1,$2)', [pair, diaryText]);
+      } catch (_) {}
+      broadcast('analyze-done', { pair, ok: true, result, diary });
       results.push({ pair, ok: true });
     } catch (e) {
       broadcast('analyze-done', { pair, ok: false, error: e.message });

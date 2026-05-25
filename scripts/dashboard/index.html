@@ -1367,11 +1367,17 @@ function connectSSE() {
 
   evtSource.addEventListener('analyze-done', (e) => {
     try {
-      const { code, pair, tf, ok, result } = JSON.parse(e.data);
-      // analyzeAll SSE: ok=true, result=signal — 페어별 캐시에 저장
-      if (ok && result && pair) {
-        state.signals[pair] = result;
-        if (pair === state.pair) applySignal(result);
+      const { code, pair, tf, ok, result, diary } = JSON.parse(e.data);
+      // analyzeAll SSE: ok=true, result=signal, diary=markdown — 페어별 캐시에 저장
+      if (ok && pair) {
+        if (result) {
+          state.signals[pair] = result;
+          if (pair === state.pair) applySignal(result);
+        }
+        if (diary) {
+          state.diaries[pair] = diary;
+          if (pair === state.pair) renderDiary(diary);
+        }
       }
       // 단일 분석(POST /api/analyze): code=0
       if (tf) resetAnalyzeBtn();
