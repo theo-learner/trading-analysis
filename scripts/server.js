@@ -487,11 +487,6 @@ const srv = http.createServer(async (req, res) => {
     if (pathname === '/api/stats') return json(res, await getStats());
     if (pathname === '/api/ledger') return json(res, await getLedger());
 
-    if (pathname === '/api/reset-history' && req.method === 'POST') {
-      const { rowCount } = await runSQL('DELETE FROM trades');
-      return json(res, { deleted: rowCount });
-    }
-
     // Health check for Render
     if (pathname === '/health') return json(res, { status: 'ok' });
 
