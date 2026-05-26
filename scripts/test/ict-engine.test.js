@@ -2,7 +2,7 @@
 
 const { test } = require('node:test');
 const assert   = require('node:assert/strict');
-const { analyzeICT, _selectBestPOI, _calculateTP } = require('../ict-engine');
+const { analyzeICT, _selectBestPOI, _calculateTP, _getHTFDealingRange, _classifyPD } = require('../ict-engine');
 
 // 합성 캔들 생성 헬퍼 — 단조증가 HTF (bull trend 유도)
 function makeBullCandles(n, basePrice = 50000, step = 100) {
@@ -399,4 +399,145 @@ test('calculateTP: 진입가 아래 고점은 LONG TP 타겟에서 제외', () =
   assert.equal(prices[0], 120, '진입가 아래 고점은 무시하고 120이 TP1이어야 한다');
   assert.equal(basis[0], 'ERL');
   assert.equal(basis[1], 'RR', 'TP2는 구조적 타겟 없어서 R:R 폴백');
+});
+
+// ── triggerBOS 필드 계약 검증 ────────────────────────────────────────────────
+
+test('analyzeICT: NEUTRAL 시그널에는 triggerBOS 필드가 없거나 null', () => {
+  // HTF bull + LTF bear → tier 4 → NEUTRAL
+  const signal = analyzeICT({
+    pair: 'TESTUSDT',
+    htfCandles: makeBullCandles(150),
+    ltfCandles: makeBearCandles(100),
+  });
+  assert.equal(signal.direction, 'NEUTRAL');
+  // buildNeutral()은 triggerBOS를 포함하지 않음 — absent 또는 null
+  assert.ok(!signal.triggerBOS, `NEUTRAL 시그널의 triggerBOS는 falsy여야 함, 실제: ${signal.triggerBOS}`);
+});
+
+test('analyzeICT: tier===1 시그널의 triggerBOS는 {time, price, direction} 포함', () => {
+  // HTF bull + LTF bull → Tier 1 또는 2 (스코어카드에 따라)
+  const htf = makeBullCandles(150);
+  const ltf = makeBullCandles(100, 60000, 5);
+  const signal = analyzeICT({ pair: 'TESTUSDT', htfCandles: htf, ltfCandles: ltf });
+
+  if (signal.tier === 1) {
+    assert.ok(signal.triggerBOS !== null && typeof signal.triggerBOS === 'object',
+      'tier===1이면 triggerBOS는 null이 아니어야 한다');
+    assert.ok(Number.isFinite(signal.triggerBOS.time), 'triggerBOS.time은 유한한 숫자여야 한다');
+    assert.ok(Number.isFinite(signal.triggerBOS.price), 'triggerBOS.price는 유한한 숫자여야 한다');
+    assert.ok(['bull', 'bear'].includes(signal.triggerBOS.direction), 'triggerBOS.direction은 bull 또는 bear');
+  } else {
+    // tier 2/3 → triggerBOS는 null
+    assert.equal(signal.triggerBOS ?? null, null, `tier ${signal.tier}: triggerBOS는 null이어야 한다`);
+  }
+});
+
+test('analyzeICT: 동일 캔들 데이터로 두 번 호출 시 triggerBOS.time 일치 (재현성)', () => {
+  const htf = makeBullCandles(150);
+  const ltf = makeBullCandles(100, 60000, 5);
+  const sig1 = analyzeICT({ pair: 'TESTUSDT', htfCandles: htf, ltfCandles: ltf });
+  const sig2 = analyzeICT({ pair: 'TESTUSDT', htfCandles: htf, ltfCandles: ltf });
+
+  // triggerBOS가 둘 다 있으면 동일해야 함
+  if (sig1.triggerBOS && sig2.triggerBOS) {
+    assert.equal(sig1.triggerBOS.time, sig2.triggerBOS.time,
+      '동일 캔들 데이터에서 triggerBOS.time이 달라서는 안 된다');
+  }
+  // 둘 다 없거나 (NEUTRAL) 또는 둘 다 있어야 함 (일관성)
+  assert.equal(!!sig1.triggerBOS, !!sig2.triggerBOS, 'triggerBOS 존재 여부가 두 호출 간 달라서는 안 된다');
+});
+
+// ── getHTFDealingRange 유닛 테스트 ───────────────────────────────────────────
+
+test('getHTFDealingRange: 최근 HTF high + low 쌍에서 high/low/equilibrium 반환', () => {
+  const swings = [
+    { type: 'high', price: 100 },
+    { type: 'low',  price: 50  },
+  ];
+  const dr = _getHTFDealingRange(swings);
+  assert.equal(dr.high, 100);
+  assert.equal(dr.low,  50);
+  assert.equal(dr.equilibrium, 75);
+});
+
+test('getHTFDealingRange: 여러 swing 중 마지막 high + 마지막 low 사용', () => {
+  const swings = [
+    { type: 'high', price: 80  },
+    { type: 'low',  price: 40  },
+    { type: 'high', price: 120 }, // ← 마지막
+    { type: 'low',  price: 60  }, // ← 마지막
+  ];
+  const dr = _getHTFDealingRange(swings);
+  assert.equal(dr.high, 120);
+  assert.equal(dr.low,  60);
+  assert.equal(dr.equilibrium, 90);
+});
+
+test('getHTFDealingRange: swing low 없으면 null', () => {
+  const swings = [{ type: 'high', price: 100 }];
+  assert.equal(_getHTFDealingRange(swings), null);
+});
+
+test('getHTFDealingRange: swing high 없으면 null', () => {
+  const swings = [{ type: 'low', price: 50 }];
+  assert.equal(_getHTFDealingRange(swings), null);
+});
+
+test('getHTFDealingRange: high ≤ low면 null (degenerate)', () => {
+  const swings = [
+    { type: 'high', price: 50 },
+    { type: 'low',  price: 100 },
+  ];
+  assert.equal(_getHTFDealingRange(swings), null);
+});
+
+// ── classifyPD 유닛 테스트 ───────────────────────────────────────────────────
+
+test('classifyPD: entry > equilibrium → PREMIUM', () => {
+  const dr = { high: 100, low: 50, equilibrium: 75 };
+  assert.equal(_classifyPD(80, dr), 'PREMIUM');
+});
+
+test('classifyPD: entry < equilibrium → DISCOUNT', () => {
+  const dr = { high: 100, low: 50, equilibrium: 75 };
+  assert.equal(_classifyPD(60, dr), 'DISCOUNT');
+});
+
+test('classifyPD: entry === equilibrium → EQUILIBRIUM', () => {
+  const dr = { high: 100, low: 50, equilibrium: 75 };
+  assert.equal(_classifyPD(75, dr), 'EQUILIBRIUM');
+});
+
+test('classifyPD: dealingRange=null → UNKNOWN', () => {
+  assert.equal(_classifyPD(80, null), 'UNKNOWN');
+});
+
+// ── PD gate E2E 테스트 ───────────────────────────────────────────────────────
+
+test('analyzeICT: pdZone 필드는 NEUTRAL 시그널에도 포함되거나 null (buildNeutral extra pass-through)', () => {
+  // tier ≥ 4 → NEUTRAL 경로, pdZone은 없거나 null
+  const signal = analyzeICT({
+    pair: 'TESTUSDT',
+    htfCandles: makeBullCandles(150),
+    ltfCandles: makeBearCandles(100),
+  });
+  assert.equal(signal.direction, 'NEUTRAL');
+  // tier ≥ 4 경로는 PD gate 이전에 반환 — pdZone은 없거나 null/undefined
+  assert.ok(signal.pdZone == null || typeof signal.pdZone === 'object',
+    'pdZone은 null/undefined 또는 object여야 함');
+});
+
+test('analyzeICT: cfg.pdZone.enabled=false이면 PD 위반 reason이 나오지 않음', () => {
+  // enabled=false → 게이트 완전 비활성, 어떤 시그널도 PD 이유로 NEUTRAL되지 않음
+  const htf = makeBullCandles(150);
+  const ltf = makeBullCandles(100, 60000, 5);
+  const signal = analyzeICT({
+    pair: 'TESTUSDT',
+    htfCandles: htf,
+    ltfCandles: ltf,
+    config: { pdZone: { enabled: false } },
+  });
+  assert.ok(!String(signal.reason ?? '').includes('PD 위반'),
+    'enabled=false이면 PD 위반 reason 없어야 함');
 });

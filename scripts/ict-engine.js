@@ -170,6 +170,26 @@ function computeSwingRange(swings, lookback) {
   return { low, high, lowTime: lowSw.time, highTime: highSw.time, count: recent.length };
 }
 
+/** HTF dealing range — 가장 최근 HTF swing high + 가장 최근 HTF swing low 쌍.
+ *  swing이 한 쪽이라도 없거나 high ≤ low면 null → PD 게이트 skip. */
+function getHTFDealingRange(htfSwings) {
+  const highs = htfSwings.filter(s => s.type === 'high');
+  const lows  = htfSwings.filter(s => s.type === 'low');
+  if (highs.length === 0 || lows.length === 0) return null;
+  const high = highs[highs.length - 1].price;
+  const low  = lows[lows.length  - 1].price;
+  if (!(high > low)) return null;
+  return { high, low, equilibrium: (high + low) / 2 };
+}
+
+/** PD zone 분류 — entry가 dealing range의 어느 절반인지. */
+function classifyPD(entryPrice, dealingRange) {
+  if (!dealingRange) return 'UNKNOWN';
+  if (entryPrice > dealingRange.equilibrium) return 'PREMIUM';
+  if (entryPrice < dealingRange.equilibrium) return 'DISCOUNT';
+  return 'EQUILIBRIUM';
+}
+
 function buildNeutral(pair, reason, tier, currentPrice, extra = {}) {
   return {
     pair,
@@ -187,7 +207,7 @@ function buildNeutral(pair, reason, tier, currentPrice, extra = {}) {
   };
 }
 
-function buildSignal({ pair, direction, alignment, scorecard, poi, sl, tps, tpBasisArr, rr, confidence, htfTrend, ltfTrend, htfAMD, kzResult, fvgs, obs, bbs, sweeps, unsweptHighs, unsweptLows, sizeMultiplier, currentPrice, mss, bos, displacements, swingRanges, htfSwings, entryPrice, slBuffer, atr }) {
+function buildSignal({ pair, direction, alignment, scorecard, poi, sl, tps, tpBasisArr, rr, confidence, htfTrend, ltfTrend, htfAMD, kzResult, fvgs, obs, bbs, sweeps, unsweptHighs, unsweptLows, sizeMultiplier, currentPrice, mss, bos, displacements, swingRanges, htfSwings, entryPrice, slBuffer, atr, triggerBOS, pdZone }) {
   const entry = entryPrice ?? poi.price;
   const lastSwingLow  = htfSwings ? htfSwings.filter(s => s.type === 'low').slice(-1)[0]  : null;
   const lastSwingHigh = htfSwings ? htfSwings.filter(s => s.type === 'high').slice(-1)[0] : null;
@@ -215,6 +235,8 @@ function buildSignal({ pair, direction, alignment, scorecard, poi, sl, tps, tpBa
       basis:    poi.poiType ? `${poi.poiType}_RETEST` : 'POI_RETEST',
       killzone: kzResult.inKillzone ? (kzResult.name || 'UNKNOWN') : null,
     },
+    triggerBOS: triggerBOS ?? null,
+    pdZone: pdZone ?? null,
     sl,
     slBasis: slBuffer
       ? `ABOVE_OB + ATR_buffer (${(slBuffer).toFixed(2)})`
@@ -305,13 +327,18 @@ function analyzeICT(params) {
 
   // [18] 정렬 점수 (priceInHTF_* 플래그 사전 계산)
   const currentPrice = ltfCandles[ltfCandles.length - 1].close;
+  // Tier-1 dedup용 — 가장 최근 HTF 방향 LTF BOS 캡처 (없으면 null)
+  const ltfBOSinHtfDir = ltfBOS.filter(b => b.direction === htfTrend);
+  const lastBOSinHtfDir = ltfBOSinHtfDir.length > 0
+    ? ltfBOSinHtfDir[ltfBOSinHtfDir.length - 1]
+    : null;
   const ltfAnalysis = {
     trend: ltfTrend, bos: ltfBOS, mss: ltfMSS,
     fvgs: ltfFVGs, obs: ltfOBs, sweeps: ltfSweeps,
     priceInHTF_OB:  htfOBs.some(o => o.status === 'active' && currentPrice >= o.low && currentPrice <= o.high),
     priceInHTF_FVG: htfFVGs.some(f => f.status === 'active' && currentPrice >= f.low && currentPrice <= f.high),
     priceInHTF_BB:  htfBBs.some(b => b.retestStatus === 'pending' && currentPrice >= b.low && currentPrice <= b.high),
-    hasRecentBOS_in_htfDir: ltfBOS.some(b => b.direction === htfTrend),
+    hasRecentBOS_in_htfDir: lastBOSinHtfDir !== null,
   };
 
   const alignment = calculateAlignmentScore(htfAnalysis, ltfAnalysis);
@@ -380,6 +407,26 @@ function analyzeICT(params) {
       { alignmentScore: alignment.score, structure: neutralStructure, levels: neutralLevels, mss: taggedMSS, bos: taggedBOS, displacements, swingRanges });
   }
 
+  // [19a] PD zone 필터 — LONG은 discount, SHORT은 premium에서만 진입
+  const dealingRange   = getHTFDealingRange(htfSwings);
+  const entryDirection = alignment.htfBias === 'bull' ? 'LONG' : 'SHORT';
+  const pdZone         = classifyPD(poi.price, dealingRange);
+
+  if (cfg.pdZone?.enabled !== false && dealingRange) {
+    const violates = (entryDirection === 'LONG'  && pdZone === 'PREMIUM') ||
+                     (entryDirection === 'SHORT' && pdZone === 'DISCOUNT');
+    if (violates) {
+      return buildNeutral(
+        params.pair,
+        `PD 위반: ${entryDirection} entry @ ${pdZone} (eq=${dealingRange.equilibrium.toFixed(4)})`,
+        alignment.tier, currentPrice,
+        { alignmentScore: alignment.score, structure: neutralStructure, levels: neutralLevels,
+          mss: taggedMSS, bos: taggedBOS, displacements, swingRanges,
+          pdZone: { zone: pdZone, dealingRange, entryPrice: poi.price } }
+      );
+    }
+  }
+
   // [20] 킬존
   const kzResult = isInKillzone(new Date());
   const kzBonus  = killzoneBonus(kzResult);
@@ -387,12 +434,9 @@ function analyzeICT(params) {
   // [20a] ATR 계산 (LTF 기준)
   const ltfATR = calculateATR(ltfCandles, 14);
 
-  // [21] 스코어카드
-  const htfHighs = htfSwings.filter(s => s.type === 'high');
-  const htfLows  = htfSwings.filter(s => s.type === 'low');
-  const swingHigh = htfHighs.length > 0 ? htfHighs[htfHighs.length - 1].price : poi.high + 100;
-  const swingLow  = htfLows.length  > 0 ? htfLows[htfLows.length - 1].price   : poi.low  - 100;
-  const entryDirection = alignment.htfBias === 'bull' ? 'LONG' : 'SHORT';
+  // [21] 스코어카드 — PD 게이트와 동일한 dealing range 공유
+  const swingHigh = dealingRange ? dealingRange.high : (poi.high + 100);
+  const swingLow  = dealingRange ? dealingRange.low  : (poi.low  - 100);
 
   const scorecard = calculateEntryScorecard({
     htfTrend, entryDirection,
@@ -466,10 +510,20 @@ function analyzeICT(params) {
     mss: taggedMSS, bos: taggedBOS, displacements,
     swingRanges,
     htfSwings,
+    triggerBOS: alignment.tier === 1 && lastBOSinHtfDir
+      ? { time: lastBOSinHtfDir.time, price: lastBOSinHtfDir.price, direction: lastBOSinHtfDir.direction }
+      : null,
+    pdZone: { zone: pdZone, dealingRange, entryPrice },
   });
 }
 
-module.exports = { analyzeICT, _selectBestPOI: selectBestPOI, _calculateTP: calculateTP };
+module.exports = {
+  analyzeICT,
+  _selectBestPOI: selectBestPOI,
+  _calculateTP: calculateTP,
+  _getHTFDealingRange: getHTFDealingRange,
+  _classifyPD: classifyPD,
+};
 
 // ── CLI 진입점 ────────────────────────────────────────────────────────────────
 

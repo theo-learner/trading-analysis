@@ -1,7 +1,7 @@
 'use strict';
 
 const { normalizePair } = require('./utils/pair-config');
-const { dedupKey, entryPriceDedupKey, hasRecentNotification, recordNotification, ENTRY_PRICE_WINDOW_MS } = require('./utils/notification-ledger');
+const { dedupKey, entryPriceDedupKey, bosTriggerDedupKey, hasRecentNotification, recordNotification, ENTRY_PRICE_WINDOW_MS, BOS_TRIGGER_WINDOW_MS } = require('./utils/notification-ledger');
 const { loadTradeEnv } = require('./utils/load-env');
 
 function _mergeEnv(base, tenv) {
@@ -71,6 +71,13 @@ async function run(deps = {}) {
           continue;
         }
 
+        // 동일 BOS가 정당화한 진입은 24h 내 1회만 — Tier-1 재발사 차단
+        const bosKey = verdict.approved ? bosTriggerDedupKey(signal) : null;
+        if (bosKey && hasRecentNotification(bosKey, BOS_TRIGGER_WINDOW_MS)) {
+          logger.log(`[watcher] ${pairCfg.symbol}: ${sig} → ⏭ bos_trigger_dedup (24h, bos@${signal.triggerBOS.time})`);
+          continue;
+        }
+
         let tradeResult = null;
         const tradeKey = dedupKey(signal);
         if (verdict.approved && (isLive || cfg.mode === 'dry-run') && (!isLive || !hasRecentNotification(tradeKey))) {
@@ -99,6 +106,11 @@ async function run(deps = {}) {
           logger.log(`[watcher] ${pairCfg.symbol}: ${sig} → ${outcome}`);
           // 진입가 기반 dedup 기록 — 다음 1시간 내 동일 진입가 시그널 차단
           recordNotification(entryPriceDedupKey(signal), { pair: signal.pair, direction: signal.direction });
+          // BOS-trigger dedup 기록 — 동일 BOS로 재진입 24h 차단
+          if (signal.triggerBOS) {
+            recordNotification(bosTriggerDedupKey(signal),
+              { pair: signal.pair, direction: signal.direction, bosTime: signal.triggerBOS.time });
+          }
         }
       } catch (err) {
         logger.warn(`[watcher] ${pairCfg.symbol} failed: ${err.message}`);

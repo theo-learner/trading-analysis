@@ -6,7 +6,8 @@ const path = require('node:path');
 const DEFAULT_LEDGER_PATH = path.join(__dirname, '..', '..', 'sessions', 'notifications-sent.json');
 const WINDOW_MS = 15 * 60 * 1000; // 15분 dedup window (매분 신호 재생성 대응)
 const ENTRY_PRICE_WINDOW_MS = 60 * 60 * 1000; // 1시간 — 동일 진입가 시그널 중복 방지
-const PRUNE_WINDOW_MS = Math.max(WINDOW_MS, ENTRY_PRICE_WINDOW_MS);
+const BOS_TRIGGER_WINDOW_MS = 24 * 60 * 60 * 1000; // 24h — 한 BOS는 하루에 한 번만 진입 정당화
+const PRUNE_WINDOW_MS = Math.max(WINDOW_MS, ENTRY_PRICE_WINDOW_MS, BOS_TRIGGER_WINDOW_MS);
 
 function getLedgerPath() {
   return process.env._TEST_LEDGER_PATH || DEFAULT_LEDGER_PATH;
@@ -54,6 +55,13 @@ function entryPriceDedupKey(signal) {
   return `${signal.pair}_${signal.direction}_ep_${priceKey}`;
 }
 
+/** BOS-trigger dedup 키 — 동일 BOS가 두 번 진입을 정당화하지 못하게. */
+function bosTriggerDedupKey(signal) {
+  const t = signal?.triggerBOS?.time;
+  if (!Number.isFinite(t)) return null;
+  return `${signal.pair}_${signal.direction}_bos_${t}`;
+}
+
 /**
  * Returns true if a notification with this key was sent within the window.
  *
@@ -82,4 +90,4 @@ function recordNotification(key, meta) {
   writeLedger({ entries: fresh });
 }
 
-module.exports = { dedupKey, entryPriceDedupKey, hasRecentNotification, recordNotification, priceDecimalsFor, ENTRY_PRICE_WINDOW_MS };
+module.exports = { dedupKey, entryPriceDedupKey, bosTriggerDedupKey, hasRecentNotification, recordNotification, priceDecimalsFor, ENTRY_PRICE_WINDOW_MS, BOS_TRIGGER_WINDOW_MS };

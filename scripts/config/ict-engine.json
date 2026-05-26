@@ -36,6 +36,10 @@
     "minGrade": "A",
     "gradeThresholds": { "S": 5, "A": 3, "B": 2, "C": 0 }
   },
+  "pdZone": {
+    "enabled": true,
+    "_comment": "true=hard gate (LONG@premium / SHORT@discount → NEUTRAL). false=완전 비활성."
+  },
   "signal": {
     "minRR": 2.0,
     "minAlignmentScore": 60,
