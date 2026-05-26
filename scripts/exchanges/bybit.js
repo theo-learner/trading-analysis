@@ -348,23 +348,22 @@ module.exports = { BybitExchange };
  */
 async function getPositionPnl(symbol) {
   try {
-    const data = await this._request('GET', '/v5/position/history', {
+    // /v5/position/closed-pnl is the correct endpoint for realized PnL history.
+    // (The old /v5/position/history endpoint returned stale/incorrect data.)
+    // `side` here is the *closing* order side: Sell=closed LONG, Buy=closed SHORT.
+    const data = await this._request('GET', '/v5/position/closed-pnl', {
       category: 'linear',
       symbol,
-      settled: false,   // non-settled (realized_pnl = actual PnL)
+      limit: 1,
     }, true);
     const pos = data?.list?.[0];
     if (!pos) return null;
-    // For linear perpetuals:
-    // realized_pnl = actual realized PnL in quote currency (USDT)
-    // closed_size = position size when closed
-    // close_price = average exit price
     return {
-      realizedPnl: parseFloat(pos.realizedPnl || 0),
-      closePrice:  parseFloat(pos.closePrice || 0),
-      size:        parseFloat(pos.closedSize || 0),
-      side:        pos.side === 'Buy' ? 'LONG' : pos.side === 'Sell' ? 'SHORT' : null,
-      avgEntry:    parseFloat(pos.avgPrice || 0),
+      realizedPnl: parseFloat(pos.closedPnl || 0),
+      closePrice:  parseFloat(pos.avgExitPrice || 0),
+      size:        parseFloat(pos.qty || 0),
+      side:        pos.side === 'Sell' ? 'LONG' : 'SHORT',
+      avgEntry:    parseFloat(pos.avgEntryPrice || 0),
     };
   } catch {
     return null;

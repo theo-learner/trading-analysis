@@ -259,10 +259,15 @@ async function _checkTrade(trade, exchange, cfg, nowFn) {
   var openIds = new Set();
   for (var i = 0; i < openOrders.length; i++) openIds.add(String(openOrders[i].orderId));
 
+  // Position-level TP/SL set via /v5/position/trading-stop use a virtual ID
+  // and never appear in /v5/order/realtime — skip open-order-based detection for them.
+  var VIRTUAL_ORDER_IDS = new Set(['tp_trading-stop', 'sl_trading-stop']);
+
   var tpFilled = false;
   for (var j = 0; j < trade.tp.length; j++) {
     var tp = trade.tp[j];
     if (tp.status !== 'pending' || !tp.orderId) continue;
+    if (VIRTUAL_ORDER_IDS.has(String(tp.orderId))) continue;
     if (!openIds.has(String(tp.orderId))) {
       tp.status      = 'filled';
       tp.filledAt    = nowFn();

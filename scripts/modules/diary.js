@@ -417,7 +417,7 @@ function renderAdvanced3(signal, unicorn) {
     ? [
         `- **FVG 중첩**: BB(${fmtPrice(unicorn.bb.low)}-${fmtPrice(unicorn.bb.high)}) ∩ FVG(${fmtPrice(unicorn.fvg.low)}-${fmtPrice(unicorn.fvg.high)}) = **유니콘 셋업 감지** ✅`,
         signal.entry
-          ? `- **결론**: 진입가 ${fmtPrice(unicorn.ce)} (BB+FVG CE 평균), SL ${fmtPrice(signal.sl)}, TP1 ${fmtPrice(signal.tp && signal.tp[0])}, R:R ${signal.rr ? signal.rr.toFixed(1) : '—'}`
+          ? `- **결론**: 진입가 ${fmtPrice(signal.entry?.price ?? signal.entry)} (엔진 진입가 · Unicorn CE ${fmtPrice(unicorn.ce)}), SL ${fmtPrice(signal.sl)}, TP1 ${fmtPrice(signal.tp && signal.tp[0])}, R:R ${signal.rr ? signal.rr.toFixed(1) : '—'}`
           : '',
       ].filter(Boolean).join('\n')
     : '- **Unicorn 셋업**: 미감지 (BB ∩ FVG 중첩 없음)';
