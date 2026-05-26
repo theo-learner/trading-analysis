@@ -361,7 +361,6 @@ async function _calcPnl(trade, exchange, nowFn) {
 
 async function _reconcile(exchange, cfg, nowFn) {
   var trades = openTrades();
-  if (trades.length === 0) return;
 
   for (var i = 0; i < trades.length; i++) {
     var trade = trades[i];
@@ -375,7 +374,7 @@ async function _reconcile(exchange, cfg, nowFn) {
 
         await _calcPnl(trade, exchange, nowFn);
         closeTrade(trade);
-        console.warn('[position-monitor] reconcile: ' + trade.pair + ' ' + trade.id + ' marked closed (not on exchange)');
+        console.log('[position-monitor] reconcile: ' + trade.pair + ' ' + trade.id + ' marked closed (not on exchange)');
       }
     } catch (err) {
       console.warn('[position-monitor] reconcile ' + trade.pair + ': ' + err.message);
@@ -383,7 +382,48 @@ async function _reconcile(exchange, cfg, nowFn) {
   }
 
   if (cfg.reconcile?.adoptOrphans !== true) return;
-  // adoptOrphans logic would go here
+
+  // Adopt exchange positions that have no local tracking file.
+  // This handles the case where local state was cleared but exchange positions survived.
+  var allPositions;
+  try {
+    allPositions = await exchange.getAllPositions();
+  } catch (err) {
+    console.warn('[position-monitor] adoptOrphans: getAllPositions failed: ' + err.message);
+    return;
+  }
+
+  var localPairs = new Set(trades.map(function(t) { return t.pair; }));
+
+  for (var j = 0; j < allPositions.length; j++) {
+    var pos = allPositions[j];
+    if (localPairs.has(pos.pair)) continue;  // already tracked locally
+
+    var adoptId = 'adopt_' + pos.pair.toLowerCase() + '_' + Date.now().toString(36);
+    var adoptedTrade = {
+      id:          adoptId,
+      pair:        pos.pair,
+      direction:   pos.side,
+      exchange:    'bybit',
+      status:      'open',
+      qty:         pos.size,
+      entry:       { filled: pos.entryPrice, requested: pos.entryPrice, requestedAt: nowFn(), confirmedAt: nowFn(), slippageBps: 0 },
+      sl:          { price: pos.stopLoss ?? 0, orderId: pos.stopLoss ? 'sl_trading-stop' : null, placementAttempts: 0 },
+      tp:          [{ price: pos.takeProfit ?? 0, orderId: pos.takeProfit ? 'tp_trading-stop' : null, status: 'pending', filledAt: null, filledPrice: null, qty: pos.size }],
+      slMoves:     [],
+      riskCheck:   {},
+      errors:      [],
+      closedAt:    null,
+      closedReason: null,
+      realizedPnl: null,
+      fees:        0,
+      adoptedOrphan: true,
+      adoptedAt:   nowFn(),
+    };
+    saveTrade(adoptedTrade);
+    localPairs.add(pos.pair);
+    console.log('[position-monitor] adoptOrphans: ' + pos.pair + ' ' + pos.side + ' @' + pos.entryPrice + ' imported from exchange');
+  }
 }
 
 function _sleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }

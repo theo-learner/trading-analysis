@@ -83,8 +83,12 @@ async function run(deps = {}) {
         if (verdict.approved && (isLive || cfg.mode === 'dry-run') && (!isLive || !hasRecentNotification(tradeKey))) {
           try {
             tradeResult = await tradeExecutor.execute(signal, verdict, cfg, { env });
-            const modeTag = tradeResult?.dryRun ? '[dry-run]' : '[live]';
-            logger.log(`[watcher] ${pairCfg.symbol}: trade ${modeTag} ${tradeResult.id} slippage=${tradeResult.entry?.slippageBps ?? 0}bps`);
+            if (tradeResult?.preflightFailed) {
+              logger.log(`[watcher] ${pairCfg.symbol}: trade skipped — ${tradeResult.reason}`);
+            } else {
+              const modeTag = tradeResult?.dryRun ? '[dry-run]' : '[live]';
+              logger.log(`[watcher] ${pairCfg.symbol}: trade ${modeTag} ${tradeResult.id} slippage=${tradeResult.entry?.slippageBps ?? 0}bps`);
+            }
           } catch (err) {
             logger.warn(`[watcher] ${pairCfg.symbol}: trade execute failed: ${err.message}`);
           }

@@ -38,13 +38,13 @@ async function execute(signal, verdict, cfg, deps = {}) {
   const marginType  = cfg.position?.marginType ?? 'isolated';
   const exchangeName = execCfg.exchange ?? cfg.exchange?.default ?? 'binance';
 
-  // Reject if marginUsd is below minimum
+  const tradeId = _tradeId(signal);
+
+  // Reject if marginUsd is below minimum — return gracefully so watcher doesn't log to stderr
   const marginUsdMin = execCfg.marginUsdMin ?? 10;
   if (marginUsd < marginUsdMin) {
-    throw new Error(`marginUsd ${marginUsd} < minimum ${marginUsdMin}`);
+    return { id: tradeId, pair: signal.pair, direction: signal.direction, dryRun: !isLive, preflightFailed: true, reason: `marginUsd ${marginUsd} < minimum ${marginUsdMin}` };
   }
-
-  const tradeId = _tradeId(signal);
   const requestedAt = nowFn();
 
   // Early exits — apply before both dry-run and live paths

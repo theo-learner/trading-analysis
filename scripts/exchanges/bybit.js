@@ -299,6 +299,20 @@ class BybitExchange extends BaseExchange {
     };
   }
 
+  async getAllPositions() {
+    const data = await this._request('GET', '/v5/position/list', { category: 'linear', settleCoin: 'USDT' }, true);
+    return (data?.list ?? [])
+      .filter(p => parseFloat(p.size) > 0)
+      .map(p => ({
+        pair:       p.symbol,
+        size:       parseFloat(p.size),
+        entryPrice: parseFloat(p.avgPrice ?? p.entryPrice ?? 0),
+        side:       p.side === 'Buy' ? 'LONG' : 'SHORT',
+        stopLoss:   p.stopLoss && p.stopLoss !== '' ? parseFloat(p.stopLoss) : null,
+        takeProfit: p.takeProfit && p.takeProfit !== '' ? parseFloat(p.takeProfit) : null,
+      }));
+  }
+
   async getOpenOrders(symbol) {
     // Query both regular and conditional (Stop/TP) orders
     const [regular, stops] = await Promise.all([

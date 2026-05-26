@@ -90,6 +90,12 @@ class BaseExchange {
   async getPosition(symbol) { _abstract(); }  // eslint-disable-line no-unused-vars
 
   /**
+   * Returns all open positions across all symbols.
+   * @returns {Promise<Array<{ pair: string, size: number, entryPrice: number, side: 'LONG'|'SHORT', stopLoss: number|null, takeProfit: number|null }>>}
+   */
+  async getAllPositions() { return []; }
+
+  /**
    * @param {string} symbol
    * @returns {Promise<Array<{ orderId: number|string, type: string, side: string, stopPrice: number, origQty: number }>>}
    */
