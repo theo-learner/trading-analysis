@@ -5,9 +5,9 @@ module.exports = {
       script: 'scripts/dashboard-server.js',
       cwd: '/home/theo/dev/trading-analysis',
       watch: false,
-      autorestart: false,
+      autorestart: true,
       restart_delay: 2000,
-      max_restarts: 0,
+      max_restarts: 10,
       env: {
         PORT: 3210,
         NODE_ENV: 'production',
