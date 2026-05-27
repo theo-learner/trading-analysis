@@ -75,7 +75,8 @@ async function fetchKlines(pair, interval, limit, fetchFnOrOpts) {
   if (opts.chartSource !== 'binance') {
     try {
       return await fetchBybit(pair, interval, limit);
-    } catch (_) {
+    } catch (err) {
+      if (opts.chartSource === 'bybit') throw err; // Bybit-only pair, no Binance fallback
       // Bybit unavailable — fallback to Binance
     }
   }
