@@ -39,13 +39,13 @@ async function fetchBybit(pair, interval, limit) {
     .map(({ closeTime, ...rest }) => rest);
 }
 
-async function fetchBinance(pair, interval, limit) {
+async function fetchBinance(pair, interval, limit, fn = fetch) {
   const url = `${BINANCE_URL}?symbol=${pair}&interval=${interval}&limit=${limit}`;
-  const resp = await fetch(url, {
+  const resp = await fn(url, {
     signal: AbortSignal.timeout(5_000),
     headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)' },
   });
-  if (!resp.ok) throw new Error(`Binance: ${resp.status}`);
+  if (!resp.ok) throw new Error(`Binance API error: ${resp.status}`);
   const raw = await resp.json();
   if (!Array.isArray(raw) || raw.length === 0) throw new Error(`Binance: no data for ${pair}`);
 
@@ -64,26 +64,30 @@ async function fetchBinance(pair, interval, limit) {
     .map(({ closeTime, ...rest }) => rest);
 }
 
-async function fetchKlines(pair, interval, limit, fetchFn) {
-  // Try Bybit first, fallback to Binance if not available
-  const fn = fetchFn || fetch;
-  
-  let result;
-  try {
-    result = await fetchBybit(pair, interval, limit);
-  } catch (_) {
-    // Bybit doesn't have this pair — fallback to Binance
-    result = await fetchBinance(pair, interval, limit);
+async function fetchKlines(pair, interval, limit, fetchFnOrOpts) {
+  // Legacy: if a function is passed (test seam), call Binance directly with it
+  if (typeof fetchFnOrOpts === 'function') {
+    return await fetchBinance(pair, interval, limit, fetchFnOrOpts);
   }
-  return result;
+
+  const opts = fetchFnOrOpts || {};
+  // chartSource:'binance' → skip Bybit, avoid 5s timeout waste for Binance-only pairs
+  if (opts.chartSource !== 'binance') {
+    try {
+      return await fetchBybit(pair, interval, limit);
+    } catch (_) {
+      // Bybit unavailable — fallback to Binance
+    }
+  }
+  return await fetchBinance(pair, interval, limit);
 }
 
-async function fetchCandleSet(pair, fetchFn) {
+async function fetchCandleSet(pair, opts = {}) {
   const [htf, ltf, h1, d1] = await Promise.all([
-    fetchKlines(pair, '4h',  LIMITS.htf, fetchFn),
-    fetchKlines(pair, '15m', LIMITS.ltf, fetchFn),
-    fetchKlines(pair, '1h',  LIMITS.h1, fetchFn),
-    fetchKlines(pair, '1d',  LIMITS.d1, fetchFn),
+    fetchKlines(pair, '4h',  LIMITS.htf, opts),
+    fetchKlines(pair, '15m', LIMITS.ltf, opts),
+    fetchKlines(pair, '1h',  LIMITS.h1, opts),
+    fetchKlines(pair, '1d',  LIMITS.d1, opts),
   ]);
   return { htf, ltf, h1, d1 };
 }

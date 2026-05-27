@@ -67,6 +67,12 @@ async function execute(signal, verdict, cfg, deps = {}) {
     return { pair: signal.pair, direction: signal.direction, dryRun: !isLive, preflightFailed: true, reason: 'already_attempted_this_minute' };
   }
 
+  // R1:1 price — computed here so both immediate-fill and GTC paths use same value
+  const _risk = Math.abs(signal.entry.price - signal.sl);
+  const _r1r1Raw = signal.direction === 'LONG'
+    ? signal.entry.price + _risk
+    : signal.entry.price - _risk;
+
   const trade = {
     id:          tradeId,
     signalKey:   verdict.reason,
@@ -80,7 +86,12 @@ async function execute(signal, verdict, cfg, deps = {}) {
     qty:         0,
     entry:       { requested: signal.entry.price, requestedAt },
     sl:          { price: signal.sl, orderId: null, placementAttempts: 0 },
-    tp:          [{ price: signal.tp?.[0] ?? 0, orderId: null, status: 'pending', filledAt: null, filledPrice: null, qty: 0 }],
+    // tp[0]: R1:1 partial close (50%) — conditional order, real orderId
+    // tp[1]: signal TP (remaining 50%) — placed after tp[0] fills, waiting_tp1 until then
+    tp: [
+      { price: 0, qty: 0, orderId: null, status: 'pending',     filledAt: null, filledPrice: null, basis: 'r1r1' },
+      { price: signal.tp?.[0] ?? 0, qty: 0, orderId: null, status: 'waiting_tp1', filledAt: null, filledPrice: null, basis: 'signal_tp' },
+    ],
     slMoves:     [],
     riskCheck:   {},
     errors:      [],
@@ -95,6 +106,7 @@ async function execute(signal, verdict, cfg, deps = {}) {
   if (!isLive) {
     // Dry-run: 8자리 그대로 사용 (exchangeInfo stepSize 불필요)
     trade.qty = parseFloat((verdict.order.rawQty ?? (notionalUsd / signal.entry.price)).toFixed(8));
+    trade.tp[0].price = parseFloat(_r1r1Raw.toFixed(8));
     _assignFakeOrders(trade);
     trade.entry.filled   = signal.entry.price;
     trade.entry.confirmedAt = requestedAt;
@@ -192,6 +204,13 @@ async function execute(signal, verdict, cfg, deps = {}) {
   trade.entry.filledQty   = filled.filledQty;
   trade.entry.confirmedAt = nowFn();
   trade.entry.slippageBps = _slippageBps(entryPrice, filled.filledPrice);
+
+  // Resolve R1:1 price (tick-rounded) and split qty 50/50 (floor to not exceed position)
+  trade.tp[0].price = _roundPrice(_r1r1Raw, info.tickSize);
+  const halfQty    = _roundQtyFloor(trade.qty * 0.5, info.stepSize);
+  const remainQty  = parseFloat((trade.qty - halfQty).toFixed(8));
+  trade.tp[0].qty  = halfQty;
+  trade.tp[1].qty  = remainQty;
   saveTrade(trade);
 
   // 4. SL placement (partial mode — returns null orderId on success for bybit)
@@ -233,17 +252,17 @@ async function execute(signal, verdict, cfg, deps = {}) {
   }
   saveTrade(trade);
 
-  // 5. TP placement (full position via trading-stop API)
-  const tpPrice = trade.tp?.[0]?.price ?? signal.tp?.[0];
-  if (tpPrice > 0) {
+  // 5. TP1 — conditional order at R1:1 for 50% qty (real orderId, trackable)
+  const tp1Price = trade.tp[0].price;
+  if (tp1Price > 0 && halfQty > 0) {
     try {
-      await exchange.placeTakeProfitMarket(signal.pair, closeSide, tpPrice, trade.qty);
-      trade.tp[0].orderId = 'tp_trading-stop';
-      trade.tp[0].qty = trade.qty;
+      const tp1Result = await exchange.placeTakeProfitOrder(signal.pair, closeSide, tp1Price, halfQty);
+      trade.tp[0].orderId = tp1Result.orderId ?? 'tp1_conditional';
     } catch (err) {
-      trade.errors.push({ at: nowFn(), stage: 'tp', message: err.message });
+      trade.errors.push({ at: nowFn(), stage: 'tp1', message: err.message });
     }
   }
+  // TP2 (signal TP for remaining 50%) is placed by position-monitor after TP1 fills
 
   saveTrade(trade);
   return trade;
@@ -310,9 +329,20 @@ async function _preflight(signal, cfg, exchange, marginUsd, notionalUsd) {
 
 function _assignFakeOrders(trade) {
   trade.sl.orderId = _fakeId();
-  // Single full-position TP — no split
+  // TP1 (R1:1, 50%): real-id equivalent for dry-run
+  const halfQty = _roundQtyFloor(trade.qty * 0.5, 0.001);
+  trade.tp[0].qty     = halfQty;
   trade.tp[0].orderId = _fakeId();
-  trade.tp[0].qty     = trade.qty;
+  // TP2 (signal TP, remaining 50%): placed after TP1 fills
+  trade.tp[1].qty     = parseFloat((trade.qty - halfQty).toFixed(8));
+  // tp[1].orderId stays null until TP1 fills
+}
+
+function _roundQtyFloor(qty, stepSize) {
+  if (!stepSize || stepSize <= 0) return parseFloat(qty.toFixed(8));
+  const precision = Math.max(0, Math.round(-Math.log10(stepSize)));
+  const factor = Math.pow(10, precision);
+  return parseFloat((Math.floor(qty * factor) / factor).toFixed(precision));
 }
 
 function _fakeId() {

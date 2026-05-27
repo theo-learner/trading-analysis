@@ -74,7 +74,8 @@ class BaseExchange {
   async placeStopMarket(symbol, side, stopPrice, qty) { _abstract(); }  // eslint-disable-line no-unused-vars
 
   /**
-   * Place a TAKE_PROFIT_MARKET order (reduceOnly).
+   * Place a TAKE_PROFIT_MARKET order (reduceOnly) for the full remaining position.
+   * Uses position-level API (virtual orderId) — fill detected via position closure.
    * @param {string} symbol
    * @param {'BUY'|'SELL'} side
    * @param {number} stopPrice
@@ -82,6 +83,17 @@ class BaseExchange {
    * @returns {Promise<{ orderId: number|string }>}
    */
   async placeTakeProfitMarket(symbol, side, stopPrice, qty) { _abstract(); }  // eslint-disable-line no-unused-vars
+
+  /**
+   * Place a conditional take-profit order for a specific qty (partial close).
+   * Returns a real trackable orderId — fill detected when orderId leaves open orders.
+   * @param {string} symbol
+   * @param {'BUY'|'SELL'} side
+   * @param {number} triggerPrice
+   * @param {number} qty
+   * @returns {Promise<{ orderId: number|string }>}
+   */
+  async placeTakeProfitOrder(symbol, side, triggerPrice, qty) { _abstract(); }  // eslint-disable-line no-unused-vars
 
   /**
    * @param {string} symbol

@@ -52,7 +52,7 @@ async function run(deps = {}) {
         continue;
       }
       try {
-        const candles = await fetchCandleSet(pairCfg.symbol);
+        const candles = await fetchCandleSet(pairCfg.symbol, { chartSource: pairCfg.chartSource });
         const signal = analyzeICT({
           htfCandles: candles.htf,
           ltfCandles: candles.ltf,

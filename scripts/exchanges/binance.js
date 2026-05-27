@@ -193,6 +193,11 @@ class BinanceExchange extends BaseExchange {
     return { orderId: data.orderId };
   }
 
+  async placeTakeProfitOrder(symbol, side, triggerPrice, qty) {
+    // Binance TAKE_PROFIT_MARKET already returns a real orderId — reuse directly
+    return this.placeTakeProfitMarket(symbol, side, triggerPrice, qty);
+  }
+
   async getPosition(symbol) {
     const data = await this._request('GET', '/fapi/v2/positionRisk', { symbol }, true);
     const pos = Array.isArray(data) ? data.find(p => p.symbol === symbol) : data;

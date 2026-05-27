@@ -216,17 +216,38 @@ async function _checkUnfilledTrade(trade, exchange, cfg, nowFn) {
     return;
   }
 
-  // TP placement
-  var tpPrice = trade.tp && trade.tp[0] && trade.tp[0].price;
-  if (tpPrice > 0) {
+  // TP1 — conditional order at R1:1 for 50% qty (real orderId, trackable)
+  var symbolInfo;
+  try { symbolInfo = await exchange.getSymbolInfo(trade.pair); } catch (_e) { symbolInfo = {}; }
+  var stepSize = symbolInfo.stepSize || 0.001;
+  var tickSize = symbolInfo.tickSize || 0.01;
+
+  // Resolve R1:1 price if not already set (GTC fill path)
+  if (!trade.tp[0].price || trade.tp[0].price <= 0) {
+    var sig = trade.signal || {};
+    var sigEntry = (sig.entry && sig.entry.price) ? sig.entry.price : (trade.entry.filled || trade.entry.requested);
+    var sigSl = sig.sl || trade.sl.price;
+    var sigDir = sig.direction || trade.direction;
+    var risk = Math.abs(sigEntry - sigSl);
+    var r1r1Raw = sigDir === 'LONG' ? sigEntry + risk : sigEntry - risk;
+    trade.tp[0].price = _roundPrice(r1r1Raw, tickSize);
+  }
+
+  var halfQty = _roundQtyFloor(trade.qty * 0.5, stepSize);
+  var remainQtyPostfill = parseFloat((trade.qty - halfQty).toFixed(8));
+  trade.tp[0].qty = halfQty;
+  trade.tp[1].qty = remainQtyPostfill;
+
+  var tp1Price = trade.tp[0].price;
+  if (tp1Price > 0 && halfQty > 0) {
     try {
-      await exchange.placeTakeProfitMarket(trade.pair, closeSide, tpPrice, trade.qty);
-      trade.tp[0].orderId = 'tp_trading-stop';
-      trade.tp[0].qty = trade.qty;
+      var tp1Result = await exchange.placeTakeProfitOrder(trade.pair, closeSide, tp1Price, halfQty);
+      trade.tp[0].orderId = tp1Result.orderId || 'tp1_conditional';
     } catch (err) {
-      trade.errors.push({ at: nowFn(), stage: 'tp_postfill', message: err.message });
+      trade.errors.push({ at: nowFn(), stage: 'tp1_postfill', message: err.message });
     }
   }
+  // TP2 (signal TP) placed by _checkTrade after TP1 fills
 
   saveTrade(trade);
 }
@@ -277,15 +298,27 @@ async function _checkTrade(trade, exchange, cfg, nowFn) {
   }
   if (!tpFilled) return;
 
-  // Trailing SL
-  if (cfg.trailing) {
-    await _sleep(cfg.trailing.moveOnFillConfirmDelayMs || 1500);
-    var trailing = cfg.trailing;
-    if (trailing.tp2ToTP1 && trade.tp[1]?.status === 'filled' && trade.tp[0]?.status === 'filled') {
-      await _moveSL(trade, exchange, cfg, trade.tp[0].price, 'tp2_filled_sl_to_tp1', nowFn);
-    } else if (trailing.tp1ToBE && trade.tp[0]?.status === 'filled') {
-      var bePrice = trade.entry.filled ?? trade.entry.requested;
-      await _moveSL(trade, exchange, cfg, bePrice, 'tp1_filled_sl_to_be', nowFn);
+  // TP1 filled → move SL to BE + place TP2 at signal TP for remaining 50%
+  if (trade.tp[0] && trade.tp[0].status === 'filled' &&
+      trade.tp[1] && trade.tp[1].status === 'waiting_tp1') {
+    var delayMs = (cfg.trailing && cfg.trailing.moveOnFillConfirmDelayMs) || 1500;
+    await _sleep(delayMs);
+
+    // Move SL to breakeven (entry price)
+    var bePrice = trade.entry.filled || trade.entry.requested;
+    await _moveSL(trade, exchange, cfg, bePrice, 'tp1_filled_sl_to_be', nowFn);
+
+    // Place TP2 at signal TP for remaining qty (position-level, full remaining position)
+    var closeSideTp2 = trade.direction === 'LONG' ? 'SELL' : 'BUY';
+    var tp2Price = trade.tp[1].price;
+    if (tp2Price > 0) {
+      try {
+        await exchange.placeTakeProfitMarket(trade.pair, closeSideTp2, tp2Price, trade.tp[1].qty);
+        trade.tp[1].orderId = 'tp_trading-stop';
+        trade.tp[1].status  = 'pending';
+      } catch (err) {
+        trade.errors.push({ at: nowFn(), stage: 'tp2', message: err.message });
+      }
     }
   }
 
@@ -424,6 +457,19 @@ async function _reconcile(exchange, cfg, nowFn) {
     localPairs.add(pos.pair);
     console.log('[position-monitor] adoptOrphans: ' + pos.pair + ' ' + pos.side + ' @' + pos.entryPrice + ' imported from exchange');
   }
+}
+
+function _roundQtyFloor(qty, stepSize) {
+  if (!stepSize || stepSize <= 0) return parseFloat(qty.toFixed(8));
+  var precision = Math.max(0, Math.round(-Math.log10(stepSize)));
+  var factor = Math.pow(10, precision);
+  return parseFloat((Math.floor(qty * factor) / factor).toFixed(precision));
+}
+
+function _roundPrice(price, tickSize) {
+  if (!tickSize || tickSize <= 0) return price;
+  var precision = Math.max(0, Math.round(-Math.log10(tickSize)));
+  return parseFloat(price.toFixed(precision));
 }
 
 function _sleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }

@@ -267,19 +267,34 @@ class BybitExchange extends BaseExchange {
     // Unified account (Full mode): set TP via /v5/position/trading-stop
     // tpslMode MUST be 'Full' explicitly
     // Full mode supports 1 TP only (full position close)
-    try {
-      await this._request('POST', '/v5/position/trading-stop', {
-        category:    'linear',
-        symbol,
-        takeProfit:  String(stopPrice),
-        tpTriggerBy: 'MarkPrice',
-        tpOrderType: 'Market',
-        tpslMode:    'Full',
-      }, true);
-      return { orderId: null };
-    } catch (err) {
-      throw err;
-    }
+    await this._request('POST', '/v5/position/trading-stop', {
+      category:    'linear',
+      symbol,
+      takeProfit:  String(stopPrice),
+      tpTriggerBy: 'MarkPrice',
+      tpOrderType: 'Market',
+      tpslMode:    'Full',
+    }, true);
+    return { orderId: null };
+  }
+
+  async placeTakeProfitOrder(symbol, side, triggerPrice, qty) {
+    // Conditional TP via /v5/order/create — real orderId, trackable via getOpenOrders
+    // Used for partial close (TP1 at R1:1, 50% qty)
+    const bySide = side === 'BUY' ? 'Buy' : 'Sell';
+    const data = await this._request('POST', '/v5/order/create', {
+      category:      'linear',
+      symbol,
+      side:          bySide,
+      orderType:     'Market',
+      qty:           String(qty),
+      stopOrderType: 'TakeProfit',
+      triggerPrice:  String(triggerPrice),
+      triggerBy:     'MarkPrice',
+      timeInForce:   'IOC',
+      reduceOnly:    true,
+    }, true);
+    return { orderId: data?.orderId };
   }
 
   async getPosition(symbol) {
