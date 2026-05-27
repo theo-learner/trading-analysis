@@ -376,7 +376,8 @@ async function ensureTables() {
     pair TEXT PRIMARY KEY, exchange TEXT NOT NULL DEFAULT 'binance',
     chart_source TEXT NOT NULL DEFAULT 'binance',
     skip_on_error BOOLEAN DEFAULT FALSE, sort_order INTEGER DEFAULT 0
-  );`);
+  );
+  ALTER TABLE pairs_config ENABLE ROW LEVEL SECURITY;`);
 
   const { rows: existing } = await runSQL('SELECT COUNT(*) as cnt FROM pairs_config');
   if (existing[0].cnt === 0) {
@@ -390,7 +391,8 @@ async function ensureTables() {
 
   await runSQL(`CREATE TABLE IF NOT EXISTS dashboard_config (
     id INTEGER PRIMARY KEY CHECK (id = 1), mode TEXT DEFAULT 'DRY-RUN'
-  );`);
+  );
+  ALTER TABLE dashboard_config ENABLE ROW LEVEL SECURITY;`);
   const { rows: cfgRows } = await runSQL('SELECT COUNT(*) as cnt FROM dashboard_config');
   if (cfgRows[0].cnt === 0) {
     await runSQL('INSERT INTO dashboard_config (id, mode) VALUES (1, $1)', ['DRY-RUN']);
@@ -401,13 +403,15 @@ async function ensureTables() {
     confidence NUMERIC, summary TEXT, details JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW()
   );
-  CREATE INDEX IF NOT EXISTS idx_signals_pair_time ON signals(pair, created_at DESC);`);
+  CREATE INDEX IF NOT EXISTS idx_signals_pair_time ON signals(pair, created_at DESC);
+  ALTER TABLE signals ENABLE ROW LEVEL SECURITY;`);
 
   await runSQL(`CREATE TABLE IF NOT EXISTS diaries (
     id SERIAL PRIMARY KEY, pair TEXT NOT NULL, diary TEXT NOT NULL,
     level TEXT, timeframe TEXT, created_at TIMESTAMPTZ DEFAULT NOW()
   );
-  CREATE INDEX IF NOT EXISTS idx_diaries_pair_time ON diaries(pair, created_at DESC);`);
+  CREATE INDEX IF NOT EXISTS idx_diaries_pair_time ON diaries(pair, created_at DESC);
+  ALTER TABLE diaries ENABLE ROW LEVEL SECURITY;`);
 
   console.log('✅ All tables ready');
 }

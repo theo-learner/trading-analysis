@@ -70,6 +70,7 @@ async function ensureTable() {
     CREATE INDEX IF NOT EXISTS idx_trades_direction ON trades(direction);
     CREATE INDEX IF NOT EXISTS idx_trades_created ON trades(created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_trades_pair ON trades(pair);
+    ALTER TABLE trades ENABLE ROW LEVEL SECURITY;
   `);
   console.log('✅ Table ready');
 }
