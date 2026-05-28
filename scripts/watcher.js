@@ -144,6 +144,39 @@ async function run(deps = {}) {
 }
 
 if (require.main === module) {
+  // Singleton guard — prevents a rogue manual instance from running alongside PM2.
+  // If watcher.js is already running (different PID), log and exit immediately.
+  const fs   = require('node:fs');
+  const path = require('node:path');
+  const LOCK = path.join(__dirname, '..', 'sessions', 'watcher.lock');
+  const myPid = process.pid;
+
+  function acquireLock() {
+    try {
+      const existing = fs.readFileSync(LOCK, 'utf8').trim();
+      const existingPid = parseInt(existing, 10);
+      if (existingPid && existingPid !== myPid) {
+        try {
+          process.kill(existingPid, 0); // throws if PID doesn't exist
+          console.error(`[watcher] ABORT — another instance is already running (PID ${existingPid}). Kill it first or use PM2.`);
+          process.exit(1);
+        } catch {
+          // Stale lock — previous process died without cleanup
+        }
+      }
+    } catch { /* no lock file yet */ }
+    fs.writeFileSync(LOCK, String(myPid));
+  }
+
+  function releaseLock() {
+    try { fs.unlinkSync(LOCK); } catch { /* ignore */ }
+  }
+
+  acquireLock();
+  process.on('exit', releaseLock);
+  process.on('SIGTERM', () => { releaseLock(); process.exit(0); });
+  process.on('SIGINT',  () => { releaseLock(); process.exit(0); });
+
   const INTERVAL_MS = 60_000;
 
   (async function loop() {
