@@ -14,7 +14,7 @@ const TF_CODE = {
 async function fetchBybit(pair, interval, limit) {
   const url = `${BYBIT_URL}?category=spot&symbol=${pair}&interval=${TF_CODE[interval]}&limit=${limit}`;
   const resp = await fetch(url, {
-    signal: AbortSignal.timeout(5_000),
+    signal: AbortSignal.timeout(10_000),
     headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)' },
   });
   if (!resp.ok) throw new Error(`Bybit: ${resp.status}`);
@@ -42,7 +42,7 @@ async function fetchBybit(pair, interval, limit) {
 async function fetchBinance(pair, interval, limit, fn = fetch) {
   const url = `${BINANCE_URL}?symbol=${pair}&interval=${interval}&limit=${limit}`;
   const resp = await fn(url, {
-    signal: AbortSignal.timeout(5_000),
+    signal: AbortSignal.timeout(10_000),
     headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)' },
   });
   if (!resp.ok) throw new Error(`Binance API error: ${resp.status}`);
