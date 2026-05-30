@@ -1,7 +1,7 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
-const { runSQL, ensureTable } = require('./db-driver');
+const { runSQL, ensureTable, closeDB } = require('./db-driver');
 
 const LIVE = path.join(__dirname, '..', 'trades', 'live');
 const STATE = path.join(__dirname, '..', 'scripts', '.sync-state.json');
@@ -84,4 +84,4 @@ async function main() {
   else { console.log('✅ No changes'); }
 }
 
-main().catch(console.error);
+main().catch(console.error).finally(closeDB);
