@@ -186,6 +186,20 @@
   ::-webkit-scrollbar { width: 5px; height: 5px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  #positions-section { flex-shrink: 0; border-top: 1px solid var(--border); background: var(--panel); }
+  #positions-header { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-bottom: 1px solid var(--border); }
+  #positions-header h3 { font-size: 12px; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: 0.6px; }
+  #positions-header .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--bull); animation: pulse 2s ease infinite; }
+  #positions-refresh { background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 3px; padding: 2px 7px; cursor: pointer; font-size: 13px; line-height: 1; }
+  #positions-refresh:hover { color: var(--text); }
+  #positions-updated { font-size: 11px; color: var(--muted); margin-left: auto; }
+  #positions-table-wrap { overflow-x: auto; }
+  #positions-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  #positions-table th { padding: 6px 12px; text-align: left; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--border); font-size: 11px; }
+  #positions-table td { padding: 7px 12px; border-bottom: 1px solid var(--border); }
+  #positions-empty { padding: 12px 14px; font-size: 12px; color: var(--muted); }
+  #positions-error { padding: 10px 14px; font-size: 12px; color: var(--bear); }
 </style>
 </head>
 <body>
@@ -275,6 +289,26 @@
           <div class="sc-placeholder">구조 확인 대기 중</div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Bybit 실시간 포지션 -->
+  <div id="positions-section">
+    <div id="positions-header">
+      <div class="live-dot"></div>
+      <h3>Bybit 실시간 포지션</h3>
+      <button id="positions-refresh" title="새로고침">↻</button>
+      <span id="positions-updated"></span>
+    </div>
+    <div id="positions-table-wrap">
+      <table id="positions-table" style="display:none">
+        <thead><tr>
+          <th>페어</th><th>방향</th><th>수량</th><th>진입가</th><th>현재가</th><th>미실현 PnL</th><th>레버리지</th><th>청산가</th>
+        </tr></thead>
+        <tbody id="positions-tbody"></tbody>
+      </table>
+      <div id="positions-empty">포지션 없음</div>
+      <div id="positions-error" style="display:none"></div>
     </div>
   </div>
 
@@ -1580,7 +1614,7 @@ function renderHistory(trades, stats) {
     const isLong = t.direction === 'LONG';
     const pnl = t.realizedPnl != null ? parseFloat(t.realizedPnl).toFixed(2) : '—';
     const pnlClass = t.realizedPnl > 0 ? 'pos' : t.realizedPnl < 0 ? 'neg' : '';
-    var entryPrice = t.entry?.filled ?? t.entry?.entryPrice ?? t.entry?.price ?? t.entry?.requested ?? t.entry;
+    var entryPrice = (t.entry?.filled > 0 ? t.entry.filled : null) ?? t.entry?.entryPrice ?? t.entry?.price ?? t.entry?.requested ?? t.entry;
     var exitPrice = '—';
     if (t.tp && t.tp[0] && t.tp[0].filledPrice) { exitPrice = formatPrice(t.tp[0].filledPrice); }
     else if (t.tp && t.tp[0] && t.tp[0].price) { exitPrice = formatPrice(t.tp[0].price); }
@@ -1601,6 +1635,53 @@ function renderHistory(trades, stats) {
     '</tr>';
   }).join('');
 }
+
+// ── Bybit 실시간 포지션 ──────────────────────────────────────────────────────
+async function loadBybitPositions() {
+  const errorEl = document.getElementById('positions-error');
+  const emptyEl = document.getElementById('positions-empty');
+  const tableEl = document.getElementById('positions-table');
+  const tbody   = document.getElementById('positions-tbody');
+  const updated = document.getElementById('positions-updated');
+  try {
+    const resp = await fetch(`${API}/api/bybit-positions`);
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error);
+    const positions = data.positions || [];
+    updated.textContent = '업데이트: ' + new Date().toLocaleTimeString('ko-KR');
+    errorEl.style.display = 'none';
+    if (!positions.length) {
+      emptyEl.style.display = 'block';
+      tableEl.style.display = 'none';
+      return;
+    }
+    emptyEl.style.display = 'none';
+    tableEl.style.display = 'table';
+    tbody.innerHTML = positions.map(p => {
+      const isLong = p.side === 'Buy';
+      const pnl = parseFloat(p.unrealisedPnl || 0);
+      const pnlStr = (pnl >= 0 ? '+' : '') + '$' + pnl.toFixed(2);
+      const pnlClass = pnl > 0 ? 'td-long' : pnl < 0 ? 'td-short' : '';
+      return '<tr>' +
+        '<td>' + p.symbol + '</td>' +
+        '<td class="' + (isLong ? 'td-long' : 'td-short') + '">' + (isLong ? 'LONG' : 'SHORT') + '</td>' +
+        '<td>' + p.size + '</td>' +
+        '<td>' + formatPrice(parseFloat(p.avgPrice)) + '</td>' +
+        '<td>' + formatPrice(parseFloat(p.markPrice)) + '</td>' +
+        '<td class="' + pnlClass + '">' + pnlStr + '</td>' +
+        '<td>' + p.leverage + 'x</td>' +
+        '<td>' + (parseFloat(p.liqPrice) > 0 ? formatPrice(parseFloat(p.liqPrice)) : '—') + '</td>' +
+      '</tr>';
+    }).join('');
+  } catch (e) {
+    emptyEl.style.display = 'none';
+    tableEl.style.display = 'none';
+    errorEl.style.display = 'block';
+    errorEl.textContent = '포지션 조회 실패: ' + e.message;
+  }
+}
+
+document.getElementById('positions-refresh').addEventListener('click', loadBybitPositions);
 
 // ── 거래 이력 로드 ──────────────────────────────────────────────────────────
 async function loadTrades() {
@@ -1675,9 +1756,11 @@ async function init() {
   connectWS();
   connectSSE();
   loadTrades();
+  loadBybitPositions();
   await loadLatestSignal();
   await loadLatestDiary();
   setInterval(loadTrades, 15_000);
+  setInterval(loadBybitPositions, 30_000);
 
   // 자동 분석 (비동기 — 에러는 silent)
   try {

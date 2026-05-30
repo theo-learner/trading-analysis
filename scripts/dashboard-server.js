@@ -26,6 +26,7 @@ const { fetchCandleSet } = require('./utils/binance');
 const { buildDiary }     = require('./modules/diary');
 const { normalizePair, loadPairs } = require('./utils/pair-config');
 const { openTrades, closedTrades } = require('./utils/trade-store');
+const { loadBybitCredentials }     = require('./utils/exchange-creds');
 const traderConfig       = require('./config/trader.json');
 
 const PAIRS = loadPairs();
@@ -379,6 +380,35 @@ async function handleRequest(req, res) {
       return jsonResponse(res, { ok: true, diary, filename: `diary/${files[0]}` });
     } catch (_) {
       return jsonResponse(res, { ok: false, diary: null });
+    }
+  }
+
+  // ── GET /api/bybit-positions ──────────────────────────────────────────────
+  if (req.method === 'GET' && pathname === '/api/bybit-positions') {
+    try {
+      const creds = loadBybitCredentials();
+      const crypto = require('node:crypto');
+      function sign(ts, qs) {
+        return crypto.createHmac('sha256', creds.apiSecret)
+          .update(`${ts}${creds.apiKey}5000${qs}`).digest('hex');
+      }
+      const qs = 'category=linear&settleCoin=USDT';
+      const ts = Date.now().toString();
+      const resp = await fetch(`https://api.bybit.com/v5/position/list?${qs}`, {
+        signal: AbortSignal.timeout(8000),
+        headers: {
+          'X-BAPI-API-KEY':     creds.apiKey,
+          'X-BAPI-SIGN':        sign(ts, qs),
+          'X-BAPI-TIMESTAMP':   ts,
+          'X-BAPI-RECV-WINDOW': '5000',
+        },
+      });
+      const json = await resp.json();
+      if (json.retCode !== 0) return jsonResponse(res, { error: json.retMsg }, 502);
+      const positions = (json.result?.list || []).filter(p => parseFloat(p.size) > 0);
+      return jsonResponse(res, { positions });
+    } catch (e) {
+      return jsonResponse(res, { error: e.message }, 500);
     }
   }
 
